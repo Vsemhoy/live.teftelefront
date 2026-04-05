@@ -1,0 +1,170 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '@/shared/utils/api';
+import dayjs from 'dayjs';
+
+// ---- Query Keys ----
+export const eventorKeys = {
+  all: ['eventor'],
+  events: (params) => ['eventor', 'events', params],
+  event: (id) => ['eventor', 'event', id],
+  sections: () => ['eventor', 'sections'],
+  types: () => ['eventor', 'types'],
+  search: (params) => ['eventor', 'search', params],
+};
+
+// ---- Hooks ----
+
+/**
+ * Загрузка событий за диапазон дат + секцию
+ */
+export const useEvents = ({ start, end, section }) => {
+  return useQuery({
+    queryKey: eventorKeys.events({ start, end, section }),
+    queryFn: async () => {
+      const res = await api.post('/eventor/getmyevents', {
+        start,
+        end,
+        sections: [section],
+      });
+      return res.data.content;
+    },
+    enabled: Boolean(start && end),
+  });
+};
+
+/**
+ * Одно событие по id (для полного просмотра/редактирования)
+ */
+export const useEvent = (id) => {
+  return useQuery({
+    queryKey: eventorKeys.event(id),
+    queryFn: async () => {
+      const res = await api.post(`/eventor/getmyevent/${id}`, {});
+      return res.data.content;
+    },
+    enabled: Boolean(id),
+  });
+};
+
+/**
+ * Секции пользователя
+ */
+export const useSections = () => {
+  return useQuery({
+    queryKey: eventorKeys.sections(),
+    queryFn: async () => {
+      const res = await api.post('/eventor/getmysections', {});
+      return res.data.content;
+    },
+  });
+};
+
+/**
+ * Типы событий (системные + пользовательские)
+ */
+export const useEventTypes = () => {
+  return useQuery({
+    queryKey: eventorKeys.types(),
+    queryFn: async () => {
+      const res = await api.post('/eventor/getmytypes', {});
+      return res.data.content;
+    },
+    // Типы меняются редко — кэшируем на 30 минут
+    staleTime: 30 * 60 * 1000,
+  });
+};
+
+/**
+ * Полнотекстовый поиск
+ */
+export const useEventSearch = ({ q, sections, types, dateFrom, dateTo, page = 1 }) => {
+  return useQuery({
+    queryKey: eventorKeys.search({ q, sections, types, dateFrom, dateTo, page }),
+    queryFn: async () => {
+      const res = await api.post('/eventor/search', {
+        q,
+        sections,
+        types,
+        date_from: dateFrom,
+        date_to: dateTo,
+        page,
+        per_page: 20,
+      });
+      return res.data;
+    },
+    // Не запускаем если запрос пустой
+    enabled: Boolean(q && q.trim().length >= 2),
+  });
+};
+
+/**
+ * Сохранение события (create или update)
+ */
+export const useSaveEvent = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data) => {
+      if (data.id) {
+        const res = await api.post(`/eventor/updateevent/${data.id}`, data);
+        return res.data.content;
+      } else {
+        const res = await api.post('/eventor/saveevent', data);
+        return res.data.content;
+      }
+    },
+    onSuccess: (savedEvent) => {
+      // Инвалидируем кэш событий за соответствующий месяц
+      const month = dayjs(savedEvent.setdate).format('YYYY-MM');
+      qc.invalidateQueries({
+        predicate: (q) =>
+          q.queryKey[0] === 'eventor' && q.queryKey[1] === 'events',
+      });
+      // Обновляем кэш конкретного события если оно уже было загружено
+      qc.setQueryData(eventorKeys.event(savedEvent.id), savedEvent);
+    },
+  });
+};
+
+/**
+ * Удаление события
+ */
+export const useDeleteEvent = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      await api.delete(`/eventor/deleteevent/${id}`);
+      return id;
+    },
+    onSuccess: (deletedId) => {
+      qc.invalidateQueries({
+        predicate: (q) =>
+          q.queryKey[0] === 'eventor' && q.queryKey[1] === 'events',
+      });
+      qc.removeQueries({ queryKey: eventorKeys.event(deletedId) });
+    },
+  });
+};
+
+/**
+ * Сохранение секции
+ */
+export const useSaveSection = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data) => {
+      if (data.id) {
+        const res = await api.post(`/eventor/updatesection/${data.id}`, data);
+        return res.data.content;
+      } else {
+        const res = await api.post('/eventor/savesection', data);
+        return res.data.content;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: eventorKeys.sections() });
+    },
+  });
+};

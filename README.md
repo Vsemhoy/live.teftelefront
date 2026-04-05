@@ -1,2 +1,2 @@
-# telefront
-Teftele vite front
+# teftelefront
+Teftele Vite Front
