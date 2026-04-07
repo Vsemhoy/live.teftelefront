@@ -12,6 +12,8 @@ import dayjs from 'dayjs';
 import { useEventorStore } from '../../store/eventorStore';
 import { useEventSearch, useSections, useEventTypes } from '../../api/eventorApi';
 import { ReadModal } from '../../components/ReadModal/ReadModal';
+import Masonry from 'react-masonry-css';
+import { useMasonryColumns } from '@/shared/hooks/useMasonryColumns';
 
 const Snippet = ({ text, query }) => {
   if (!text || !query) return <Text size="xs" c="dimmed" lineClamp={2}>{text?.substring(0, 160)}</Text>;
@@ -60,6 +62,9 @@ export const SearchPanel = () => {
   const { openReader } = useEventorStore();
   const { data: sections } = useSections();
   const { data: types } = useEventTypes();
+
+  // Динамические колонки масонри
+  const { ref: containerRef, columns: masonryColumns } = useMasonryColumns(650);
 
   // URL — source of truth для всех параметров поиска
   const [searchParams, setSearchParams] = useSearchParams();
@@ -111,7 +116,7 @@ export const SearchPanel = () => {
   const typeOptions    = types?.map((t)    => ({ value: t.id, label: t.name })) || [];
 
   return (
-    <div className="content-scroll">
+    <div className="content-scroll" ref={containerRef}>
       <Box px={16} pt={12} pb={0}>
         {/* Строка поиска — подхватывает ?q= из URL (в т.ч. из хедера) */}
         <TextInput
@@ -181,9 +186,23 @@ export const SearchPanel = () => {
         {!isLoading && debouncedQuery.length >= 2 && results.length === 0 && (
           <Center h={140}><Text size="sm" c="dimmed">Nothing found for "{debouncedQuery}"</Text></Center>
         )}
-        {results.map((event) => (
-          <SearchResultCard key={event.id} event={event} query={debouncedQuery} onDoubleClick={handleDoubleClick} />
-        ))}
+        {results.length > 0 && (
+          masonryColumns === 1 ? (
+            results.map((event) => (
+              <SearchResultCard key={event.id} event={event} query={debouncedQuery} onDoubleClick={handleDoubleClick} />
+            ))
+          ) : (
+            <Masonry
+              breakpointCols={{ default: masonryColumns }}
+              className="masonry-grid"
+              columnClassName="masonry-grid-col"
+            >
+              {results.map((event) => (
+                <SearchResultCard key={event.id} event={event} query={debouncedQuery} onDoubleClick={handleDoubleClick} />
+              ))}
+            </Masonry>
+          )
+        )}
         {isFetching && !isLoading && <Text size="xs" c="dimmed" ta="center">Updating…</Text>}
       </Stack>
     </div>

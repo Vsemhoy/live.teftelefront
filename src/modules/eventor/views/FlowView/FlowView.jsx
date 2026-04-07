@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { Text, Box, Center, Loader, Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { useSearchParams } from 'react-router-dom';
+import Masonry from 'react-masonry-css';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import { useEventorStore } from '../../store/eventorStore';
 import { useEvents } from '../../api/eventorApi';
 import { EventCard } from '../../components/EventCard/EventCard';
+import { useMasonryColumns } from '@/shared/hooks/useMasonryColumns';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -18,7 +20,7 @@ const MonthHeader = ({ date }) => (
   <div className="flow-month-header">{date.format('MMMM YYYY')}</div>
 );
 
-const DayRow = ({ date, events, onAddClick, isToday, stripe }) => {
+const DayRow = ({ date, events, onAddClick, isToday, stripe, masonryColumns }) => {
   const dayNum = date.date();
   const dayName = WEEKDAYS[date.day()];
   const isWeekend = date.day() === 0 || date.day() === 6;
@@ -32,13 +34,22 @@ const DayRow = ({ date, events, onAddClick, isToday, stripe }) => {
     rowBg = stripe ? 'rgba(0,0,0,0.018)' : 'transparent';
   }
 
+  // Breakpoints для react-masonry-css — используем вычисленное число колонок
+  const breakpoints = { default: masonryColumns };
+
   return (
     <div
       className="flow-date-row"
       id={isToday ? 'today_row' : undefined}
       style={{ background: rowBg }}
     >
-      <div className={`flow-date-label ${isToday ? 'today' : ''}`}>
+      {/* Колонка даты — двойной клик добавляет событие */}
+      <div
+        className={`flow-date-label ${isToday ? 'today' : ''}`}
+        onDoubleClick={() => onAddClick(date.format('YYYY-MM-DD'))}
+        title="Double-click to add event"
+        style={{ cursor: 'pointer' }}
+      >
         {isToday ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
             <div style={{
@@ -62,7 +73,24 @@ const DayRow = ({ date, events, onAddClick, isToday, stripe }) => {
       </div>
 
       <div className="flow-events-col">
-        {events.map((event) => <EventCard key={event.id} event={event} />)}
+        {events.length > 0 ? (
+          // Масонри для карточек — если одна колонка, просто стак
+          masonryColumns === 1 ? (
+            events.map((event) => <EventCard key={event.id} event={event} />)
+          ) : (
+            <Masonry
+              breakpointCols={breakpoints}
+              className="masonry-grid"
+              columnClassName="masonry-grid-col"
+            >
+              {events.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </Masonry>
+          )
+        ) : null}
+
+        {/* Кнопка Add — видна при ховере */}
         <Box className="flow-add-btn" mt={events.length > 0 ? 4 : 0}>
           <Button
             variant="subtle" color="gray" size="compact-xs"
@@ -82,9 +110,11 @@ export const FlowView = () => {
   const [searchParams] = useSearchParams();
   const { openEditor } = useEventorStore();
 
-  // Всё из URL
-  const startParam   = searchParams.get('start');
-  const endParam     = searchParams.get('end');
+  // Динамические колонки масонри — целевая ширина 650px
+  const { ref: containerRef, columns: masonryColumns } = useMasonryColumns(650);
+
+  const startParam    = searchParams.get('start');
+  const endParam      = searchParams.get('end');
   const activeSection = searchParams.get('section') || 'ALL';
   const flowDirection = searchParams.get('dir') || 'DESC';
 
@@ -146,7 +176,7 @@ export const FlowView = () => {
   let rowIndex = 0;
 
   return (
-    <div className="content-scroll" style={{ paddingBottom: 80 }}>
+    <div className="content-scroll" style={{ paddingBottom: 80 }} ref={containerRef}>
       {dateArray.map((date) => {
         const dateStr = date.format('YYYY-MM-DD');
         const isToday = dateStr === today;
@@ -168,6 +198,7 @@ export const FlowView = () => {
               onAddClick={handleAddClick}
               isToday={isToday}
               stripe={stripe}
+              masonryColumns={masonryColumns}
             />
           </div>
         );

@@ -15,6 +15,8 @@ import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { useSaveEvent } from '../../api/eventorApi';
 import { useEventorStore } from '../../store/eventorStore';
+import Masonry from 'react-masonry-css';
+import { useMasonryColumns } from '@/shared/hooks/useMasonryColumns';
 
 const DraftCard = ({ draft, onSync, onView, onEdit, onDelete, isSyncing }) => {
   const date = dayjs(draft.setdate).format('D MMM YYYY');
@@ -93,6 +95,7 @@ export const DraftsView = () => {
   const { openEditor, openReader } = useEventorStore();
   const { mutateAsync: saveEvent } = useSaveEvent();
   const [syncingId, setSyncingId] = useState(null);
+  const { ref: containerRef, columns: masonryColumns } = useMasonryColumns(650);
 
   const drafts = useLiveQuery(
     () => db.drafts.orderBy('created_at').reverse().toArray(),
@@ -136,7 +139,7 @@ export const DraftsView = () => {
   };
 
   return (
-    <div className="content-scroll">
+    <div className="content-scroll" ref={containerRef}>
       <Box px={16} pt={12} pb={40}>
         <Group justify="space-between" mb={12}>
           <Group gap={8}>
@@ -159,13 +162,27 @@ export const DraftsView = () => {
           </Center>
         )}
 
-        <Stack gap={8}>
-          {drafts.map((draft) => (
-            <DraftCard key={draft.localId} draft={draft}
-              onSync={handleSync} onView={handleView} onEdit={handleEdit}
-              onDelete={handleDelete} isSyncing={syncingId} />
-          ))}
-        </Stack>
+        {masonryColumns === 1 ? (
+          <Stack gap={8}>
+            {drafts.map((draft) => (
+              <DraftCard key={draft.localId} draft={draft}
+                onSync={handleSync} onView={handleView} onEdit={handleEdit}
+                onDelete={handleDelete} isSyncing={syncingId} />
+            ))}
+          </Stack>
+        ) : (
+          <Masonry
+            breakpointCols={{ default: masonryColumns }}
+            className="masonry-grid"
+            columnClassName="masonry-grid-col"
+          >
+            {drafts.map((draft) => (
+              <DraftCard key={draft.localId} draft={draft}
+                onSync={handleSync} onView={handleView} onEdit={handleEdit}
+                onDelete={handleDelete} isSyncing={syncingId} />
+            ))}
+          </Masonry>
+        )}
       </Box>
     </div>
   );

@@ -288,3 +288,24 @@ body {
   background: rgba(255,255,255,0.94);
   backdrop-filter: blur(6px);
 }
+
+/* ================================================================
+   MASONRY — react-masonry-css
+================================================================ */
+.masonry-grid {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.masonry-grid-col {
+  background-clip: padding-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Карточки в масонри не должны иметь margin-bottom (gap управляет отступами) */
+.masonry-grid-col .event-card {
+  margin-bottom: 0;
+}

@@ -259,6 +259,28 @@ export const EventEditor = () => {
           <Divider />
 
           {/* Rich editor — кнопки Edit/Preview/Raw встроены в тулбар */}
+          {/* Переключатель режимов — всегда виден */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
+            {['edit', 'preview', 'raw'].map((m) => (
+              <button key={m} type="button" onClick={() => setEditMode(m)}
+                style={{
+                  padding: '4px 12px', border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: editMode === m ? 600 : 400,
+                  background: editMode === m ? 'var(--mantine-color-blue-6)' : 'transparent',
+                  color: editMode === m ? 'white' : 'var(--mantine-color-gray-6)',
+                  borderRadius: m === 'edit' ? '4px 0 0 4px' : m === 'raw' ? '0 4px 4px 0' : '0',
+                  borderTop: '1px solid var(--mantine-color-gray-3)',
+                  borderBottom: '1px solid var(--mantine-color-gray-3)',
+                  borderLeft: m === 'edit' ? '1px solid var(--mantine-color-gray-3)' : '0',
+                  borderRight: m === 'raw' ? '1px solid var(--mantine-color-gray-3)' : '0',
+                  transition: 'background 0.15s, color 0.15s',
+                  textTransform: 'capitalize',
+                }}>
+                {m === 'edit' ? 'Edit' : m === 'preview' ? 'Preview' : 'Raw'}
+              </button>
+            ))}
+          </div>
+
           {editMode === 'edit' && (
             <Box
               style={{
@@ -305,21 +327,7 @@ export const EventEditor = () => {
                         <InsertTable />
                         <InsertCodeBlock />
                         <CreateLink />
-                        {/* Edit / Preview / Raw — прямо в тулбаре */}
-                        <div style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
-                          {['edit', 'preview', 'raw'].map((m) => (
-                            <button key={m} type="button" onClick={() => setEditMode(m)}
-                              style={{
-                                padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                                fontSize: 12, fontWeight: editMode === m ? 600 : 400,
-                                background: editMode === m ? 'var(--mantine-color-blue-1)' : 'transparent',
-                                color: editMode === m ? 'var(--mantine-color-blue-7)' : 'var(--mantine-color-gray-6)',
-                                textTransform: 'capitalize',
-                              }}>
-                              {m}
-                            </button>
-                          ))}
-                        </div>
+
                       </>
                     ),
                   }),
