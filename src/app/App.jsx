@@ -1,24 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
-import {
-  Tooltip, ActionIcon, Text, Avatar, Menu, Box, Divider,
-  Center, Loader,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import {
-  IconCalendarEvent, IconPackage, IconCurrencyDollar,
-  IconChecklist, IconBriefcase, IconSettings,
-  IconUser, IconLogout, IconLogin,
-} from '@tabler/icons-react';
+import { Text, Center, Loader } from '@mantine/core';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { AuthModal, AuthWall } from '@/modules/auth/AuthModal';
+import { AppHeader } from './AppHeader';
 
 // Eventor
 import { SectionsSidenav } from '@/modules/eventor/components/SectionsSidenav/SectionsSidenav';
 import { EventorToolbar } from '@/modules/eventor/components/Toolbar/EventorToolbar';
 import { EventEditor } from '@/modules/eventor/components/EventEditor/EventEditor';
+import { ReadModal } from '@/modules/eventor/components/ReadModal/ReadModal';
 import { FlowView } from '@/modules/eventor/views/FlowView/FlowView';
 import { GridCalendar } from '@/modules/eventor/views/GridCalendar/GridCalendar';
 import { SearchPanel } from '@/modules/eventor/views/SearchPanel/SearchPanel';
@@ -30,39 +24,16 @@ const ComingSoon = ({ name }) => (
   </div>
 );
 
-const MODULES = [
-  { id: 'eventor',   label: 'Eventor',   icon: IconCalendarEvent, path: '/eventor' },
-  { id: 'exploiter', label: 'Exploiter', icon: IconPackage,        path: '/exploiter' },
-  { id: 'badger',    label: 'Badger',    icon: IconCurrencyDollar, path: '/badger' },
-  { id: 'tasker',    label: 'Tasker',    icon: IconChecklist,      path: '/tasker' },
-  { id: 'pm',        label: 'PM',        icon: IconBriefcase,      path: '/pm' },
-];
-
-const ModuleIcon = ({ module, isActive, onClick }) => (
-  <Tooltip label={module.label} position="right" withArrow>
-    <ActionIcon
-      variant={isActive ? 'filled' : 'subtle'}
-      color="white"
-      size={36}
-      onClick={onClick}
-      style={{
-        color: isActive ? 'var(--mantine-color-blue-7)' : 'rgba(255,255,255,0.75)',
-        background: isActive ? 'white' : 'transparent',
-        borderRadius: 6,
-        transition: 'all 0.15s',
-      }}
-    >
-      <module.icon size={20} />
-    </ActionIcon>
-  </Tooltip>
-);
-
-// Лэйаут Eventor — общая оболочка с сайднавом и тулбаром
-const EventorLayout = () => {
+// Лэйаут Eventor — обёртка с сайднавом, тулбаром и оффлайн-баннером
+const EventorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => {
   const isOnline = useOnlineStatus();
   return (
     <>
-      <SectionsSidenav />
+      <SectionsSidenav
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={onMobileClose}
+      />
       <div className="main-content">
         {!isOnline && (
           <div className="offline-banner">
@@ -71,7 +42,6 @@ const EventorLayout = () => {
           </div>
         )}
         <EventorToolbar />
-        {/* Outlet рендерит текущий дочерний роут (flow/calendar/search/drafts) */}
         <Outlet />
       </div>
     </>
@@ -83,22 +53,28 @@ export default function App() {
   const isChecked = useAuthStore((s) => s.isChecked);
   const isKnownBrowser = useAuthStore((s) => s.isKnownBrowser);
   const checkAuth = useAuthStore((s) => s.checkAuth);
-  const logout = useAuthStore((s) => s.logout);
 
   const navigate = useNavigate();
   const location = useLocation();
   const [authOpened, { open: openAuth, close: closeAuth }] = useDisclosure(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
-  const activeModule = MODULES.find((m) => location.pathname.startsWith(m.path))?.id || 'eventor';
+  // Сайдбар: collapsed на десктопе, drawer на мобиле
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const handleToggleSidebar = () => {
+    if (isMobile) setMobileSidebarOpen((v) => !v);
+    else setSidebarCollapsed((v) => !v);
+  };
+
+  // Закрываем мобильный сайдбар при смене роута
+  useEffect(() => { setMobileSidebarOpen(false); }, [location.pathname]);
+
+  useEffect(() => { checkAuth(); }, [checkAuth]);
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  useEffect(() => {
-    if (location.pathname === '/') navigate('/eventor/flow', { replace: true });
-    // Редирект /eventor → /eventor/flow
-    if (location.pathname === '/eventor' || location.pathname === '/eventor/') {
+    if (location.pathname === '/' || location.pathname === '/eventor' || location.pathname === '/eventor/') {
       navigate('/eventor/flow', { replace: true });
     }
   }, [location.pathname, navigate]);
@@ -111,6 +87,7 @@ export default function App() {
     );
   }
 
+  // Новый браузер — жёсткая стена логина
   if (!user && !isKnownBrowser) {
     return <AuthWall />;
   }
@@ -118,82 +95,45 @@ export default function App() {
   return (
     <div className="app-shell">
 
-      {/* Левый рейл */}
-      <div className="module-rail">
-        <Box mb={8} mt={2}>
-          <Text size="xs" fw={900} c="white" ta="center" style={{ lineHeight: 1, letterSpacing: '-0.03em' }}>
-            TF
-          </Text>
-        </Box>
+      {/* Верхний хедер — не sticky */}
+      <AppHeader
+        onToggleSidebar={handleToggleSidebar}
+        authModalOpen={openAuth}
+      />
 
-        <Divider color="rgba(255,255,255,0.15)" my={4} style={{ width: '100%' }} />
-
-        {MODULES.map((mod) => (
-          <ModuleIcon
-            key={mod.id}
-            module={mod}
-            isActive={activeModule === mod.id}
-            onClick={() => navigate(mod.id === 'eventor' ? '/eventor/flow' : mod.path)}
-          />
-        ))}
-
-        <div style={{ flex: 1 }} />
-
-        <Divider color="rgba(255,255,255,0.15)" my={4} style={{ width: '100%' }} />
-
-        <Tooltip label="Settings" position="right" withArrow>
-          <ActionIcon variant="subtle" size={36} style={{ color: 'rgba(255,255,255,0.6)' }}>
-            <IconSettings size={18} />
-          </ActionIcon>
-        </Tooltip>
-
-        {user ? (
-          <Menu position="right-end" withArrow>
-            <Menu.Target>
-              <Tooltip label={user.name || user.email} position="right" withArrow>
-                <Avatar size={32} radius="xl" color="blue" style={{ cursor: 'pointer', flexShrink: 0 }}>
-                  {(user.name || user.email || '?')[0].toUpperCase()}
-                </Avatar>
-              </Tooltip>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Label>{user.name || user.email}</Menu.Label>
-              <Menu.Item leftSection={<IconUser size={14} />}>Profile</Menu.Item>
-              <Menu.Divider />
-              <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={logout}>
-                Sign out
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        ) : (
-          <Tooltip label="Sign in" position="right" withArrow>
-            <ActionIcon variant="subtle" size={36} style={{ color: 'rgba(255,255,255,0.75)' }} onClick={openAuth}>
-              <IconLogin size={18} />
-            </ActionIcon>
-          </Tooltip>
+      {/* Тело */}
+      <div className="app-body">
+        {/* Оверлей под мобильным сайдбаром */}
+        {isMobile && mobileSidebarOpen && (
+          <div className="sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} />
         )}
+
+        <Routes>
+          {/* Eventor: nested routes */}
+          <Route path="/eventor" element={
+            <EventorLayout
+              sidebarCollapsed={!isMobile && sidebarCollapsed}
+              mobileSidebarOpen={isMobile && mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+            />
+          }>
+            <Route index element={<Navigate to="flow" replace />} />
+            <Route path="flow"     element={<FlowView />} />
+            <Route path="calendar" element={<GridCalendar />} />
+            <Route path="search"   element={<SearchPanel />} />
+            <Route path="drafts"   element={<DraftsView />} />
+          </Route>
+
+          <Route path="/exploiter/*" element={<div className="main-content"><ComingSoon name="Exploiter" /></div>} />
+          <Route path="/badger/*"    element={<div className="main-content"><ComingSoon name="Badger" /></div>} />
+          <Route path="/tasker/*"    element={<div className="main-content"><ComingSoon name="Tasker" /></div>} />
+          <Route path="/pm/*"        element={<div className="main-content"><ComingSoon name="Project Manager" /></div>} />
+        </Routes>
       </div>
-
-      {/* Роутер */}
-      <Routes>
-        {/* Eventor: nested routes */}
-        <Route path="/eventor" element={<EventorLayout />}>
-          <Route index element={<Navigate to="flow" replace />} />
-          <Route path="flow"     element={<FlowView />} />
-          <Route path="calendar" element={<GridCalendar />} />
-          <Route path="search"   element={<SearchPanel />} />
-          <Route path="drafts"   element={<DraftsView />} />
-        </Route>
-
-        {/* Остальные модули */}
-        <Route path="/exploiter/*" element={<div className="main-content"><ComingSoon name="Exploiter" /></div>} />
-        <Route path="/badger/*"    element={<div className="main-content"><ComingSoon name="Badger" /></div>} />
-        <Route path="/tasker/*"    element={<div className="main-content"><ComingSoon name="Tasker" /></div>} />
-        <Route path="/pm/*"        element={<div className="main-content"><ComingSoon name="Project Manager" /></div>} />
-      </Routes>
 
       {/* Глобальные оверлеи */}
       <AuthModal opened={authOpened} onClose={closeAuth} />
+      <ReadModal />
       <EventEditor />
     </div>
   );

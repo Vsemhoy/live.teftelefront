@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import {
   Stack, Text, Paper, Group, Button, Badge,
-  ActionIcon, Center, Alert, Box, Divider,
-  Tooltip,
+  ActionIcon, Center, Alert, Box, Divider, Tooltip,
 } from '@mantine/core';
 import {
   IconCloudUpload, IconTrash, IconEdit,
-  IconAlertCircle, IconCheck, IconX,
+  IconAlertCircle, IconCheck, IconX, IconEye,
 } from '@tabler/icons-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { notifications } from '@mantine/notifications';
@@ -17,13 +16,15 @@ import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { useSaveEvent } from '../../api/eventorApi';
 import { useEventorStore } from '../../store/eventorStore';
 
-// Карточка одного черновика
-const DraftCard = ({ draft, onSync, onEdit, onDelete, isSyncing }) => {
+const DraftCard = ({ draft, onSync, onView, onEdit, onDelete, isSyncing }) => {
   const date = dayjs(draft.setdate).format('D MMM YYYY');
   const createdAt = dayjs(draft.created_at).format('D MMM, HH:mm');
 
   return (
-    <Paper p={12} withBorder radius="sm" style={{ borderLeft: '3px solid var(--mantine-color-orange-4)' }}>
+    <Paper p={12} withBorder radius="sm"
+      style={{ borderLeft: '3px solid var(--mantine-color-orange-4)', cursor: 'pointer' }}
+      onDoubleClick={() => onView(draft)}
+      title="Double-click to view">
       <Group justify="space-between" mb={4} wrap="nowrap">
         <Group gap={8}>
           <span className="draft-badge">Draft</span>
@@ -54,33 +55,31 @@ const DraftCard = ({ draft, onSync, onEdit, onDelete, isSyncing }) => {
       <Group justify="space-between">
         <Text size="xs" c="dimmed">Created {createdAt}</Text>
         <Group gap={6}>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size="sm"
-            onClick={() => onEdit(draft)}
-            title="Edit draft"
-          >
-            <IconEdit size={13} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            size="sm"
-            onClick={() => onDelete(draft.localId)}
-            title="Delete draft"
-          >
-            <IconTrash size={13} />
-          </ActionIcon>
-          <Button
-            size="compact-xs"
-            variant="light"
-            color="blue"
+          {/* Просмотр */}
+          <Tooltip label="View" withArrow>
+            <ActionIcon variant="subtle" color="gray" size="sm"
+              onClick={(e) => { e.stopPropagation(); onView(draft); }}>
+              <IconEye size={13} />
+            </ActionIcon>
+          </Tooltip>
+          {/* Редактировать — напрямую в редактор */}
+          <Tooltip label="Edit" withArrow>
+            <ActionIcon variant="subtle" color="blue" size="sm"
+              onClick={(e) => { e.stopPropagation(); onEdit(draft); }}>
+              <IconEdit size={13} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete" withArrow>
+            <ActionIcon variant="subtle" color="red" size="sm"
+              onClick={(e) => { e.stopPropagation(); onDelete(draft.localId); }}>
+              <IconTrash size={13} />
+            </ActionIcon>
+          </Tooltip>
+          <Button size="compact-xs" variant="light" color="blue"
             leftSection={<IconCloudUpload size={12} />}
-            onClick={() => onSync(draft)}
-            loading={isSyncing === draft.localId}
-          >
-            Upload to server
+            onClick={(e) => { e.stopPropagation(); onSync(draft); }}
+            loading={isSyncing === draft.localId}>
+            Upload
           </Button>
         </Group>
       </Group>
@@ -91,11 +90,10 @@ const DraftCard = ({ draft, onSync, onEdit, onDelete, isSyncing }) => {
 export const DraftsView = () => {
   const user = useAuthStore((s) => s.user);
   const isOnline = useOnlineStatus();
-  const { openEditor } = useEventorStore();
+  const { openEditor, openReader } = useEventorStore();
   const { mutateAsync: saveEvent } = useSaveEvent();
   const [syncingId, setSyncingId] = useState(null);
 
-  // Живой запрос из IndexedDB
   const drafts = useLiveQuery(
     () => db.drafts.orderBy('created_at').reverse().toArray(),
     []
@@ -103,51 +101,18 @@ export const DraftsView = () => {
 
   const pendingCount = drafts.filter((d) => d.syncStatus !== 'synced').length;
 
-  // Синхронизация одного черновика
   const handleSync = async (draft) => {
-    if (!user) {
-      notifications.show({
-        title: 'Sign in required',
-        message: 'Please sign in to sync drafts to the server',
-        color: 'orange',
-      });
-      return;
-    }
-    if (!isOnline) {
-      notifications.show({
-        title: 'No connection',
-        message: 'Cannot sync — check your internet connection',
-        color: 'red',
-      });
-      return;
-    }
-
+    if (!user) { notifications.show({ title: 'Sign in required', message: 'Please sign in to sync', color: 'orange' }); return; }
+    if (!isOnline) { notifications.show({ title: 'No connection', message: 'Cannot sync now', color: 'red' }); return; }
     setSyncingId(draft.localId);
     try {
-      await saveEvent({
-        name: draft.name,
-        content: draft.content,
-        setdate: draft.setdate,
-        section_id: draft.section_id,
-        type_id: draft.type_id,
-      });
-      // Успех — удаляем из IDB
+      await saveEvent({ name: draft.name, content: draft.content, setdate: draft.setdate, section_id: draft.section_id, type_id: draft.type_id });
       await deleteDraft(draft.localId);
-      notifications.show({
-        title: 'Synced',
-        message: draft.name || 'Draft uploaded to server',
-        color: 'green',
-        icon: <IconCheck size={16} />,
-      });
+      notifications.show({ title: 'Synced', message: draft.name || 'Draft uploaded', color: 'green' });
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
       await markDraftError(draft.localId, msg);
-      notifications.show({
-        title: 'Sync failed',
-        message: msg,
-        color: 'red',
-        icon: <IconX size={16} />,
-      });
+      notifications.show({ title: 'Sync failed', message: msg, color: 'red' });
     } finally {
       setSyncingId(null);
     }
@@ -155,64 +120,36 @@ export const DraftsView = () => {
 
   const handleDelete = async (localId) => {
     await deleteDraft(localId);
-    notifications.show({
-      message: 'Draft deleted',
-      color: 'gray',
-    });
+    notifications.show({ message: 'Draft deleted', color: 'gray' });
   };
 
+  // Двойной клик / кнопка 👁 → reader (просмотр)
+  const handleView = (draft) => openReader({ draft: { ...draft } });
+
+  // Кнопка ✏️ → редактор напрямую с данными черновика
   const handleEdit = (draft) => {
     openEditor({
       id: null,
       draftLocalId: draft.localId,
-      date: draft.setdate,
-      section_id: draft.section_id,
-      // Передаём данные черновика чтобы редактор их подхватил
-      _draftData: draft,
+      _draftData: { ...draft },
     });
   };
 
   return (
     <div className="content-scroll">
       <Box px={16} pt={12} pb={40}>
-        {/* Заголовок */}
         <Group justify="space-between" mb={12}>
           <Group gap={8}>
             <Text size="sm" fw={600}>Local drafts</Text>
-            {pendingCount > 0 && (
-              <Badge size="sm" color="orange" variant="filled">{pendingCount}</Badge>
-            )}
+            {pendingCount > 0 && <Badge size="sm" color="orange" variant="filled">{pendingCount}</Badge>}
           </Group>
         </Group>
 
-        {/* Статус подключения */}
-        {!isOnline && (
-          <Alert
-            icon={<IconAlertCircle size={14} />}
-            color="orange"
-            variant="light"
-            mb={12}
-            radius="sm"
-          >
-            <Text size="xs">You are offline. Drafts will sync when connection is restored.</Text>
-          </Alert>
-        )}
-
-        {!user && isOnline && (
-          <Alert
-            icon={<IconAlertCircle size={14} />}
-            color="blue"
-            variant="light"
-            mb={12}
-            radius="sm"
-          >
-            <Text size="xs">Sign in to upload drafts to the server.</Text>
-          </Alert>
-        )}
+        {!isOnline && <Alert icon={<IconAlertCircle size={14} />} color="orange" variant="light" mb={12} radius="sm"><Text size="xs">Offline. Drafts will sync when connection is restored.</Text></Alert>}
+        {!user && isOnline && <Alert icon={<IconAlertCircle size={14} />} color="blue" variant="light" mb={12} radius="sm"><Text size="xs">Sign in to upload drafts to the server.</Text></Alert>}
 
         <Divider mb={12} />
 
-        {/* Пусто */}
         {drafts.length === 0 && (
           <Center h={140}>
             <Stack align="center" gap={6}>
@@ -222,17 +159,11 @@ export const DraftsView = () => {
           </Center>
         )}
 
-        {/* Список черновиков */}
         <Stack gap={8}>
           {drafts.map((draft) => (
-            <DraftCard
-              key={draft.localId}
-              draft={draft}
-              onSync={handleSync}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              isSyncing={syncingId}
-            />
+            <DraftCard key={draft.localId} draft={draft}
+              onSync={handleSync} onView={handleView} onEdit={handleEdit}
+              onDelete={handleDelete} isSyncing={syncingId} />
           ))}
         </Stack>
       </Box>

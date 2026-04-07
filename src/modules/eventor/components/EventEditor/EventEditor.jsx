@@ -61,17 +61,30 @@ export const EventEditor = () => {
   useEffect(() => {
     if (!editorOpen) return;
 
-    if (editorData?.id) {
-      // Режим редактирования — ждём пока загрузится existingEvent
-      if (!existingEvent) return;
+    // Приоритет источников:
+    // 1. _draftData — черновик переданный явно (всегда актуальный объект из IDB)
+    // 2. existingEvent — данные с сервера (ждём загрузки)
+    // 3. пустая форма для нового события
+    const draftSrc = editorData?._draftData;
+    const serverId = editorData?.id;
 
+    if (draftSrc) {
+      // Черновик — заполняем сразу, без ожидания
+      setName(draftSrc.name || '');
+      setContent(draftSrc.content || DEFAULT_CONTENT);
+      setSetdate(draftSrc.setdate ? new Date(draftSrc.setdate) : new Date());
+      setSectionId(draftSrc.section_id || null);
+      setTypeId(draftSrc.type_id || null);
+    } else if (serverId) {
+      // Серверное событие — ждём пока загрузится
+      if (!existingEvent) return;
       setName(existingEvent.name || '');
       setContent(existingEvent.content || DEFAULT_CONTENT);
       setSetdate(existingEvent.setdate ? new Date(existingEvent.setdate) : new Date());
       setSectionId(existingEvent.section_id || null);
       setTypeId(existingEvent.type_id || null);
     } else {
-      // Новое событие — всегда сбрасываем поля чисто
+      // Новое событие — сбрасываем
       setName('');
       setContent(DEFAULT_CONTENT);
       setSetdate(editorData?.date ? new Date(editorData.date) : new Date());
@@ -86,7 +99,9 @@ export const EventEditor = () => {
     setEditMode('edit');
     // Ремаунтим MDXEditor чтобы он подхватил новый контент
     setEditorKey((k) => k + 1);
-  }, [editorOpen, editorData, existingEvent]);
+  // editorData меняется при каждом открытии — это главный триггер
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorOpen, editorData?.id, editorData?.draftLocalId, editorData?._draftData, existingEvent]);
 
   // --- Сохранение ---
   const handleSave = async () => {
@@ -243,20 +258,7 @@ export const EventEditor = () => {
 
           <Divider />
 
-          <Group justify="flex-end">
-            <SegmentedControl
-              size="xs"
-              value={editMode}
-              onChange={setEditMode}
-              data={[
-                { label: 'Edit', value: 'edit' },
-                { label: 'Preview', value: 'preview' },
-                { label: 'Raw', value: 'raw' },
-              ]}
-            />
-          </Group>
-
-          {/* Rich editor */}
+          {/* Rich editor — кнопки Edit/Preview/Raw встроены в тулбар */}
           {editMode === 'edit' && (
             <Box
               style={{
@@ -303,6 +305,21 @@ export const EventEditor = () => {
                         <InsertTable />
                         <InsertCodeBlock />
                         <CreateLink />
+                        {/* Edit / Preview / Raw — прямо в тулбаре */}
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
+                          {['edit', 'preview', 'raw'].map((m) => (
+                            <button key={m} type="button" onClick={() => setEditMode(m)}
+                              style={{
+                                padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                                fontSize: 12, fontWeight: editMode === m ? 600 : 400,
+                                background: editMode === m ? 'var(--mantine-color-blue-1)' : 'transparent',
+                                color: editMode === m ? 'var(--mantine-color-blue-7)' : 'var(--mantine-color-gray-6)',
+                                textTransform: 'capitalize',
+                              }}>
+                              {m}
+                            </button>
+                          ))}
+                        </div>
                       </>
                     ),
                   }),
