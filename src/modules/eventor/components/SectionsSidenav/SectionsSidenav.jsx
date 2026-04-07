@@ -1,33 +1,60 @@
 import { useState } from 'react';
 import {
   Stack, NavLink, Text, Group, ActionIcon, Divider,
-  Skeleton, Badge, Tooltip, TextInput, Button,
+  Skeleton, Badge, Tooltip, Button,
 } from '@mantine/core';
 import {
   IconCalendar, IconSearch, IconLayoutList,
   IconPlus, IconFolder, IconFolderOpen,
   IconAlertCircle,
 } from '@tabler/icons-react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEventorStore } from '../../store/eventorStore';
 import { useSections } from '../../api/eventorApi';
 import db from '@/shared/utils/db';
 
 const VIEW_ITEMS = [
-  { id: 'flow',   label: 'Flow',     icon: IconLayoutList },
-  { id: 'grid',   label: 'Calendar', icon: IconCalendar },
-  { id: 'search', label: 'Search',   icon: IconSearch },
+  { id: 'flow',     label: 'Flow',     icon: IconLayoutList },
+  { id: 'calendar', label: 'Calendar', icon: IconCalendar },
+  { id: 'search',   label: 'Search',   icon: IconSearch },
 ];
 
 export const SectionsSidenav = () => {
-  const { viewMode, setViewMode, activeSection, setActiveSection } = useEventorStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const { data: sections, isLoading } = useSections();
 
-  // Считаем черновики из IDB для бейджика
   const draftsCount = useLiveQuery(
     () => db.drafts.where('syncStatus').anyOf(['pending', 'error']).count(),
     []
   ) ?? 0;
+
+  // Текущий вид — последний сегмент пути (/eventor/flow → 'flow')
+  const currentView = location.pathname.split('/').filter(Boolean).pop();
+
+  // Активная секция из URL
+  const activeSection = searchParams.get('section') || 'ALL';
+
+  const handleViewClick = (viewId) => {
+    // Переходим на вид, сохраняя секцию в параметрах
+    const section = searchParams.get('section') || 'ALL';
+    const params = section !== 'ALL' ? `?section=${section}` : '';
+    navigate(`/eventor/${viewId}${params}`);
+  };
+
+  const handleSectionClick = (sectionId) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('section', sectionId);
+        return p;
+      },
+      { replace: true }
+    );
+  };
 
   return (
     <div className="sections-sidebar">
@@ -53,8 +80,8 @@ export const SectionsSidenav = () => {
             key={id}
             label={label}
             leftSection={<Icon size={16} />}
-            active={viewMode === id}
-            onClick={() => setViewMode(id)}
+            active={currentView === id}
+            onClick={() => handleViewClick(id)}
             styles={{ root: { borderRadius: 4, fontSize: 13 } }}
           />
         ))}
@@ -65,15 +92,15 @@ export const SectionsSidenav = () => {
             <Group justify="space-between">
               <span>Drafts</span>
               {draftsCount > 0 && (
-                <Badge size="xs" color="orange" variant="filled" circle={false}>
+                <Badge size="xs" color="orange" variant="filled">
                   {draftsCount}
                 </Badge>
               )}
             </Group>
           }
           leftSection={<IconAlertCircle size={16} />}
-          active={viewMode === 'drafts'}
-          onClick={() => setViewMode('drafts')}
+          active={currentView === 'drafts'}
+          onClick={() => navigate('/eventor/drafts')}
           color={draftsCount > 0 ? 'orange' : 'gray'}
           styles={{ root: { borderRadius: 4, fontSize: 13 } }}
         />
@@ -87,22 +114,19 @@ export const SectionsSidenav = () => {
       </Text>
 
       <Stack gap={2} px={8} pb={8} style={{ flex: 1, overflowY: 'auto' }}>
-        {/* Все секции */}
         <NavLink
           label="All sections"
           active={activeSection === 'ALL'}
-          onClick={() => setActiveSection('ALL')}
+          onClick={() => handleSectionClick('ALL')}
           styles={{ root: { borderRadius: 4, fontSize: 13 } }}
         />
-        {/* Без секции */}
         <NavLink
           label="No section"
           active={activeSection === 'NULL'}
-          onClick={() => setActiveSection('NULL')}
+          onClick={() => handleSectionClick('NULL')}
           styles={{ root: { borderRadius: 4, fontSize: 13 } }}
         />
 
-        {/* Пользовательские секции */}
         {isLoading
           ? [1, 2, 3].map((i) => <Skeleton key={i} height={28} radius="sm" />)
           : sections?.map((section) => (
@@ -115,22 +139,21 @@ export const SectionsSidenav = () => {
                     : <IconFolder size={15} />
                 }
                 active={activeSection === section.id}
-                onClick={() => setActiveSection(section.id)}
+                onClick={() => handleSectionClick(section.id)}
                 styles={{
-                  root: { borderRadius: 4, fontSize: 13 },
-                  // Цветная полоска слева если есть цвет секции
-                  ...(section.color && {
-                    root: {
+                  root: {
+                    borderRadius: 4,
+                    fontSize: 13,
+                    ...(section.color && {
                       borderLeft: `3px solid ${section.color}`,
                       paddingLeft: 9,
-                    },
-                  }),
+                    }),
+                  },
                 }}
               />
             ))}
       </Stack>
 
-      {/* Кнопка добавить секцию */}
       <Divider />
       <Group px={12} py={8}>
         <Button

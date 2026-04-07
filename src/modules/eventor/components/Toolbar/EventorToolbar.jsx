@@ -1,4 +1,4 @@
-import { Group, Button, ActionIcon, SegmentedControl, Tooltip, Text } from '@mantine/core';
+import { Group, Button, ActionIcon, Tooltip } from '@mantine/core';
 import { MonthPickerInput } from '@mantine/dates';
 import {
   IconChevronLeft, IconChevronRight,
@@ -7,55 +7,72 @@ import {
   IconPlus, IconSun,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useEventorStore } from '../../store/eventorStore';
 
-export const EventorToolbar = ({ onScrollToday }) => {
-  const {
-    viewMode,
-    flowDirection, setFlowDirection,
-    startMonth, endMonth, setDateRange,
-    openEditor, activeSection,
-  } = useEventorStore();
+export const EventorToolbar = () => {
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { openEditor } = useEventorStore();
 
-  // Парсим даты из стора (ISO string → dayjs)
-  const start = startMonth ? dayjs(startMonth) : dayjs().startOf('month');
-  const end   = endMonth   ? dayjs(endMonth)   : dayjs().endOf('month');
+  // Текущий вид из URL
+  const currentView = location.pathname.split('/').filter(Boolean).pop();
+  const showNav = currentView === 'flow' || currentView === 'calendar';
 
-  const moveMonth = (delta) => {
-    setDateRange(
-      start.add(delta, 'month').startOf('month'),
-      end.add(delta, 'month').endOf('month'),
+  // Параметры из URL
+  const startParam = searchParams.get('start'); // 'YYYY-MM'
+  const endParam   = searchParams.get('end');
+  const dirParam   = searchParams.get('dir') || 'DESC';
+  const activeSection = searchParams.get('section') || 'ALL';
+
+  const start = startParam ? dayjs(startParam + '-01').startOf('month') : dayjs().startOf('month');
+  const end   = endParam   ? dayjs(endParam   + '-01').endOf('month')   : dayjs().endOf('month');
+
+  const updateParams = (updates) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        Object.entries(updates).forEach(([k, v]) => {
+          if (v != null) p.set(k, v);
+          else p.delete(k);
+        });
+        return p;
+      },
+      { replace: true }
     );
   };
+
+  const setDateRange = (s, e) => updateParams({
+    start: s.format('YYYY-MM'),
+    end:   e.format('YYYY-MM'),
+  });
+
+  const moveMonth = (delta) => setDateRange(
+    start.add(delta, 'month').startOf('month'),
+    end.add(delta, 'month').endOf('month'),
+  );
 
   const expandStart = () => setDateRange(start.subtract(1, 'month').startOf('month'), end);
   const expandEnd   = () => setDateRange(start, end.add(1, 'month').endOf('month'));
 
-  const goToday = () => {
-    setDateRange(dayjs().startOf('month'), dayjs().endOf('month'));
-    if (onScrollToday) onScrollToday();
-  };
+  const goToday = () => setDateRange(dayjs().startOf('month'), dayjs().endOf('month'));
 
-  // Показываем навигацию только в flow и grid
-  const showNav = viewMode === 'flow' || viewMode === 'grid';
+  const toggleDir = () => updateParams({ dir: dirParam === 'DESC' ? 'ASC' : 'DESC' });
 
   return (
     <div className="content-toolbar">
       {showNav && (
         <>
-          {/* Расширить диапазон влево */}
           <Tooltip label="Expand left" withArrow>
             <ActionIcon variant="subtle" color="gray" size="sm" onClick={expandStart}>
               <IconChevronsLeft size={15} />
             </ActionIcon>
           </Tooltip>
 
-          {/* Назад на месяц */}
           <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => moveMonth(-1)}>
             <IconChevronLeft size={15} />
           </ActionIcon>
 
-          {/* Выбор диапазона — кастомное отображение */}
           <MonthPickerInput
             type="range"
             value={[start.toDate(), end.toDate()]}
@@ -68,35 +85,26 @@ export const EventorToolbar = ({ onScrollToday }) => {
             placeholder="Select range"
           />
 
-          {/* Вперёд на месяц */}
           <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => moveMonth(1)}>
             <IconChevronRight size={15} />
           </ActionIcon>
 
-          {/* Расширить диапазон вправо */}
           <Tooltip label="Expand right" withArrow>
             <ActionIcon variant="subtle" color="gray" size="sm" onClick={expandEnd}>
               <IconChevronsRight size={15} />
             </ActionIcon>
           </Tooltip>
 
-          {/* Кнопка "сегодня" */}
           <Tooltip label="Jump to today" withArrow>
             <ActionIcon variant="subtle" color="blue" size="sm" onClick={goToday}>
               <IconSun size={15} />
             </ActionIcon>
           </Tooltip>
 
-          {/* Направление сортировки — только для flow */}
-          {viewMode === 'flow' && (
-            <Tooltip label={flowDirection === 'DESC' ? 'Newest first' : 'Oldest first'} withArrow>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                onClick={() => setFlowDirection(flowDirection === 'DESC' ? 'ASC' : 'DESC')}
-              >
-                {flowDirection === 'DESC'
+          {currentView === 'flow' && (
+            <Tooltip label={dirParam === 'DESC' ? 'Newest first' : 'Oldest first'} withArrow>
+              <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggleDir}>
+                {dirParam === 'DESC'
                   ? <IconSortDescending size={15} />
                   : <IconSortAscending size={15} />
                 }
@@ -106,10 +114,8 @@ export const EventorToolbar = ({ onScrollToday }) => {
         </>
       )}
 
-      {/* Spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* Кнопка создания — только если залогинен */}
       <Button
         size="xs"
         leftSection={<IconPlus size={14} />}

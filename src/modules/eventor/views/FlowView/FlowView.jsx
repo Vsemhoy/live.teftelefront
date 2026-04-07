@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Stack, Text, Box, Center, Loader, Button, Group } from '@mantine/core';
+import { useCallback, useEffect, useMemo } from 'react';
+import { Text, Box, Center, Loader, Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
+import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
@@ -14,9 +15,7 @@ dayjs.extend(isSameOrAfter);
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const MonthHeader = ({ date }) => (
-  <div className="flow-month-header">
-    {date.format('MMMM YYYY')}
-  </div>
+  <div className="flow-month-header">{date.format('MMMM YYYY')}</div>
 );
 
 const DayRow = ({ date, events, onAddClick, isToday, stripe }) => {
@@ -28,13 +27,9 @@ const DayRow = ({ date, events, onAddClick, isToday, stripe }) => {
   if (isToday) {
     rowBg = 'var(--mantine-color-blue-0)';
   } else if (isWeekend) {
-    rowBg = stripe
-      ? 'rgba(255, 220, 220, 0.35)'
-      : 'rgba(255, 220, 220, 0.18)';
+    rowBg = stripe ? 'rgba(255,200,200,0.32)' : 'rgba(255,200,200,0.16)';
   } else {
-    rowBg = stripe
-      ? 'rgba(0,0,0,0.018)'
-      : 'transparent';
+    rowBg = stripe ? 'rgba(0,0,0,0.018)' : 'transparent';
   }
 
   return (
@@ -43,54 +38,34 @@ const DayRow = ({ date, events, onAddClick, isToday, stripe }) => {
       id={isToday ? 'today_row' : undefined}
       style={{ background: rowBg }}
     >
-      {/* Метка дня */}
       <div className={`flow-date-label ${isToday ? 'today' : ''}`}>
         {isToday ? (
-          <div className="flow-day-num" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
             <div style={{
               background: 'var(--mantine-color-blue-6)', color: 'white',
               borderRadius: '50%', width: 28, height: 28,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 600, fontSize: 13,
-            }}>
-              {dayNum}
-            </div>
+            }}>{dayNum}</div>
             <div className="flow-day-name">{dayName}</div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
             <div className="flow-day-num" style={{
-              color: isWeekend
-                ? 'var(--mantine-color-red-4)'
-                : 'var(--mantine-color-gray-7)',
-            }}>
-              {dayNum}
-            </div>
+              color: isWeekend ? 'var(--mantine-color-red-4)' : 'var(--mantine-color-gray-7)',
+            }}>{dayNum}</div>
             <div className="flow-day-name" style={{
-              color: isWeekend
-                ? 'var(--mantine-color-red-3)'
-                : undefined,
-            }}>
-              {dayName}
-            </div>
+              color: isWeekend ? 'var(--mantine-color-red-3)' : undefined,
+            }}>{dayName}</div>
           </div>
         )}
       </div>
 
-      {/* Карточки событий */}
       <div className="flow-events-col">
-        {events.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
-
-        <Box
-          className="flow-add-btn"
-          mt={events.length > 0 ? 4 : 0}
-        >
+        {events.map((event) => <EventCard key={event.id} event={event} />)}
+        <Box className="flow-add-btn" mt={events.length > 0 ? 4 : 0}>
           <Button
-            variant="subtle"
-            color="gray"
-            size="compact-xs"
+            variant="subtle" color="gray" size="compact-xs"
             leftSection={<IconPlus size={11} />}
             onClick={() => onAddClick(date.format('YYYY-MM-DD'))}
             styles={{ root: { fontSize: 11 } }}
@@ -104,14 +79,17 @@ const DayRow = ({ date, events, onAddClick, isToday, stripe }) => {
 };
 
 export const FlowView = () => {
-  const {
-    activeSection, flowDirection,
-    startMonth, endMonth,
-    openEditor,
-  } = useEventorStore();
+  const [searchParams] = useSearchParams();
+  const { openEditor } = useEventorStore();
 
-  const start = startMonth ? dayjs(startMonth) : dayjs().startOf('month');
-  const end   = endMonth   ? dayjs(endMonth)   : dayjs().endOf('month');
+  // Всё из URL
+  const startParam   = searchParams.get('start');
+  const endParam     = searchParams.get('end');
+  const activeSection = searchParams.get('section') || 'ALL';
+  const flowDirection = searchParams.get('dir') || 'DESC';
+
+  const start = startParam ? dayjs(startParam + '-01').startOf('month') : dayjs().startOf('month');
+  const end   = endParam   ? dayjs(endParam   + '-01').endOf('month')   : dayjs().endOf('month');
 
   const { data: events, isLoading, isError } = useEvents({
     start: start.format('YYYY-MM-DD'),
@@ -134,18 +112,15 @@ export const FlowView = () => {
     const limit = flowDirection === 'DESC' ? start : end;
     const max = 1200;
     let i = 0;
-
     while (i < max) {
       days.push(current.clone());
       current = flowDirection === 'DESC'
         ? current.subtract(1, 'day')
         : current.add(1, 'day');
-
       if (flowDirection === 'DESC' && current.isBefore(limit, 'day')) break;
       if (flowDirection === 'ASC'  && current.isAfter(limit, 'day'))  break;
       i++;
     }
-
     return days;
   }, [start, end, flowDirection]);
 
@@ -163,21 +138,8 @@ export const FlowView = () => {
     openEditor({ id: null, date: dateStr, section_id: activeSection });
   }, [openEditor, activeSection]);
 
-  if (isLoading) {
-    return (
-      <Center h={200}>
-        <Loader size="sm" />
-      </Center>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Center h={200}>
-        <Text c="red" size="sm">Failed to load events</Text>
-      </Center>
-    );
-  }
+  if (isLoading) return <Center h={200}><Loader size="sm" /></Center>;
+  if (isError) return <Center h={200}><Text c="red" size="sm">Failed to load events</Text></Center>;
 
   const today = dayjs().format('YYYY-MM-DD');
   let lastMonth = null;
@@ -210,7 +172,6 @@ export const FlowView = () => {
           </div>
         );
       })}
-
       <Box h={40} />
     </div>
   );

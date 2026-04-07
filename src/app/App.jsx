@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
 import {
   Tooltip, ActionIcon, Text, Avatar, Menu, Box, Divider,
   Center, Loader,
@@ -23,16 +23,13 @@ import { FlowView } from '@/modules/eventor/views/FlowView/FlowView';
 import { GridCalendar } from '@/modules/eventor/views/GridCalendar/GridCalendar';
 import { SearchPanel } from '@/modules/eventor/views/SearchPanel/SearchPanel';
 import { DraftsView } from '@/modules/eventor/views/DraftsView/DraftsView';
-import { useEventorStore } from '@/modules/eventor/store/eventorStore';
 
-// Заглушки будущих модулей
 const ComingSoon = ({ name }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
     <Text c="dimmed" size="sm">{name} — coming soon</Text>
   </div>
 );
 
-// Модули в левом рейле
 const MODULES = [
   { id: 'eventor',   label: 'Eventor',   icon: IconCalendarEvent, path: '/eventor' },
   { id: 'exploiter', label: 'Exploiter', icon: IconPackage,        path: '/exploiter' },
@@ -41,7 +38,6 @@ const MODULES = [
   { id: 'pm',        label: 'PM',        icon: IconBriefcase,      path: '/pm' },
 ];
 
-// Иконка модуля в рейле
 const ModuleIcon = ({ module, isActive, onClick }) => (
   <Tooltip label={module.label} position="right" withArrow>
     <ActionIcon
@@ -61,6 +57,27 @@ const ModuleIcon = ({ module, isActive, onClick }) => (
   </Tooltip>
 );
 
+// Лэйаут Eventor — общая оболочка с сайднавом и тулбаром
+const EventorLayout = () => {
+  const isOnline = useOnlineStatus();
+  return (
+    <>
+      <SectionsSidenav />
+      <div className="main-content">
+        {!isOnline && (
+          <div className="offline-banner">
+            <span>●</span>
+            No internet connection — events will be saved as local drafts
+          </div>
+        )}
+        <EventorToolbar />
+        {/* Outlet рендерит текущий дочерний роут (flow/calendar/search/drafts) */}
+        <Outlet />
+      </div>
+    </>
+  );
+};
+
 export default function App() {
   const user = useAuthStore((s) => s.user);
   const isChecked = useAuthStore((s) => s.isChecked);
@@ -68,37 +85,24 @@ export default function App() {
   const checkAuth = useAuthStore((s) => s.checkAuth);
   const logout = useAuthStore((s) => s.logout);
 
-  const isOnline = useOnlineStatus();
   const navigate = useNavigate();
   const location = useLocation();
   const [authOpened, { open: openAuth, close: closeAuth }] = useDisclosure(false);
-  const { viewMode } = useEventorStore();
 
-  // Определяем активный модуль по пути
   const activeModule = MODULES.find((m) => location.pathname.startsWith(m.path))?.id || 'eventor';
 
-  // Проверяем сессию при старте
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // Редирект на eventor по умолчанию
   useEffect(() => {
-    if (location.pathname === '/') navigate('/eventor', { replace: true });
+    if (location.pathname === '/') navigate('/eventor/flow', { replace: true });
+    // Редирект /eventor → /eventor/flow
+    if (location.pathname === '/eventor' || location.pathname === '/eventor/') {
+      navigate('/eventor/flow', { replace: true });
+    }
   }, [location.pathname, navigate]);
 
-  // Текущий вид Eventor'а
-  const EventorContent = () => {
-    switch (viewMode) {
-      case 'flow':    return <FlowView />;
-      case 'grid':    return <GridCalendar />;
-      case 'search':  return <SearchPanel />;
-      case 'drafts':  return <DraftsView />;
-      default:        return <FlowView />;
-    }
-  };
-
-  // Ждём результата checkAuth
   if (!isChecked) {
     return (
       <Center style={{ width: '100vw', height: '100vh' }}>
@@ -107,7 +111,6 @@ export default function App() {
     );
   }
 
-  // Совсем новый браузер — жёсткая стена, никакого сайта сзади
   if (!user && !isKnownBrowser) {
     return <AuthWall />;
   }
@@ -115,9 +118,8 @@ export default function App() {
   return (
     <div className="app-shell">
 
-      {/* === Левый рейл модулей (48px) === */}
+      {/* Левый рейл */}
       <div className="module-rail">
-        {/* Логотип */}
         <Box mb={8} mt={2}>
           <Text size="xs" fw={900} c="white" ta="center" style={{ lineHeight: 1, letterSpacing: '-0.03em' }}>
             TF
@@ -126,39 +128,30 @@ export default function App() {
 
         <Divider color="rgba(255,255,255,0.15)" my={4} style={{ width: '100%' }} />
 
-        {/* Иконки модулей */}
         {MODULES.map((mod) => (
           <ModuleIcon
             key={mod.id}
             module={mod}
             isActive={activeModule === mod.id}
-            onClick={() => navigate(mod.path)}
+            onClick={() => navigate(mod.id === 'eventor' ? '/eventor/flow' : mod.path)}
           />
         ))}
 
-        {/* Спейсер */}
         <div style={{ flex: 1 }} />
 
         <Divider color="rgba(255,255,255,0.15)" my={4} style={{ width: '100%' }} />
 
-        {/* Настройки */}
         <Tooltip label="Settings" position="right" withArrow>
           <ActionIcon variant="subtle" size={36} style={{ color: 'rgba(255,255,255,0.6)' }}>
             <IconSettings size={18} />
           </ActionIcon>
         </Tooltip>
 
-        {/* Аватар / вход */}
         {user ? (
           <Menu position="right-end" withArrow>
             <Menu.Target>
               <Tooltip label={user.name || user.email} position="right" withArrow>
-                <Avatar
-                  size={32}
-                  radius="xl"
-                  color="blue"
-                  style={{ cursor: 'pointer', flexShrink: 0 }}
-                >
+                <Avatar size={32} radius="xl" color="blue" style={{ cursor: 'pointer', flexShrink: 0 }}>
                   {(user.name || user.email || '?')[0].toUpperCase()}
                 </Avatar>
               </Tooltip>
@@ -167,60 +160,39 @@ export default function App() {
               <Menu.Label>{user.name || user.email}</Menu.Label>
               <Menu.Item leftSection={<IconUser size={14} />}>Profile</Menu.Item>
               <Menu.Divider />
-              <Menu.Item
-                leftSection={<IconLogout size={14} />}
-                color="red"
-                onClick={logout}
-              >
+              <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={logout}>
                 Sign out
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
         ) : (
           <Tooltip label="Sign in" position="right" withArrow>
-            <ActionIcon
-              variant="subtle"
-              size={36}
-              style={{ color: 'rgba(255,255,255,0.75)' }}
-              onClick={openAuth}
-            >
+            <ActionIcon variant="subtle" size={36} style={{ color: 'rgba(255,255,255,0.75)' }} onClick={openAuth}>
               <IconLogin size={18} />
             </ActionIcon>
           </Tooltip>
         )}
       </div>
 
-      {/* === Роутер === */}
+      {/* Роутер */}
       <Routes>
-        {/* Eventor */}
-        <Route
-          path="/eventor/*"
-          element={
-            <>
-              <SectionsSidenav />
-              <div className="main-content">
-                {/* Оффлайн-баннер */}
-                {!isOnline && (
-                  <div className="offline-banner">
-                    <span>●</span>
-                    No internet connection — events will be saved as local drafts
-                  </div>
-                )}
-                <EventorToolbar />
-                <EventorContent />
-              </div>
-            </>
-          }
-        />
+        {/* Eventor: nested routes */}
+        <Route path="/eventor" element={<EventorLayout />}>
+          <Route index element={<Navigate to="flow" replace />} />
+          <Route path="flow"     element={<FlowView />} />
+          <Route path="calendar" element={<GridCalendar />} />
+          <Route path="search"   element={<SearchPanel />} />
+          <Route path="drafts"   element={<DraftsView />} />
+        </Route>
 
-        {/* Заглушки */}
+        {/* Остальные модули */}
         <Route path="/exploiter/*" element={<div className="main-content"><ComingSoon name="Exploiter" /></div>} />
         <Route path="/badger/*"    element={<div className="main-content"><ComingSoon name="Badger" /></div>} />
         <Route path="/tasker/*"    element={<div className="main-content"><ComingSoon name="Tasker" /></div>} />
         <Route path="/pm/*"        element={<div className="main-content"><ComingSoon name="Project Manager" /></div>} />
       </Routes>
 
-      {/* === Глобальные оверлеи === */}
+      {/* Глобальные оверлеи */}
       <AuthModal opened={authOpened} onClose={closeAuth} />
       <EventEditor />
     </div>

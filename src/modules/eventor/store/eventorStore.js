@@ -1,57 +1,20 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 /**
  * UI-стор Eventor'а.
- * Хранит: активную секцию, текущий вид, диапазон дат, состояние редактора.
+ * View/section/dates/search теперь живут в URL (useSearchParams).
+ * Здесь только состояние оверлеев: editor и reader.
  */
-export const useEventorStore = create(
-  persist(
-    (set) => ({
-      // Текущий вид
-      viewMode: 'flow', // 'flow' | 'grid' | 'search'
+export const useEventorStore = create((set) => ({
+  // Редактор
+  editorOpen: false,
+  editorData: null,
+  openEditor: (data) => set({ editorOpen: true, editorData: data }),
+  closeEditor: () => set({ editorOpen: false, editorData: null }),
 
-      // Активная секция ('ALL' | 'NULL' | '<uuid>')
-      activeSection: 'ALL',
-
-      // Диапазон дат для flow/grid
-      startMonth: null, // ISO string, null = текущий месяц
-      endMonth: null,
-
-      // Направление сортировки в flow
-      flowDirection: 'DESC', // 'DESC' = свежее сверху
-
-      // Редактор: что сейчас открыто
-      editorOpen: false,
-      editorData: null, // { id: null, date, section_id } для нового | { id } для редактирования
-
-      // Поисковый запрос (search panel)
-      searchQuery: '',
-
-      // ---- Actions ----
-
-      setViewMode: (mode) => set({ viewMode: mode }),
-      setActiveSection: (id) => set({ activeSection: id }),
-      setFlowDirection: (dir) => set({ flowDirection: dir }),
-
-      setDateRange: (start, end) => set({
-        startMonth: start ? start.toISOString() : null,
-        endMonth: end ? end.toISOString() : null,
-      }),
-
-      openEditor: (data) => set({ editorOpen: true, editorData: data }),
-      closeEditor: () => set({ editorOpen: false, editorData: null }),
-
-      setSearchQuery: (q) => set({ searchQuery: q }),
-    }),
-    {
-      name: 'teftele-eventor',
-      // Сохраняем настройки вида, но не состояние редактора
-      partialize: (state) => ({
-        viewMode: state.viewMode,
-        activeSection: state.activeSection,
-        flowDirection: state.flowDirection,
-      }),
-    }
-  )
-);
+  // Ридер (режим чтения — двойной клик)
+  readerOpen: false,
+  readerData: null,
+  openReader: (data) => set({ readerOpen: true, readerData: data }),
+  closeReader: () => set({ readerOpen: false, readerData: null }),
+}));
