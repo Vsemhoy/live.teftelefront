@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/shared/utils/api';
 import dayjs from 'dayjs';
+import { useAuthStore } from '@/modules/auth/authStore';
 
 // ---- Query Keys ----
 export const eventorKeys = {
@@ -15,9 +16,12 @@ export const eventorKeys = {
 // ---- Hooks ----
 
 /**
- * Загрузка событий за диапазон дат + секцию
+ * Загрузка событий за диапазон дат + секцию.
+ * Запрос не выполняется пока юзер не залогинен.
  */
 export const useEvents = ({ start, end, section }) => {
+  const user = useAuthStore((s) => s.user);
+
   return useQuery({
     queryKey: eventorKeys.events({ start, end, section }),
     queryFn: async () => {
@@ -28,7 +32,7 @@ export const useEvents = ({ start, end, section }) => {
       });
       return res.data.content;
     },
-    enabled: Boolean(start && end),
+    enabled: Boolean(start && end && user),
   });
 };
 
@@ -50,12 +54,14 @@ export const useEvent = (id) => {
  * Секции пользователя
  */
 export const useSections = () => {
+  const user = useAuthStore((s) => s.user);
   return useQuery({
     queryKey: eventorKeys.sections(),
     queryFn: async () => {
       const res = await api.post('/eventor/getmysections', {});
       return res.data.content;
     },
+    enabled: Boolean(user),
   });
 };
 
@@ -63,13 +69,14 @@ export const useSections = () => {
  * Типы событий (системные + пользовательские)
  */
 export const useEventTypes = () => {
+  const user = useAuthStore((s) => s.user);
   return useQuery({
     queryKey: eventorKeys.types(),
     queryFn: async () => {
       const res = await api.post('/eventor/getmytypes', {});
       return res.data.content;
     },
-    // Типы меняются редко — кэшируем на 30 минут
+    enabled: Boolean(user),
     staleTime: 30 * 60 * 1000,
   });
 };

@@ -19,11 +19,17 @@ import './app/global.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Не рефетчить при фокусе окна — раздражает в дневниковом приложении
       refetchOnWindowFocus: false,
-      // Кэш живёт 5 минут
       staleTime: 5 * 60 * 1000,
-      retry: 1,
+      // Не ретраим на 401/403 — это не временные ошибки
+      retry: (failureCount, error) => {
+        const status = error?.response?.status;
+        if (status === 401 || status === 403) return false;
+        return failureCount < 1;
+      },
+    },
+    mutations: {
+      retry: false,
     },
   },
 });

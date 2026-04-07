@@ -18,49 +18,49 @@ api.interceptors.request.use(
 
 // ---- Response interceptor — тихий рефреш при 401 ----
 let isRefreshing = false;
-let failedQueue = []; // Очередь запросов пока идёт рефреш
+let failedQueue = [];
 
 const processQueue = (error) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve();
-    }
-  });
+  failedQueue.forEach((p) => (error ? p.reject(error) : p.resolve()));
   failedQueue = [];
 };
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Сетевая ошибка (CORS, timeout, нет сети) — error.response будет undefined
+    // НЕ пытаемся рефрешить, иначе бесконечный цикл
+    if (!error.response) {
+      return Promise.reject(error);
+    }
+
+    const { status } = error.response;
     const originalRequest = error.config;
 
-    // Если 401 и это не повторный запрос и не сам /auth/refresh
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url.includes('/auth/refresh')
-    ) {
+    // Рефрешим только при 401, не для auth-эндпоинтов и не повторно
+    const isAuthEndpoint =
+      originalRequest.url.includes('/auth/refresh') ||
+      originalRequest.url.includes('/auth/logout') ||
+      originalRequest.url.includes('/auth/login');
+
+    if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
-        // Если уже рефрешим — ставим в очередь
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(() => api(originalRequest));
+        })
+          .then(() => api(originalRequest))
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // Рефреш токена — сервер обновит httpOnly cookie
         await api.post('/auth/refresh');
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
-        // Рефреш не удался — разлогиниваем
         processQueue(refreshError);
-        // Сигнал для useAuthStore о необходимости разлогина
         window.dispatchEvent(new CustomEvent('auth:logout'));
         return Promise.reject(refreshError);
       } finally {

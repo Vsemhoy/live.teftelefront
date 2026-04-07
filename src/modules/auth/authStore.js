@@ -26,14 +26,16 @@ export const useAuthStore = create(
       },
 
       /**
-       * Проверка сессии при старте приложения — тихая, без редиректов
+       * Проверка сессии при старте приложения — тихая, без редиректов.
+       * Используем прямой fetch без interceptor'а чтобы 401 не запускал цикл рефреша.
        */
       checkAuth: async () => {
         try {
           const res = await api.post('/auth/me');
           set({ user: res.data.user, isChecked: true });
-        } catch {
-          // Не залогинен — это нормально, не ошибка
+        } catch (err) {
+          // 401 = просто не залогинен, это нормально
+          // Не вызываем logout — он попытается POST /auth/logout что снова даст 401
           set({ user: null, isChecked: true });
         }
       },
