@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { Tooltip, ActionIcon, Text, Avatar, Menu, Box, Divider } from '@mantine/core';
+import {
+  Tooltip, ActionIcon, Text, Avatar, Menu, Box, Divider,
+  Center, Loader,
+} from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconCalendarEvent, IconPackage, IconCurrencyDollar,
@@ -10,7 +13,7 @@ import {
 
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
-import { AuthModal } from '@/modules/auth/AuthModal';
+import { AuthModal, AuthWall } from '@/modules/auth/AuthModal';
 
 // Eventor
 import { SectionsSidenav } from '@/modules/eventor/components/SectionsSidenav/SectionsSidenav';
@@ -59,7 +62,12 @@ const ModuleIcon = ({ module, isActive, onClick }) => (
 );
 
 export default function App() {
-  const { user, checkAuth, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isChecked = useAuthStore((s) => s.isChecked);
+  const isKnownBrowser = useAuthStore((s) => s.isKnownBrowser);
+  const checkAuth = useAuthStore((s) => s.checkAuth);
+  const logout = useAuthStore((s) => s.logout);
+
   const isOnline = useOnlineStatus();
   const navigate = useNavigate();
   const location = useLocation();
@@ -72,12 +80,12 @@ export default function App() {
   // Проверяем сессию при старте
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   // Редирект на eventor по умолчанию
   useEffect(() => {
     if (location.pathname === '/') navigate('/eventor', { replace: true });
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
 
   // Текущий вид Eventor'а
   const EventorContent = () => {
@@ -89,6 +97,20 @@ export default function App() {
       default:        return <FlowView />;
     }
   };
+
+  // Ждём результата checkAuth
+  if (!isChecked) {
+    return (
+      <Center style={{ width: '100vw', height: '100vh' }}>
+        <Loader size="lg" />
+      </Center>
+    );
+  }
+
+  // Совсем новый браузер — жёсткая стена, никакого сайта сзади
+  if (!user && !isKnownBrowser) {
+    return <AuthWall />;
+  }
 
   return (
     <div className="app-shell">

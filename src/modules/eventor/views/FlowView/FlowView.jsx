@@ -11,27 +11,37 @@ import { EventCard } from '../../components/EventCard/EventCard';
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
-// Дни недели коротко
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// Заголовок месяца — sticky
 const MonthHeader = ({ date }) => (
   <div className="flow-month-header">
     {date.format('MMMM YYYY')}
   </div>
 );
 
-// Строка одного дня
-const DayRow = ({ date, events, onAddClick, isToday }) => {
+const DayRow = ({ date, events, onAddClick, isToday, stripe }) => {
   const dayNum = date.date();
   const dayName = WEEKDAYS[date.day()];
   const isWeekend = date.day() === 0 || date.day() === 6;
+
+  let rowBg;
+  if (isToday) {
+    rowBg = 'var(--mantine-color-blue-0)';
+  } else if (isWeekend) {
+    rowBg = stripe
+      ? 'rgba(255, 220, 220, 0.35)'
+      : 'rgba(255, 220, 220, 0.18)';
+  } else {
+    rowBg = stripe
+      ? 'rgba(0,0,0,0.018)'
+      : 'transparent';
+  }
 
   return (
     <div
       className="flow-date-row"
       id={isToday ? 'today_row' : undefined}
-      style={{ background: isToday ? 'var(--mantine-color-blue-0)' : undefined }}
+      style={{ background: rowBg }}
     >
       {/* Метка дня */}
       <div className={`flow-date-label ${isToday ? 'today' : ''}`}>
@@ -50,12 +60,16 @@ const DayRow = ({ date, events, onAddClick, isToday }) => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
             <div className="flow-day-num" style={{
-              color: isWeekend ? 'var(--mantine-color-gray-5)' : 'var(--mantine-color-gray-7)',
+              color: isWeekend
+                ? 'var(--mantine-color-red-4)'
+                : 'var(--mantine-color-gray-7)',
             }}>
               {dayNum}
             </div>
             <div className="flow-day-name" style={{
-              color: isWeekend ? 'var(--mantine-color-gray-4)' : undefined,
+              color: isWeekend
+                ? 'var(--mantine-color-red-3)'
+                : undefined,
             }}>
               {dayName}
             </div>
@@ -69,7 +83,6 @@ const DayRow = ({ date, events, onAddClick, isToday }) => {
           <EventCard key={event.id} event={event} />
         ))}
 
-        {/* Кнопка добавить — появляется при ховере */}
         <Box
           className="flow-add-btn"
           mt={events.length > 0 ? 4 : 0}
@@ -97,9 +110,6 @@ export const FlowView = () => {
     openEditor,
   } = useEventorStore();
 
-  const todayRef = useRef(null);
-
-  // Даты из стора
   const start = startMonth ? dayjs(startMonth) : dayjs().startOf('month');
   const end   = endMonth   ? dayjs(endMonth)   : dayjs().endOf('month');
 
@@ -109,7 +119,6 @@ export const FlowView = () => {
     section: activeSection,
   });
 
-  // Скролл к сегодня при загрузке
   useEffect(() => {
     if (!isLoading) {
       setTimeout(() => {
@@ -119,12 +128,11 @@ export const FlowView = () => {
     }
   }, [isLoading]);
 
-  // Строим массив дней с учётом направления
   const dateArray = useMemo(() => {
     const days = [];
     let current = flowDirection === 'DESC' ? end.clone() : start.clone();
     const limit = flowDirection === 'DESC' ? start : end;
-    const max = 1200; // защита от бесконечного цикла
+    const max = 1200;
     let i = 0;
 
     while (i < max) {
@@ -141,7 +149,6 @@ export const FlowView = () => {
     return days;
   }, [start, end, flowDirection]);
 
-  // Индекс событий по дате для быстрого доступа
   const eventsByDate = useMemo(() => {
     const map = {};
     (events || []).forEach((ev) => {
@@ -174,6 +181,7 @@ export const FlowView = () => {
 
   const today = dayjs().format('YYYY-MM-DD');
   let lastMonth = null;
+  let rowIndex = 0;
 
   return (
     <div className="content-scroll" style={{ paddingBottom: 80 }}>
@@ -182,10 +190,12 @@ export const FlowView = () => {
         const isToday = dateStr === today;
         const dayEvents = eventsByDate[dateStr] || [];
 
-        // Вставляем заголовок при смене месяца
         const monthKey = date.format('YYYY-MM');
         const showMonthHeader = monthKey !== lastMonth;
         lastMonth = monthKey;
+
+        const stripe = rowIndex % 2 === 1;
+        rowIndex++;
 
         return (
           <div key={dateStr}>
@@ -195,12 +205,12 @@ export const FlowView = () => {
               events={dayEvents}
               onAddClick={handleAddClick}
               isToday={isToday}
+              stripe={stripe}
             />
           </div>
         );
       })}
 
-      {/* Нижний отступ */}
       <Box h={40} />
     </div>
   );

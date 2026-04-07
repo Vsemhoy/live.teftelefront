@@ -173,12 +173,15 @@ body {
 }
 
 /* Markdown рендер внутри карточки */
+.md-preview { overflow: hidden; max-width: 100%; }
 .md-preview p { margin: 0 0 4px; font-size: 13px; color: var(--mantine-color-gray-7); }
 .md-preview p:last-child { margin-bottom: 0; }
 .md-preview h1, .md-preview h2, .md-preview h3 { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
 .md-preview code { font-size: 12px; background: var(--mantine-color-gray-1); padding: 0 3px; border-radius: 2px; }
-.md-preview pre { margin: 4px 0; }
+.md-preview pre { margin: 4px 0; overflow-x: auto; max-width: 100%; }
+.md-preview pre > div { max-width: 100%; overflow-x: auto !important; }
 .md-preview ul, .md-preview ol { margin: 2px 0; padding-left: 18px; font-size: 13px; }
+.md-preview table { max-width: 100%; overflow-x: auto; display: block; }
 
 /* Месячный заголовок в flow */
 .flow-month-header {
@@ -207,4 +210,89 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
+}
+
+/* === Mobile layout === */
+@media (max-width: 768px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  /* Рейл уходит вниз и становится горизонтальным */
+  .module-rail {
+    width: 100%;
+    min-width: unset;
+    height: 56px;
+    flex-direction: row;
+    padding: 0 8px;
+    gap: 0;
+    order: 99; /* всегда снизу */
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* Логотип и дивайдеры убираем на мобиле */
+  .module-rail > .mantine-Text-root:first-child,
+  .module-rail > .mantine-Divider-root {
+    display: none;
+  }
+
+  /* Спейсер между иконками и аватаром */
+  .module-rail > div[style*="flex: 1"] {
+    display: none;
+  }
+
+  /* Аватар/кнопка логина всегда видна — прибита справа */
+  .module-rail > .mantine-Menu-root,
+  .module-rail > .mantine-Tooltip-root:last-child {
+    margin-left: auto;
+  }
+
+  /* Сайдбар секций — тонкий или скрытый */
+  .sections-sidebar {
+    width: 160px;
+    min-width: 160px;
+  }
+
+  /* Карточки занимают всю ширину */
+  .event-card {
+    border-radius: 2px;
+  }
+}
+
+/* === Hard auth wall for first-time browser === */
+
+.auth-wall {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(37,99,235,0.14), transparent 32%),
+    linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
+}
+
+.auth-wall__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image:
+    linear-gradient(rgba(37,99,235,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37,99,235,0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.auth-wall__card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  margin: 24px;
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(6px);
 }
