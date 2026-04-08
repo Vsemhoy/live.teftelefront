@@ -25,6 +25,7 @@ import {
   quotePlugin,
   thematicBreakPlugin,
   markdownShortcutPlugin,
+  linkPlugin,
   linkDialogPlugin,
   tablePlugin,
   codeBlockPlugin,
@@ -312,8 +313,8 @@ export const EventEditor = () => {
       className="event-editor-modal"
       styles={{
         content: {
-          height: isMobile ? '100vh' : '92vh',
-          maxHeight: '100vh',
+          height: isMobile ? '100dvh' : '92vh',
+          maxHeight: isMobile ? '100dvh' : '100vh',
           display: 'flex',
           flexDirection: 'column',
         },
@@ -428,6 +429,7 @@ export const EventEditor = () => {
                       quotePlugin(),
                       thematicBreakPlugin(),
                       markdownShortcutPlugin(),
+                      linkPlugin(),
                       linkDialogPlugin(),
                       tablePlugin(),
                       codeBlockPlugin({ defaultCodeBlockLanguage: 'js' }),
