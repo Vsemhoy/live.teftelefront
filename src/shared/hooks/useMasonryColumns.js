@@ -1,36 +1,27 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * Хук для динамического расчёта числа колонок масонри.
- * Следит за шириной контейнера через ResizeObserver.
- * Считает первый раз сразу при маунте — не ждём первый resize.
+ * Следит за шириной окна через ResizeObserver на document.body.
  *
  * @param {number} targetColWidth — желаемая ширина колонки в пикселях (default: 650)
- * @returns {{ ref, columns }} — ref на контейнер, columns — число колонок
+ * @returns {{ ref, columns }} — ref-заглушка (для обратной совместимости), columns — число колонок
  */
 export const useMasonryColumns = (targetColWidth = 650) => {
-  const ref = useRef(null);
-  const [columns, setColumns] = useState(1);
+  const ref = useRef(null); // заглушка — оставляем для совместимости с существующим JSX
 
-  const calcColumns = useCallback((width) => {
-    if (width <= 0) return;
-    setColumns(Math.max(1, Math.floor(width / targetColWidth)));
-  }, [targetColWidth]);
+  const calcColumns = () =>
+    Math.max(1, Math.floor(window.innerWidth / targetColWidth));
+
+  const [columns, setColumns] = useState(calcColumns);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    // Считаем сразу при маунте
-    calcColumns(el.getBoundingClientRect().width);
-
-    const observer = new ResizeObserver((entries) => {
-      calcColumns(entries[0]?.contentRect.width ?? 0);
+    const observer = new ResizeObserver(() => {
+      setColumns(calcColumns());
     });
-
-    observer.observe(el);
+    observer.observe(document.body);
     return () => observer.disconnect();
-  }, [calcColumns]);
+  }, [targetColWidth]);
 
   return { ref, columns };
 };
