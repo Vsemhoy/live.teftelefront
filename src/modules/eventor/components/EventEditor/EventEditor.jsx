@@ -310,6 +310,7 @@ export const EventEditor = () => {
       closeOnClickOutside={false}
       fullScreen={isMobile}
       size={isMobile ? '100%' : '90vw'}
+      maxWidth={'900px'}
       padding={0}
       radius={isMobile ? 0 : 'md'}
       className="event-editor-modal"
