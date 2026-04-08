@@ -40,6 +40,8 @@ import {
   InsertTable,
   ListsToggle,
   CreateLink,
+  ChangeCodeMirrorLanguage,
+  ConditionalContents,
 } from '@mdxeditor/editor';
 import {
   IconAlertCircle,
@@ -479,6 +481,12 @@ export const EventEditor = () => {
                               <IconPalette size={14} />
                             </ActionIcon>
                             <InsertCodeBlock />
+                            <ConditionalContents
+                              options={[{
+                                when: (editor) => editor?.editorType === 'codeblock',
+                                contents: () => <ChangeCodeMirrorLanguage />,
+                              }]}
+                            />
                           </>
                         ),
                       }),

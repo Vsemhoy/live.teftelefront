@@ -13,6 +13,7 @@ import { SectionsSidenav } from '@/modules/eventor/components/SectionsSidenav/Se
 import { EventorToolbar } from '@/modules/eventor/components/Toolbar/EventorToolbar';
 import { EventEditor } from '@/modules/eventor/components/EventEditor/EventEditor';
 import { ReadModal } from '@/modules/eventor/components/ReadModal/ReadModal';
+import { SectionsManager } from '@/modules/eventor/components/SectionsManager/SectionsManager';
 import { FlowView } from '@/modules/eventor/views/FlowView/FlowView';
 import { GridCalendar } from '@/modules/eventor/views/GridCalendar/GridCalendar';
 import { SearchPanel } from '@/modules/eventor/views/SearchPanel/SearchPanel';
@@ -135,6 +136,7 @@ export default function App() {
       <AuthModal opened={authOpened} onClose={closeAuth} />
       <ReadModal />
       <EventEditor />
+      <SectionsManager />
     </div>
   );
 }

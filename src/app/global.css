@@ -19,6 +19,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  overflow-y: auto;
 }
 
 /* ---- Хедер — три колонки: left | center (flex:1) | right ---- */
@@ -30,6 +31,10 @@ body {
   min-height: 46px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(0,0,0,0.07);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--mantine-color-white);
 }
 
 .header-left {
@@ -62,9 +67,9 @@ body {
 .app-body {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
-  height: calc(100vh - 46px);
+  min-height: calc(100vh - 46px);
 }
 
 /* ================================================================
@@ -80,6 +85,10 @@ body {
   overflow: hidden;
   flex-shrink: 0;
   transition: width 0.2s ease, min-width 0.2s ease;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  max-height: 100vh;
 }
 
 /* Collapsed — схлопываем до 48px */
@@ -88,11 +97,13 @@ body {
   min-width: 48px;
 }
 
-/* На мобиле — абсолютный, выезжает поверх */
+/* На мобиле — фиксированный, выезжает поверх всего */
 @media (max-width: 768px) {
   .sections-sidebar {
-    position: absolute;
+    position: fixed;
     top: 0; left: 0; bottom: 0;
+    height: 100vh;
+    max-height: 100vh;
     z-index: 300;
     width: 260px;
     min-width: 260px;
@@ -106,7 +117,7 @@ body {
 }
 
 .sidebar-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.25);
   z-index: 299;
@@ -125,7 +136,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   background: var(--mantine-color-gray-0);
   min-width: 0;
 }
@@ -143,7 +154,7 @@ body {
 
 .content-scroll {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
 }
 

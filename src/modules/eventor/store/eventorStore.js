@@ -23,4 +23,9 @@ export const useEventorStore = create((set) => ({
     readerOpen: false, readerData: null,
     editorOpen: true, editorData: data,
   }),
+
+  // Менеджер секций
+  sectionsManagerOpen: false,
+  openSectionsManager: () => set({ sectionsManagerOpen: true }),
+  closeSectionsManager: () => set({ sectionsManagerOpen: false }),
 }));

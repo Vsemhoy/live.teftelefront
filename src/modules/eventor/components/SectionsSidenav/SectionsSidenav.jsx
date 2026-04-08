@@ -5,7 +5,7 @@ import {
 import {
   IconCalendar, IconSearch, IconLayoutList,
   IconPlus, IconFolder, IconFolderOpen,
-  IconAlertCircle, IconX,
+  IconAlertCircle, IconX, IconSettings,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -24,6 +24,7 @@ export const SectionsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const { openSectionsManager } = useEventorStore();
   const { data: sections, isLoading } = useSections();
 
   const draftsCount = useLiveQuery(
@@ -57,7 +58,7 @@ export const SectionsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
   return (
     <div className={sidebarClass}>
       {/* Заголовок */}
-      <Group px={collapsed ? 4 : 12} py={10} justify="space-between">
+      <Group px={collapsed ? 4 : 12} py={10} justify="space-between" style={{ flexShrink: 0 }}>
         {!collapsed && <Text size="sm" fw={600} c="blue.7" className="sidebar-label">Eventor</Text>}
         <Group gap={4} ml={collapsed ? 'auto' : undefined} mr={collapsed ? 'auto' : undefined}>
           <Tooltip label="New event" position="right">
@@ -75,7 +76,7 @@ export const SectionsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
       </Group>
 
       {/* Переключатели вида */}
-      <Stack gap={2} px={collapsed ? 4 : 8} pb={8}>
+      <Stack gap={2} px={collapsed ? 4 : 8} pb={8} style={{ flexShrink: 0 }}>
         {VIEW_ITEMS.map(({ id, label, icon: Icon }) => (
           <Tooltip key={id} label={collapsed ? label : ''} position="right" disabled={!collapsed}>
             <NavLink
@@ -113,17 +114,26 @@ export const SectionsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
         </Tooltip>
       </Stack>
 
-      <Divider />
+      <Divider style={{ flexShrink: 0 }} />
 
       {/* Секции — скрываем в collapsed */}
       {!collapsed && (
         <>
-          <Text size="xs" c="dimmed" px={12} pt={10} pb={4} tt="uppercase" fw={600}
-            style={{ letterSpacing: '0.06em' }} className="sidebar-section-title">
-            Sections
-          </Text>
+          {/* Заголовок секций + шестерёнка */}
+          <Group px={12} pt={10} pb={4} justify="space-between" style={{ flexShrink: 0 }}>
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600}
+              style={{ letterSpacing: '0.06em' }} className="sidebar-section-title">
+              Sections
+            </Text>
+            <Tooltip label="Manage sections" withArrow position="right">
+              <ActionIcon size="xs" variant="subtle" color="gray" onClick={openSectionsManager}>
+                <IconSettings size={13} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
 
-          <Stack gap={2} px={8} pb={8} style={{ flex: 1, overflowY: 'auto' }}>
+          {/* Список секций — только эта часть скроллится */}
+          <Stack gap={2} px={8} pb={4} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             <NavLink label="All sections" active={activeSection === 'ALL'}
               onClick={() => handleSectionClick('ALL')}
               styles={{ root: { borderRadius: 4, fontSize: 13 } }} />
@@ -133,20 +143,31 @@ export const SectionsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
 
             {isLoading
               ? [1,2,3].map((i) => <Skeleton key={i} height={28} radius="sm" />)
-              : sections?.map((section) => (
-                  <NavLink key={section.id} label={section.name}
-                    leftSection={activeSection === section.id ? <IconFolderOpen size={15} /> : <IconFolder size={15} />}
-                    active={activeSection === section.id}
-                    onClick={() => handleSectionClick(section.id)}
-                    styles={{ root: { borderRadius: 4, fontSize: 13, ...(section.color && { borderLeft: `3px solid ${section.color}`, paddingLeft: 9 }) } }}
-                  />
-                ))}
+              : sections
+                  ?.filter((s) => !s.is_archived)
+                  .map((section) => (
+                    <NavLink key={section.id} label={section.name}
+                      leftSection={activeSection === section.id
+                        ? <IconFolderOpen size={15} />
+                        : <IconFolder size={15} />}
+                      active={activeSection === section.id}
+                      onClick={() => handleSectionClick(section.id)}
+                      styles={{
+                        root: {
+                          borderRadius: 4, fontSize: 13,
+                          ...(section.bgcolor && { borderLeft: `3px solid ${section.bgcolor}`, paddingLeft: 9 }),
+                        },
+                      }}
+                    />
+                  ))}
           </Stack>
 
-          <Divider />
-          <Group px={12} py={8}>
+          {/* Кнопка New section — прилипает к низу */}
+          <Divider style={{ flexShrink: 0 }} />
+          <Group px={12} py={8} style={{ flexShrink: 0 }}>
             <Button variant="subtle" size="xs" leftSection={<IconPlus size={13} />}
-              color="gray" fullWidth justify="start">
+              color="gray" fullWidth justify="start"
+              onClick={openSectionsManager}>
               New section
             </Button>
           </Group>

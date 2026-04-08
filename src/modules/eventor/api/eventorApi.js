@@ -175,3 +175,51 @@ export const useSaveSection = () => {
     },
   });
 };
+
+/**
+ * Удаление секции
+ */
+export const useDeleteSection = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      await api.delete(`/eventor/deletesection/${id}`);
+      return id;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: eventorKeys.sections() });
+    },
+  });
+};
+
+/**
+ * Архивация секции (когда удалить нельзя — есть связанные события)
+ */
+export const useArchiveSection = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, is_archived }) => {
+      const res = await api.post(`/eventor/updatesection/${id}`, { is_archived });
+      return res.data.content;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: eventorKeys.sections() });
+    },
+  });
+};
+
+/**
+ * Сохранение порядка секций
+ * POST /eventor/reordersections  { sections: [{ id, sort_order }] }
+ */
+export const useReorderSections = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (sections) => {
+      await api.post('/eventor/reordersections', { sections });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: eventorKeys.sections() });
+    },
+  });
+};
