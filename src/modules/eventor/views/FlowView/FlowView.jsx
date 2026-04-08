@@ -112,7 +112,7 @@ export const FlowView = () => {
 
   // Для строк Flow держим более компактную целевую ширину колонки,
   // чтобы masonry включался раньше и события раскладывались по колонкам.
-  const { ref: containerRef, columns: masonryColumns } = useMasonryColumns(420);
+  const { ref: containerRef, columns: masonryColumns } = useMasonryColumns(600);
 
   const startParam    = searchParams.get('start');
   const endParam      = searchParams.get('end');
@@ -208,3 +208,4 @@ export const FlowView = () => {
     </div>
   );
 };
+
