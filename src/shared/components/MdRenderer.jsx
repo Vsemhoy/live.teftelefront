@@ -126,13 +126,31 @@ const FULL_COMPONENTS = {
 // ---- Публичные компоненты ----
 
 const TRIM_LENGTH = 800;
+const MAX_PREVIEW_LINES = 10;
+
+const trimPreviewContent = (content) => {
+  if (!content) return '';
+
+  let trimmed = content.length > TRIM_LENGTH
+    ? content.substring(0, TRIM_LENGTH)
+    : content;
+
+  const lines = trimmed.split(/\r?\n/);
+  if (lines.length > MAX_PREVIEW_LINES) {
+    trimmed = lines.slice(0, MAX_PREVIEW_LINES).join('\n');
+  }
+
+  if (trimmed.length < content.length || lines.length > MAX_PREVIEW_LINES) {
+    trimmed = `${trimmed}\n\n…`;
+  }
+
+  return trimmed;
+};
 
 /** Компактный превью для карточки */
 export const MdPreview = ({ content }) => {
   if (!content) return null;
-  const trimmed = content.length > TRIM_LENGTH
-    ? content.substring(0, TRIM_LENGTH) + '\n\n…'
-    : content;
+  const trimmed = trimPreviewContent(content);
   return (
     <Box className="md-preview">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={COMPACT_COMPONENTS}>

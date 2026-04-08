@@ -2,12 +2,14 @@ import { Modal, Text, Group, Badge, Box, Divider, ActionIcon, Tooltip, Loader, C
 import { IconEdit, IconCalendar, IconFolder } from '@tabler/icons-react';
 import { MdFull } from '@/shared/components/MdRenderer';
 import { useState } from 'react';
+import { useMediaQuery } from '@mantine/hooks';
 import dayjs from 'dayjs';
 import { useEventorStore } from '../../store/eventorStore';
 import { useEvent } from '../../api/eventorApi';
 
 export const ReadModal = () => {
   const { readerOpen, readerData, closeReader, openEditorFromReader } = useEventorStore();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Режим: черновик или серверное событие
   const isDraft = !readerData?.id && !!readerData?.draft;
@@ -35,13 +37,21 @@ export const ReadModal = () => {
     <Modal
       opened={readerOpen}
       onClose={closeReader}
+      fullScreen={isMobile}
       size="xl"
       padding={0}
-      radius="md"
+      radius={isMobile ? 0 : 'md'}
       zIndex={1100}
+      className="read-modal"
       styles={{
+        content: {
+          height: isMobile ? '100vh' : 'auto',
+          maxHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+        },
         header: { padding: '16px 20px 12px', borderBottom: '1px solid var(--mantine-color-gray-2)' },
-        body: { padding: 0 },
+        body: { padding: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' },
       }}
       title={
         isLoading && !isDraft ? (
@@ -95,7 +105,11 @@ export const ReadModal = () => {
           </Group>
 
           {/* Контент */}
-          <Box px={28} py={20} style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'hidden' }}>
+          <Box
+            px={isMobile ? 14 : 28}
+            py={isMobile ? 12 : 20}
+            style={{ flex: 1, minHeight: 0, maxHeight: isMobile ? 'none' : '65vh', overflowY: 'auto', overflowX: 'hidden' }}
+          >
             {event.content ? (
               <MdFull content={event.content} />
             ) : (

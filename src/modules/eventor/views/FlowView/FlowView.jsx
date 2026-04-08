@@ -110,8 +110,9 @@ export const FlowView = () => {
   const [searchParams] = useSearchParams();
   const { openEditor } = useEventorStore();
 
-  // Динамические колонки масонри — целевая ширина 650px
-  const { ref: containerRef, columns: masonryColumns } = useMasonryColumns(650);
+  // Для строк Flow держим более компактную целевую ширину колонки,
+  // чтобы masonry включался раньше и события раскладывались по колонкам.
+  const { ref: containerRef, columns: masonryColumns } = useMasonryColumns(420);
 
   const startParam    = searchParams.get('start');
   const endParam      = searchParams.get('end');
