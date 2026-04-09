@@ -129,6 +129,16 @@ body {
   animation: fadeIn 0.15s ease;
 }
 
+/* Невидимая зона слева — открывает сайдбар на мобилке */
+.sidebar-rail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 100vh;
+  z-index: 298;
+}
+
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 
 .sections-sidebar.collapsed .sidebar-label,

@@ -167,7 +167,7 @@ const SectionRow = ({ section, isEditing, onEdit, onCancel, onSave, onDelete, on
             c={section.is_archived ? 'dimmed' : undefined}
           >
             {section.name}
-            {section.is_default && <Text component="span" size="xs" c="dimmed" ml={4}>(default)</Text>}
+            {Boolean(section.is_default) && <Text component="span" size="xs" c="dimmed" ml={4}>(default)</Text>}
           </Text>
 
           {/* Кнопки */}

@@ -1,4 +1,4 @@
-import { Paper, Text, Group, Tooltip, Menu, ActionIcon } from '@mantine/core';
+import { Paper, Text, Group, Box, Tooltip, Menu, ActionIcon } from '@mantine/core';
 import { IconLock, IconDotsVertical, IconEdit, IconTrash, IconCircleDashed } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useEventorStore } from '../../store/eventorStore';
@@ -117,6 +117,29 @@ export const EventCard = ({ event, isDraft = false }) => {
       </Group>
 
       <MdPreview content={event.content} blurred={isBlurred} />
+
+      {/* Теги */}
+      {event.tags?.length > 0 && (
+        <Group gap={4} mt={6} wrap="wrap">
+          {event.tags.map((tag) => (
+            <Box
+              key={tag.id}
+              style={{
+                background: tag.bgcolor || 'var(--mantine-color-gray-1)',
+                color: tag.color || 'var(--mantine-color-dark-6)',
+                borderRadius: 4,
+                padding: '1px 7px',
+                fontSize: 11,
+                fontWeight: 500,
+                lineHeight: '18px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {tag.name}
+            </Box>
+          ))}
+        </Group>
+      )}
     </Paper>
   );
 };

@@ -10,6 +10,7 @@ export const eventorKeys = {
   event: (id) => ['eventor', 'event', id],
   sections: () => ['eventor', 'sections'],
   types: () => ['eventor', 'types'],
+  tags: () => ['eventor', 'tags'],
   search: (params) => ['eventor', 'search', params],
 };
 
@@ -220,6 +221,54 @@ export const useReorderSections = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: eventorKeys.sections() });
+    },
+  });
+};
+
+/**
+ * Теги пользователя (свои + системные)
+ */
+export const useTags = () => {
+  const user = useAuthStore((s) => s.user);
+  return useQuery({
+    queryKey: eventorKeys.tags(),
+    queryFn: async () => {
+      const res = await api.post('/eventor/getmytags', {});
+      return res.data.content;
+    },
+    enabled: Boolean(user),
+    staleTime: 15 * 60 * 1000, // теги меняются редко
+  });
+};
+
+/**
+ * Создать тег
+ */
+export const useSaveTag = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data) => {
+      const res = await api.post('/eventor/savetag', data);
+      return res.data.content;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: eventorKeys.tags() });
+    },
+  });
+};
+
+/**
+ * Удалить тег
+ */
+export const useDeleteTag = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      await api.delete(`/eventor/deletetag/${id}`);
+      return id;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: eventorKeys.tags() });
     },
   });
 };

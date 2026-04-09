@@ -109,6 +109,14 @@ export default function App() {
           <div className="sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} />
         )}
 
+        {/* Rail — невидимая зона справа, открывает сайдбар на мобилке */}
+        {isMobile && !mobileSidebarOpen && (
+          <div
+            className="sidebar-rail"
+            onClick={() => setMobileSidebarOpen(true)}
+          />
+        )}
+
         <Routes>
           {/* Eventor: nested routes */}
           <Route path="/eventor" element={

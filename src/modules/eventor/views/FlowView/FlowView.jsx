@@ -72,7 +72,14 @@ const DayRow = ({ date, events, onAddClick, isToday, stripe, masonryColumns }) =
         )}
       </div>
 
-      <div className="flow-events-col">
+      <div
+        className="flow-events-col"
+        onDoubleClick={(e) => {
+          // Если клик был внутри карточки — не открываем редактор
+          if (e.target.closest('.event-card')) return;
+          onAddClick(date.format('YYYY-MM-DD'));
+        }}
+      >
         {events.length > 0 ? (
           // Масонри для карточек — если одна колонка, просто стак
           masonryColumns === 1 ? (

@@ -72,7 +72,9 @@ import {
   useSaveEvent,
   useEvent,
   useDeleteEvent,
+  useTags,
 } from '../../api/eventorApi';
+import { TagSelect } from '../TagSelect/TagSelect';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { createDraft, updateDraft, deleteDraft } from '@/shared/utils/db';
@@ -145,7 +147,7 @@ export const EventEditor = () => {
   const [editorMode, setEditorMode] = useState('md');
   const [editorKey, setEditorKey] = useState(0);
 
-  const [tag, setTag] = useState('');
+  const [tagIds, setTagIds] = useState([]);
   const [project, setProject] = useState('');
   const [access, setAccess] = useState('private');
   const [comments, setComments] = useState('');
@@ -169,7 +171,7 @@ export const EventEditor = () => {
       setSetTime(toTimeString(srcDate));
       setSectionId(draftSrc.section_id || null);
       setTypeId(draftSrc.type_id || null);
-      setTag(draftSrc.tag || '');
+      setTagIds(Array.isArray(draftSrc.tag_ids) ? draftSrc.tag_ids : []);
       setProject(draftSrc.project || '');
       setAccess(draftSrc.access || 'private');
       setComments(draftSrc.comments || '');
@@ -185,7 +187,7 @@ export const EventEditor = () => {
       setSetTime(toTimeString(srcDate));
       setSectionId(existingEvent.section_id || null);
       setTypeId(existingEvent.type_id || null);
-      setTag(existingEvent.tag || '');
+      setTagIds((existingEvent.tags || []).map((t) => t.id));
       setProject(existingEvent.project || '');
       setAccess(existingEvent.access || 'private');
       setComments(existingEvent.comments || '');
@@ -204,7 +206,7 @@ export const EventEditor = () => {
           : null
       );
       setTypeId(null);
-      setTag('');
+      setTagIds([]);
       setProject('');
       setAccess('private');
       setComments('');
@@ -232,7 +234,7 @@ export const EventEditor = () => {
     };
 
     const localMeta = {
-      tag,
+      tag_ids: tagIds,
       project,
       access,
       comments,
@@ -560,11 +562,9 @@ export const EventEditor = () => {
               </Box>
             ) : (
               <Box className="event-editor-settings-grid">
-                <TextInput
-                  label="Tag"
-                  value={tag}
-                  onChange={(e) => setTag(e.target.value)}
-                  placeholder="e.g. daily"
+                <TagSelect
+                  value={tagIds}
+                  onChange={setTagIds}
                 />
                 <TextInput
                   label="Project"

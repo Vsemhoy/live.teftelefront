@@ -144,7 +144,9 @@ export const SectionsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
             {isLoading
               ? [1,2,3].map((i) => <Skeleton key={i} height={28} radius="sm" />)
               : sections
-                  ?.filter((s) => !s.is_archived)
+                  ?.slice()
+                  .sort((a, b) => a.sort_order - b.sort_order)
+                  .filter((s) => !s.is_archived)
                   .map((section) => (
                     <NavLink key={section.id} label={section.name}
                       leftSection={activeSection === section.id
