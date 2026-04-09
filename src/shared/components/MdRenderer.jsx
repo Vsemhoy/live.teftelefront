@@ -148,11 +148,18 @@ const trimPreviewContent = (content) => {
 };
 
 /** Компактный превью для карточки */
-export const MdPreview = ({ content }) => {
+export const MdPreview = ({ content, blurred = false }) => {
   if (!content) return null;
   const trimmed = trimPreviewContent(content);
   return (
-    <Box className="md-preview">
+    <Box
+      className="md-preview"
+      style={blurred ? {
+        filter: 'blur(5px)',
+        userSelect: 'none',
+        pointerEvents: 'none',
+      } : undefined}
+    >
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={COMPACT_COMPONENTS}>
         {trimmed}
       </ReactMarkdown>

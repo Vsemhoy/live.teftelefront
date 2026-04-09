@@ -60,6 +60,7 @@ import {
   IconCheckbox,
   IconInfoCircle,
   IconFileText,
+  IconLock,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import dayjs from 'dayjs';
@@ -95,15 +96,29 @@ const composeDateTime = (dateValue, timeValue) => {
   return date.hour(Number.isFinite(h) ? h : 9).minute(Number.isFinite(m) ? m : 0).second(0);
 };
 
+// Маппинг icon-строки (Tabler) → компонент иконки
+const TYPE_ICON_MAP = {
+  'calendar-event': IconCalendarEvent,
+  'bolt':           IconBolt,
+  'pencil':         IconNote,
+  'checklist':      IconCheckbox,
+  'book-2':         IconFileText,
+  'info-circle':    IconInfoCircle,
+  'dashboard':      IconCircleDashed, // State — используем gauge-подобную
+};
+
+const getTypeIconBySlug = (slug) => TYPE_ICON_MAP[slug] || IconCircleDashed;
+
+// Оставляем для обратной совместимости (fallback по label)
 const getTypeIcon = (label) => {
   const key = String(label || '').trim().toLowerCase();
   if (!key || key === 'без типа' || key === 'none') return IconCircleDashed;
-  if (key.includes('event') || key.includes('событ')) return IconCalendarEvent;
-  if (key.includes('action') || key.includes('act') || key.includes('действ')) return IconBolt;
-  if (key.includes('note') || key.includes('замет')) return IconNote;
-  if (key.includes('task') || key.includes('задач')) return IconCheckbox;
-  if (key.includes('info') || key.includes('инфо')) return IconInfoCircle;
-  if (key.includes('synopsis') || key.includes('summary') || key.includes('опис')) return IconFileText;
+  if (key.includes('event')    || key.includes('событ'))  return IconCalendarEvent;
+  if (key.includes('action')   || key.includes('действ')) return IconBolt;
+  if (key.includes('note')     || key.includes('замет'))  return IconNote;
+  if (key.includes('task')     || key.includes('задач'))  return IconCheckbox;
+  if (key.includes('info')     || key.includes('инфо'))   return IconInfoCircle;
+  if (key.includes('synopsis') || key.includes('опис'))   return IconFileText;
   return IconCircleDashed;
 };
 
@@ -135,7 +150,8 @@ export const EventEditor = () => {
   const [access, setAccess] = useState('private');
   const [comments, setComments] = useState('');
   const [isLocked, setIsLocked] = useState(false);
-  const [isStarred, setIsStarred] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const [isBlurred, setIsBlurred] = useState(false);
 
   const editorRef = useRef(null);
 
@@ -157,8 +173,9 @@ export const EventEditor = () => {
       setProject(draftSrc.project || '');
       setAccess(draftSrc.access || 'private');
       setComments(draftSrc.comments || '');
-      setIsLocked(Boolean(draftSrc.isLocked));
-      setIsStarred(Boolean(draftSrc.isStarred));
+      setIsLocked(Boolean(draftSrc.is_locked));
+      setIsPinned(Boolean(draftSrc.is_pinned));
+      setIsBlurred(Boolean(draftSrc.is_blurred));
     } else if (serverId) {
       if (!existingEvent) return;
       setName(existingEvent.name || '');
@@ -172,8 +189,9 @@ export const EventEditor = () => {
       setProject(existingEvent.project || '');
       setAccess(existingEvent.access || 'private');
       setComments(existingEvent.comments || '');
-      setIsLocked(Boolean(existingEvent.isLocked));
-      setIsStarred(Boolean(existingEvent.isStarred));
+      setIsLocked(Boolean(existingEvent.is_locked));
+      setIsPinned(Boolean(existingEvent.is_pinned));
+      setIsBlurred(Boolean(existingEvent.is_blurred));
     } else {
       const initialDate = editorData?.date ? new Date(editorData.date) : new Date();
       setName('');
@@ -191,7 +209,8 @@ export const EventEditor = () => {
       setAccess('private');
       setComments('');
       setIsLocked(false);
-      setIsStarred(false);
+      setIsPinned(false);
+      setIsBlurred(false);
     }
 
     setTab('editor');
@@ -217,13 +236,16 @@ export const EventEditor = () => {
       project,
       access,
       comments,
-      isLocked,
-      isStarred,
+      is_locked: isLocked,
+      is_pinned: isPinned,
+      is_blurred: isBlurred,
     };
+
+    const fullPayload = { ...basePayload, ...localMeta };
 
     if (!isOnline || !user) {
       try {
-        const offlinePayload = { ...basePayload, ...localMeta, syncStatus: 'pending' };
+        const offlinePayload = { ...fullPayload, syncStatus: 'pending' };
         if (editorData?.draftLocalId) {
           await updateDraft(editorData.draftLocalId, offlinePayload);
         } else {
@@ -243,7 +265,7 @@ export const EventEditor = () => {
     }
 
     try {
-      await saveEvent(basePayload);
+      await saveEvent(fullPayload);
       notifications.show({
         title: editorData?.id ? 'Updated' : 'Created',
         message: name || 'Event saved',
@@ -258,7 +280,7 @@ export const EventEditor = () => {
         message: msg,
         color: 'orange',
       });
-      await createDraft({ ...basePayload, ...localMeta, syncStatus: 'error', errorMsg: msg });
+      await createDraft({ ...fullPayload, syncStatus: 'error', errorMsg: msg });
       closeEditor();
     }
   };
@@ -290,15 +312,20 @@ export const EventEditor = () => {
 
   const typeOptions =
     types?.map((t) => ({
-      value: t.id,
-      label: t.name,
+      value:   t.id,
+      label:   t.name,
+      icon:    t.icon || null,
+      bgcolor: t.bgcolor || null,
     })) || [];
 
-  const activeType = typeOptions.find((t) => t.value === typeId);
+  const activeType     = typeOptions.find((t) => t.value === typeId);
   const activeTypeCode = shortTypeCode(activeType?.label);
-  const ActiveTypeIcon = getTypeIcon(activeType?.label || 'Без типа');
+  const ActiveTypeIcon = activeType?.icon
+    ? getTypeIconBySlug(activeType.icon)
+    : getTypeIcon(activeType?.label || '');
 
   const isLoadingEdit = Boolean(editorData?.id && isEventLoading && !existingEvent);
+  const isReadOnly = Boolean(editorData?.id && existingEvent?.is_locked);
   const saveLabel = !isOnline || !user ? 'Save draft' : 'Save';
 
   return (
@@ -310,7 +337,6 @@ export const EventEditor = () => {
       closeOnClickOutside={false}
       fullScreen={isMobile}
       size={isMobile ? '100%' : '90vw'}
-      maxWidth={'900px'}
       padding={0}
       radius={isMobile ? 0 : 'md'}
       className="event-editor-modal"
@@ -380,7 +406,9 @@ export const EventEditor = () => {
                   >
                     <Group gap={8} wrap="nowrap">
                       {(() => {
-                        const TypeIcon = getTypeIcon(option.label);
+                        const TypeIcon = option.icon
+                          ? getTypeIconBySlug(option.icon)
+                          : getTypeIcon(option.label);
                         return <TypeIcon size={14} />;
                       })()}
                       <span>{option.label}</span>
@@ -412,6 +440,20 @@ export const EventEditor = () => {
                   ? 'No connection. Event will be saved as a local draft.'
                   : 'You are not signed in. Event will be saved as a local draft.'}
               </Text>
+            </Alert>
+          )}
+
+          {isReadOnly && (
+            <Alert
+              className="event-editor-alert"
+              icon={<IconLock size={14} />}
+              color="gray"
+              variant="light"
+              py={6}
+              px={10}
+              radius="sm"
+            >
+              <Text size="xs">This event is locked and cannot be edited. Unlock it in settings to make changes.</Text>
             </Alert>
           )}
 
@@ -571,14 +613,19 @@ export const EventEditor = () => {
                 />
                 <Box className="event-editor-flags">
                   <Switch
-                    label="Is locked"
+                    label="Locked (no editing)"
                     checked={isLocked}
                     onChange={(e) => setIsLocked(e.currentTarget.checked)}
                   />
                   <Switch
-                    label="Is starred"
-                    checked={isStarred}
-                    onChange={(e) => setIsStarred(e.currentTarget.checked)}
+                    label="Pinned"
+                    checked={isPinned}
+                    onChange={(e) => setIsPinned(e.currentTarget.checked)}
+                  />
+                  <Switch
+                    label="Blur content"
+                    checked={isBlurred}
+                    onChange={(e) => setIsBlurred(e.currentTarget.checked)}
                   />
                 </Box>
               </Box>
@@ -634,6 +681,7 @@ export const EventEditor = () => {
                   <ActionIcon
                     onClick={handleSave}
                     loading={isSaving}
+                    disabled={isReadOnly}
                     size="lg"
                     aria-label={saveLabel}
                     color={!isOnline || !user ? 'orange' : 'blue'}
@@ -647,6 +695,7 @@ export const EventEditor = () => {
                   <Button
                     onClick={handleSave}
                     loading={isSaving}
+                    disabled={isReadOnly}
                     leftSection={!isOnline || !user ? <IconWifiOff size={14} /> : <IconDeviceFloppy size={14} />}
                     color={!isOnline || !user ? 'orange' : 'blue'}
                   >
