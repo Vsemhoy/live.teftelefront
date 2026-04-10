@@ -61,6 +61,7 @@ import {
   IconInfoCircle,
   IconFileText,
   IconLock,
+  IconLayoutDashboard,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import dayjs from 'dayjs';
@@ -106,7 +107,7 @@ const TYPE_ICON_MAP = {
   'checklist':      IconCheckbox,
   'book-2':         IconFileText,
   'info-circle':    IconInfoCircle,
-  'dashboard':      IconCircleDashed, // State — используем gauge-подобную
+  'dashboard':      IconLayoutDashboard,
 };
 
 const getTypeIconBySlug = (slug) => TYPE_ICON_MAP[slug] || IconCircleDashed;
@@ -317,6 +318,7 @@ export const EventEditor = () => {
       value:   t.id,
       label:   t.name,
       icon:    t.icon || null,
+      color:   t.color || null,
       bgcolor: t.bgcolor || null,
     })) || [];
 
@@ -387,7 +389,16 @@ export const EventEditor = () => {
 
             <Menu width={220} withArrow position="bottom-end">
               <Menu.Target>
-                <Button variant="light" color="gray" size="compact-xs" className="event-editor-type-trigger">
+                <Button
+                  variant="light"
+                  color="gray"
+                  size="compact-xs"
+                  className="event-editor-type-trigger"
+                  style={{
+                    outline: `2px solid ${activeType?.color || '#999999'}`,
+                    outlineOffset: 1,
+                  }}
+                >
                   <ActiveTypeIcon size={14} />
                   {activeTypeCode}
                 </Button>

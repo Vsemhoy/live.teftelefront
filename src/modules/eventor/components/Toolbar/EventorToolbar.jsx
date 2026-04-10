@@ -55,7 +55,14 @@ export const EventorToolbar = () => {
   const expandStart = () => setDateRange(start.subtract(1, 'month').startOf('month'), end);
   const expandEnd   = () => setDateRange(start, end.add(1, 'month').endOf('month'));
 
-  const goToday = () => setDateRange(dayjs().startOf('month'), dayjs().endOf('month'));
+  const goToday = () => {
+    setDateRange(dayjs().startOf('month'), dayjs().endOf('month'));
+    // Даём FlowView время перерендериться, потом скроллим к сегодня
+    setTimeout(() => {
+      const el = document.getElementById('today_row');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  };
 
   const toggleDir = () => updateParams({ dir: dirParam === 'DESC' ? 'ASC' : 'DESC' });
 
@@ -76,8 +83,12 @@ export const EventorToolbar = () => {
           <MonthPickerInput
             type="range"
             value={[start.toDate(), end.toDate()]}
-            onChange={([s, e]) => {
-              if (s && e) setDateRange(dayjs(s).startOf('month'), dayjs(e).endOf('month'));
+            onChange={(range) => {
+              const [s, e] = range;
+              if (s) setDateRange(
+                dayjs(s).startOf('month'),
+                e ? dayjs(e).endOf('month') : dayjs(s).endOf('month')
+              );
             }}
             size="xs"
             style={{ width: 200 }}
