@@ -140,7 +140,16 @@ const trimPreviewContent = (content) => {
     trimmed = lines.slice(0, MAX_PREVIEW_LINES).join('\n');
   }
 
-  if (trimmed.length < content.length || lines.length > MAX_PREVIEW_LINES) {
+  // Убираем незакрытые ```code``` блоки — иначе mermaid с обрезанным
+  // контентом крашит рендерер с "Syntax error: unexpected end"
+  const fenceMatches = trimmed.match(/```/g);
+  if (fenceMatches && fenceMatches.length % 2 !== 0) {
+    // Нечётное кол-во ``` — последний блок не закрыт, вырезаем его целиком
+    const lastFence = trimmed.lastIndexOf('```');
+    trimmed = trimmed.substring(0, lastFence).trimEnd();
+  }
+
+  if (trimmed.length < content.length) {
     trimmed = `${trimmed}\n\n…`;
   }
 
