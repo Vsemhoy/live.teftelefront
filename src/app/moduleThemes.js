@@ -1,8 +1,8 @@
 export const MODULE_THEMES = {
   eventor: {
-    gradient: 'linear-gradient(90deg, #d5f7df 0%, #afdbdb 100%)',
-    accent: '#2d9e6b',
-    textColor: '#1a4a35',
+    gradient: 'linear-gradient(90deg, #e7f0fd 0%, #d0e4fb 100%)',
+    accent: '#2d6cdf',
+    textColor: '#1a3a6e',
     label: 'Eventor',
   },
   exploiter: {
@@ -12,9 +12,9 @@ export const MODULE_THEMES = {
     label: 'Exploiter',
   },
   badger: {
-    gradient: 'linear-gradient(90deg, #ede9fe 0%, #ddd6fe 100%)',
-    accent: '#6d28d9',
-    textColor: '#2e1a5e',
+    gradient: 'linear-gradient(90deg, #d5f7df 0%, #b8f0c8 100%)',
+    accent: '#2d9e6b',
+    textColor: '#1a4a35',
     label: 'Badger',
   },
   tasker: {

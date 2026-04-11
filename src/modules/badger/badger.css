@@ -1,0 +1,171 @@
+/* ================================================================
+   BADGER — Timeline Table
+================================================================ */
+
+/* Обёртка таблицы — горизонтальный скролл */
+.bud-timeline {
+  overflow-x: auto;
+}
+
+/* Строка дня */
+.bud-day-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-width: 100%;
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+  min-height: 56px;
+}
+
+/* Шапка таблицы */
+.bud-timeline-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: 100%;
+  border-bottom: 2px solid var(--mantine-color-gray-3);
+  background: var(--mantine-color-gray-0);
+  position: sticky;
+  top: 46px; /* высота content-toolbar */
+  z-index: 10;
+  padding: 6px 0;
+}
+
+/* Колонка даты */
+.bud-date-label {
+  width: 52px;
+  min-width: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 8px 8px 8px 4px;
+  cursor: default;
+}
+
+.bud-date-label.today {
+  font-weight: 600;
+}
+
+.bud-day-num {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.bud-day-name {
+  font-size: 10px;
+  color: var(--mantine-color-gray-5);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Слот счёта — колонка */
+.bud-account-slot {
+  min-width: 200px;
+  max-width: 600px;
+  flex: 1 1 200px;
+  border-left: 1px solid var(--mantine-color-gray-2);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  gap: 4px;
+}
+
+.bud-account-header {
+  justify-content: center;
+  padding: 4px 8px;
+  min-height: unset;
+}
+
+/* Карточки внутри слота */
+.bud-slot-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+/* Кнопка добавить — скрыта, видна при ховере на строку */
+.bud-slot-add {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.bud-day-row:hover .bud-slot-add {
+  opacity: 1;
+}
+
+/* Баланс счёта */
+.bud-slot-balance {
+  border-top: 1px solid var(--mantine-color-gray-2);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
+.bud-slot-balance.extended {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* Ячейка-заполнитель — тянется чтобы таблица всегда выглядела таблицей */
+.bud-flex-filler {
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid var(--mantine-color-gray-2);
+}
+
+/* Итого дня */
+.bud-day-total {
+  width: 110px;
+  min-width: 110px;
+  flex-shrink: 0;
+  border-left: 2px solid var(--mantine-color-gray-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 6px 10px;
+}
+
+/* ── TransactionCard ─────────────────────────────────────────── */
+.bud-transaction-card {
+  background: var(--mantine-color-white);
+  transition: box-shadow 0.15s ease;
+}
+
+.bud-transaction-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+/* ── Мобилка ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .bud-account-slot {
+    min-width: 160px;
+  }
+
+  .bud-day-total {
+    width: 80px;
+    min-width: 80px;
+  }
+}
+
+/* ── Month header ────────────────────────────────────────────── */
+.bud-month-header {
+  padding: 10px 12px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mantine-color-green-7);
+  background: var(--mantine-color-green-0);
+  border-bottom: 1px solid var(--mantine-color-green-2);
+  letter-spacing: 0.02em;
+}
+
+/* ── Double-click cursor на слоте ────────────────────────────── */
+.bud-account-slot {
+  cursor: default;
+}
+.bud-account-slot:hover {
+  background: rgba(47, 158, 107, 0.03);
+}

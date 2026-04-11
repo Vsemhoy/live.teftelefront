@@ -19,13 +19,20 @@ import { GridCalendar } from '@/modules/eventor/views/GridCalendar/GridCalendar'
 import { SearchPanel } from '@/modules/eventor/views/SearchPanel/SearchPanel';
 import { DraftsView } from '@/modules/eventor/views/DraftsView/DraftsView';
 
+// Badger
+import { AccountsSidenav } from '@/modules/badger/components/AccountsSidenav/AccountsSidenav';
+import { BadgerToolbar } from '@/modules/badger/components/Toolbar/BadgerToolbar';
+import { TimelineView } from '@/modules/badger/views/TimelineView/TimelineView';
+import '@/modules/badger/badger.css';
+import { TransactionEditor } from '@/modules/badger/components/TransactionEditor/TransactionEditor';
+
 const ComingSoon = ({ name }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
     <Text c="dimmed" size="sm">{name} — coming soon</Text>
   </div>
 );
 
-// Лэйаут Eventor — обёртка с сайднавом, тулбаром и оффлайн-баннером
+// ── Лэйаут Eventor ────────────────────────────────────────────────
 const EventorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => {
   const isOnline = useOnlineStatus();
   return (
@@ -48,6 +55,21 @@ const EventorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) =
     </>
   );
 };
+
+// ── Лэйаут Badger ─────────────────────────────────────────────────
+const BadgerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
+  <>
+    <AccountsSidenav
+      collapsed={sidebarCollapsed}
+      mobileOpen={mobileSidebarOpen}
+      onMobileClose={onMobileClose}
+    />
+    <div className="main-content">
+      <BadgerToolbar />
+      <Outlet />
+    </div>
+  </>
+);
 
 export default function App() {
   const user = useAuthStore((s) => s.user);
@@ -77,6 +99,9 @@ export default function App() {
   useEffect(() => {
     if (location.pathname === '/' || location.pathname === '/eventor' || location.pathname === '/eventor/') {
       navigate('/eventor/flow', { replace: true });
+    }
+    if (location.pathname === '/badger' || location.pathname === '/badger/') {
+      navigate('/badger/timeline', { replace: true });
     }
   }, [location.pathname, navigate]);
 
@@ -109,7 +134,7 @@ export default function App() {
           <div className="sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} />
         )}
 
-        {/* Rail — невидимая зона справа, открывает сайдбар на мобилке */}
+        {/* Rail — невидимая зона слева, открывает сайдбар на мобилке */}
         {isMobile && !mobileSidebarOpen && (
           <div
             className="sidebar-rail"
@@ -133,8 +158,19 @@ export default function App() {
             <Route path="drafts"   element={<DraftsView />} />
           </Route>
 
+          {/* Badger: nested routes */}
+          <Route path="/badger" element={
+            <BadgerLayout
+              sidebarCollapsed={!isMobile && sidebarCollapsed}
+              mobileSidebarOpen={isMobile && mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+            />
+          }>
+            <Route index element={<Navigate to="timeline" replace />} />
+            <Route path="timeline" element={<TimelineView />} />
+          </Route>
+
           <Route path="/exploiter/*" element={<div className="main-content"><ComingSoon name="Exploiter" /></div>} />
-          <Route path="/badger/*"    element={<div className="main-content"><ComingSoon name="Badger" /></div>} />
           <Route path="/tasker/*"    element={<div className="main-content"><ComingSoon name="Tasker" /></div>} />
           <Route path="/pm/*"        element={<div className="main-content"><ComingSoon name="Project Manager" /></div>} />
         </Routes>
@@ -145,6 +181,7 @@ export default function App() {
       <ReadModal />
       <EventEditor />
       <SectionsManager />
+      <TransactionEditor />
     </div>
   );
 }
