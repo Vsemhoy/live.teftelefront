@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import { useBadgerStore } from '../../store/badgerStore';
-import { useTransactions, useAccounts } from '../../api/badgerApi';
+import { useTransactions, useAccounts, useMonthTotals } from '../../api/badgerApi';
 import { TransactionCard } from '../../components/TransactionCard/TransactionCard';
 import { formatMoney } from '../../utils/badgerUtils';
 
@@ -68,9 +68,10 @@ const AccountSlot = ({ account, transactions, balance, totals, mode, onAdd, date
 );
 
 // ─── MonthTotalsRow ───────────────────────────────────────────────
-// Строка итогов месяца — показывается в конце каждого месяца (снизу)
-const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, isFirst }) => {
-  // Считаем итоги по каждому счёту за этот месяц
+// Строка итогов — показывается СВЕРХУ каждого месяца (DESC порядок).
+// closingDateStr — последний день месяца, баланс на конец которого показываем.
+const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, balanceByAccount, closingDateStr, label }) => {
+  // Считаем итоги по транзакциям этого месяца
   const totalsByAccount = useMemo(() => {
     const result = {};
     for (const accId of activeAccounts) {
@@ -89,51 +90,50 @@ const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, isFi
 
   const activeCurrency = accounts.find((a) => a.id === activeAccounts[0])?.currency || 'RUB';
 
-  // Суммарный нетто по всем счетам
-  const grandNet = activeAccounts.reduce((sum, accId) => {
-    const t = totalsByAccount[accId] || {};
-    return sum + (t.income ?? 0) - (t.expense ?? 0) + (t.transfer_in ?? 0) - (t.transfer_out ?? 0);
-  }, 0);
+  const grandClosing = activeAccounts.reduce(
+    (sum, accId) => sum + (balanceByAccount[accId]?.[closingDateStr] ?? 0), 0
+  );
 
   return (
     <div className="bud-month-totals-row">
       {/* Лейбл */}
       <div className="bud-month-totals-label">
-        <Text size="xs" c="green.6" fw={700} style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)', lineHeight: 1 }}>
-          {isFirst ? 'now' : 'Σ'}
+        <Text size="xs" c="green.6" fw={700}
+          style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)', lineHeight: 1 }}>
+          {label}
         </Text>
       </div>
 
       {/* Итоги по каждому счёту */}
       {activeAccounts.map((accId) => {
-        const acc = accounts.find((a) => a.id === accId) || { currency: 'RUB' };
-        const t   = totalsByAccount[accId] || {};
-        const net = (t.income ?? 0) - (t.expense ?? 0) + (t.transfer_in ?? 0) - (t.transfer_out ?? 0);
+        const acc     = accounts.find((a) => a.id === accId) || { currency: 'RUB' };
+        const t       = totalsByAccount[accId] || {};
+        const net     = (t.income ?? 0) - (t.expense ?? 0) + (t.transfer_in ?? 0) - (t.transfer_out ?? 0);
+        // Баланс на конец месяца — берём из balanceByAccount по последнему дню
+        const closing = balanceByAccount[accId]?.[closingDateStr] ?? 0;
 
         return (
           <div key={accId} className="bud-month-totals-slot">
             {(t.income ?? 0) > 0 && (
-              <Text size="xs" c="teal">
-                + {formatMoney(t.income, acc.currency)}
-              </Text>
+              <Text size="xs" c="teal">+ {formatMoney(t.income, acc.currency)}</Text>
             )}
             {(t.expense ?? 0) > 0 && (
-              <Text size="xs" c="red">
-                − {formatMoney(t.expense, acc.currency)}
-              </Text>
+              <Text size="xs" c="red">− {formatMoney(t.expense, acc.currency)}</Text>
             )}
             {(t.transfer_in ?? 0) > 0 && (
-              <Text size="xs" c="blue">
-                ↓ {formatMoney(t.transfer_in, acc.currency)}
-              </Text>
+              <Text size="xs" c="blue">↓ {formatMoney(t.transfer_in, acc.currency)}</Text>
             )}
             {(t.transfer_out ?? 0) > 0 && (
-              <Text size="xs" c="blue">
-                ↑ {formatMoney(t.transfer_out, acc.currency)}
+              <Text size="xs" c="blue">↑ {formatMoney(t.transfer_out, acc.currency)}</Text>
+            )}
+            {net !== 0 && (
+              <Text size="xs" fw={600} c={net >= 0 ? 'teal' : 'red'} style={{ borderTop: '1px solid var(--mantine-color-gray-2)', paddingTop: 2, marginTop: 2 }}>
+                {net >= 0 ? '+' : ''}{formatMoney(net, acc.currency)}
               </Text>
             )}
-            <Text size="xs" fw={700} c={net >= 0 ? 'green.7' : 'red.6'}>
-              {net >= 0 ? '+' : ''}{formatMoney(net, acc.currency)}
+            {/* Баланс на конец месяца — главная цифра */}
+            <Text size="sm" fw={700} c={closing >= 0 ? 'dark' : 'red'}>
+              {formatMoney(closing, acc.currency)}
             </Text>
           </div>
         );
@@ -141,11 +141,11 @@ const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, isFi
 
       <div className="bud-month-totals-filler" />
 
-      {/* Гранд-итог */}
+      {/* Гранд-итог = сумма балансов всех счетов на конец месяца */}
       <div className="bud-month-totals-total">
-        <Text size="xs" c="dimmed" style={{ fontSize: 10 }}>net</Text>
-        <Text size="sm" fw={700} c={grandNet >= 0 ? 'green.7' : 'red.6'}>
-          {grandNet >= 0 ? '+' : ''}{formatMoney(grandNet, activeCurrency)}
+        <Text size="xs" c="dimmed" style={{ fontSize: 10 }}>balance</Text>
+        <Text size="sm" fw={700} c={grandClosing >= 0 ? 'dark' : 'red'}>
+          {formatMoney(grandClosing, activeCurrency)}
         </Text>
       </div>
     </div>
@@ -243,6 +243,21 @@ export const TimelineView = () => {
 
   const { data: accounts = [] } = useAccounts();
 
+  // Запрашиваем итоги предыдущего месяца перед началом диапазона
+  // closing_balance(prev) = opening_balance(start) → с него начинается наш running balance
+  const prevMonthKey = dayjs(startParam + '-01').subtract(1, 'month').format('YYYY-MM');
+  const { data: prevTotals = [] } = useMonthTotals({
+    month_key:  prevMonthKey,
+    account_id: activeAccounts.length > 0 ? activeAccounts.join(',') : undefined,
+  });
+
+  // Map: account_id → opening_balance для первого месяца диапазона
+  const openingByAccount = useMemo(() =>
+    Object.fromEntries(
+      (prevTotals?.content || prevTotals || []).map((t) => [t.account_id, t.closing_balance ?? 0])
+    ),
+  [prevTotals]);
+
   const { data: transactions = [], isLoading, isError } = useTransactions({
     start: start.format('YYYY-MM-DD'),
     end:   end.format('YYYY-MM-DD'),
@@ -288,15 +303,19 @@ export const TimelineView = () => {
         .filter((tx) => tx?.account_id === accId && !Boolean(tx?.is_disabled))
         .sort((a, b) => (a.occurred_at || '').localeCompare(b.occurred_at || ''));
 
-      let running = 0;
+      // Стартуем от closing_balance предыдущего месяца, не от нуля
+      const opening = openingByAccount[accId] ?? 0;
+      let running = opening;
       const byDate = {};
+
       for (const tx of accTx) {
         const sign = ['income', 'transfer_in'].includes(tx.flow_kind) ? 1 : -1;
         running += sign * (tx.amount || 0);
         byDate[tx.occurred_at] = running;
       }
 
-      let last = 0;
+      // Протягиваем баланс на дни без транзакций
+      let last = opening; // ← тоже стартуем от opening, не от 0
       for (const date of [...dateArray].reverse()) {
         const dateStr = date.format('YYYY-MM-DD');
         if (byDate[dateStr] !== undefined) last = byDate[dateStr];
@@ -304,7 +323,7 @@ export const TimelineView = () => {
       }
     }
     return result;
-  }, [transactions, activeAccounts, dateArray]);
+  }, [transactions, activeAccounts, dateArray, openingByAccount]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -355,18 +374,41 @@ export const TimelineView = () => {
         </div>
       </div>
 
-      {/* Рендерим помесячно: шапка месяца → строки дней → итоги месяца */}
+      {/* Рендерим помесячно DESC:
+           [Итоги МАЯ]   ← конец мая = баланс на начало июня
+           май 31..май 1
+           [Итоги АПР]   ← конец апреля
+           апр 30..апр 1
+           ...
+      */}
       {monthKeys.map((monthKey, monthIndex) => {
-        const monthDates  = datesByMonth[monthKey] || [];
-        const isFirstMonth = monthIndex === 0; // самый верхний (самый свежий)
-        const monthDate   = dayjs(monthKey + '-01');
+        const monthDates = datesByMonth[monthKey] || [];
+        const monthDate  = dayjs(monthKey + '-01');
+
+        // Последний день этого месяца — по нему берём closing balance
+        const lastDayOfMonth = monthDate.endOf('month').format('YYYY-MM-DD');
+        // Первый день следующего месяца — метка над строкой итогов
+        const isCurrentMonth = monthKey === todayMK;
+        // Лейбл итоговой строки
+        const totalsLabel = isCurrentMonth ? 'now' : monthDate.format('MMM');
 
         return (
           <div key={monthKey}>
+            {/* Итоговая строка — СВЕРХУ (конец месяца в DESC порядке) */}
+            <MonthTotalsRow
+              monthKey={monthKey}
+              activeAccounts={activeAccounts}
+              accounts={accounts}
+              transactions={transactions}
+              balanceByAccount={balanceByAccount}
+              closingDateStr={lastDayOfMonth}
+              label={totalsLabel}
+            />
+
             {/* Заголовок месяца */}
             <div className="bud-month-header">
               {monthDate.format('MMMM YYYY')}
-              {monthKey === todayMK && (
+              {isCurrentMonth && (
                 <Text component="span" size="xs" c="green.5" ml={8}>← current</Text>
               )}
             </div>
@@ -392,15 +434,6 @@ export const TimelineView = () => {
                 />
               );
             })}
-
-            {/* Итоговая строка месяца */}
-            <MonthTotalsRow
-              monthKey={monthKey}
-              activeAccounts={activeAccounts}
-              accounts={accounts}
-              transactions={transactions}
-              isFirst={isFirstMonth}
-            />
           </div>
         );
       })}
