@@ -24,6 +24,7 @@ import { AccountsSidenav } from '@/modules/badger/components/AccountsSidenav/Acc
 import { BadgerToolbar } from '@/modules/badger/components/Toolbar/BadgerToolbar';
 import { TimelineView } from '@/modules/badger/views/TimelineView/TimelineView';
 import '@/modules/badger/badger.css';
+import { TransactionReadModal } from '@/modules/badger/components/TransactionReadModal/TransactionReadModal';
 import { TransactionEditor } from '@/modules/badger/components/TransactionEditor/TransactionEditor';
 
 const ComingSoon = ({ name }) => (
@@ -182,6 +183,7 @@ export default function App() {
       <EventEditor />
       <SectionsManager />
       <TransactionEditor />
+      <TransactionReadModal />
     </div>
   );
 }

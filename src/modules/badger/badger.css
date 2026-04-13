@@ -205,16 +205,33 @@
 
 /* ── Мобилка ─────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  /* Полотно уходит в горизонтальный scroll */
+  .bud-timeline {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Строки не сжимаются — уходят вправо */
+  .bud-day-row,
+  .bud-timeline-header,
+  .bud-month-header,
+  .bud-month-totals-row {
+    min-width: max-content;
+  }
+
+  /* Колонки фиксированные — чтобы оставались друг над другом */
   .bud-account-slot,
-  .bud-account-header {
-    min-width: 120px; /* минимум на мобилке */
-  }
-  .bud-slot-cards {
-    max-width: 100%; /* карточки на всю ячейку */
-  }
+  .bud-account-header,
   .bud-month-totals-slot {
-    min-width: 120px;
+    flex: 0 0 250px;  /* фиксированная ширина, не сжимается */
+    min-width: 250px;
+    max-width: 250px;
   }
+
+  .bud-slot-cards {
+    max-width: 100%;
+  }
+
   .bud-day-total,
   .bud-month-totals-total {
     width: 90px;

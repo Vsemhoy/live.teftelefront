@@ -4,8 +4,14 @@ export const useBadgerStore = create((set, get) => ({
   // ── Редактор транзакции ──────────────────────────────────────────
   editorOpen: false,
   editorParams: null,
-  openEditor: (params) => set({ editorOpen: true, editorParams: params }),
-  closeEditor: () => set({ editorOpen: false, editorParams: null }),
+  openEditor:  (params) => set({ editorOpen: true,  editorParams: params }),
+  closeEditor: ()       => set({ editorOpen: false, editorParams: null }),
+
+  // ── Ридер транзакции (ReadModal) ─────────────────────────────────
+  readerOpen: false,
+  readerParams: null,
+  openReader:  (params) => set({ readerOpen: true,  readerParams: params }),
+  closeReader: ()       => set({ readerOpen: false, readerParams: null }),
 
   // ── Менеджер счетов ──────────────────────────────────────────────
   managerOpen: false,
