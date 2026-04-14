@@ -6,7 +6,7 @@ import {
 import { DatePickerInput } from '@mantine/dates';
 import {
   IconCheck, IconX, IconArrowDown, IconArrowUp, IconArrowsLeftRight,
-  IconTrash, IconCalculator, IconMath,
+  IconTrash, IconCalculator, IconMath, IconScale,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { notifications } from '@mantine/notifications';
@@ -60,9 +60,10 @@ const useNoteEval = (note, setNote) => {
 // ─── Константы ───────────────────────────────────────────────────
 
 const FLOW_KINDS = [
-  { value: 'expense',      label: 'Expense',  icon: IconArrowDown,       color: 'red' },
-  { value: 'income',       label: 'Income',   icon: IconArrowUp,         color: 'teal' },
-  { value: 'transfer_out', label: 'Transfer', icon: IconArrowsLeftRight, color: 'blue' },
+  { value: 'expense',         label: 'Expense',       icon: IconArrowDown,       color: 'red' },
+  { value: 'income',          label: 'Income',         icon: IconArrowUp,         color: 'teal' },
+  { value: 'transfer_out',    label: 'Transfer',       icon: IconArrowsLeftRight, color: 'blue' },
+  { value: 'reconciliation',  label: 'Reconciliation', icon: IconScale,           color: 'violet' },
 ];
 
 const FlowKindButton = ({ kind, active, onClick }) => {
@@ -139,7 +140,7 @@ const AmountInput = ({ value, onChange, flowKind, currency }) => {
             onChange={handleChange}
             onBlur={handleBlur}
             onKeyDown={(e) => { if (e.key === 'Enter' && hasExpr) { e.preventDefault(); handleEval(); } }}
-            placeholder="0.00  или  5000+300-200"
+            placeholder="0.00  или  5000+300-200  или  -1500"
             autoFocus
             style={{
               width: '100%',
@@ -225,10 +226,13 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
 
   const handleSubmit = () => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : Number(amount);
-    if (!numAmount || numAmount <= 0) {
+    if (!numAmount || numAmount === 0) {
       notifications.show({ message: 'Enter amount', color: 'red' });
       return;
     }
+    // reconciliation может быть отрицательной — toMinor от абс. значения, знак отдельно
+    const absAmount = Math.abs(numAmount);
+    const isNegativeReconciliation = flowKind === 'reconciliation' && numAmount < 0;
     if (!accountId) {
       notifications.show({ message: 'Select account', color: 'red' });
       return;
@@ -241,7 +245,8 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
     onSave({
       ...(initial?.id ? { id: initial.id } : {}),
       flow_kind:         flowKind,
-      amount:            toMinor(numAmount),
+      amount:            toMinor(absAmount),
+      is_negative:       isNegativeReconciliation, // бэк учтёт знак
       title:             title.trim() || null,
       note:              note.trim()  || null,
       occurred_at:       dayjs(date).format('YYYY-MM-DD'),

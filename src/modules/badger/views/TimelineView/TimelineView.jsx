@@ -12,7 +12,7 @@ import {
 import { useDraggable } from '@dnd-kit/core';
 import { useBadgerStore } from '../../store/badgerStore';
 import { useTransactions, useAccounts, useMonthTotals, useMoveTransaction, useSaveTransaction } from '../../api/badgerApi';
-import { formatMoney, flowKindColor, flowKindSign } from '../../utils/badgerUtils';
+import { formatMoney, flowKindColor, flowKindSign, calcDailyInterest } from '../../utils/badgerUtils';
 import { notifications } from '@mantine/notifications';
 
 dayjs.extend(isSameOrBefore);
@@ -75,9 +75,9 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
 
 // ─── DroppableSlot ────────────────────────────────────────────────
 // id формат: "DATE__ACCOUNT_ID"
-const DroppableSlot = ({ dateStr, accountId, children, onAdd }) => {
+const DroppableSlot = ({ dateStr, accountId, children, onAdd, isDisabled }) => {
   const dropId = `${dateStr}__${accountId}`;
-  const { setNodeRef, isOver } = useDroppable({ id: dropId, data: { dateStr, accountId } });
+  const { setNodeRef, isOver } = useDroppable({ id: dropId, data: { dateStr, accountId }, disabled: isDisabled });
 
   return (
     <div
@@ -100,6 +100,12 @@ const DroppableSlot = ({ dateStr, accountId, children, onAdd }) => {
 
 // ─── SlotBalance ─────────────────────────────────────────────────
 const SlotBalance = ({ balance, mode, currency, totals }) => {
+  // null = счёт не активен в этот день
+  if (balance === null) return (
+    <div className="bud-slot-balance">
+      <Text size="xs" c="dimmed" style={{ opacity: 0.4, fontStyle: 'italic' }}>—</Text>
+    </div>
+  );
   if (mode === 'extended' && totals) {
     return (
       <div className="bud-slot-balance extended">
@@ -128,8 +134,8 @@ const SlotBalance = ({ balance, mode, currency, totals }) => {
 const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, balanceByAccount, closingDateStr, label, variant = 'closing' }) => {
   const totalsByAccount = useMemo(() => {
     const result = {};
-    for (const accId of activeAccounts) {
-      const accTx = transactions.filter(
+    for (const accId of (Array.isArray(activeAccounts) ? activeAccounts : [])) {
+      const accTx = (Array.isArray(transactions) ? transactions : []).filter(
         (tx) => tx.account_id === accId && tx.month_key === monthKey && !Boolean(tx.is_disabled)
       );
       result[accId] = {
@@ -330,11 +336,13 @@ export const TimelineView = () => {
     account_id: activeAccounts.length > 0 ? activeAccounts.join(',') : undefined,
   });
 
-  const openingByAccount = useMemo(() =>
-    Object.fromEntries(
-      (prevTotals?.content || prevTotals || []).map((t) => [t.account_id, t.closing_balance ?? 0])
-    ),
-  [prevTotals]);
+  // prevTotals уже распакован через unwrap в badgerApi — просто массив
+  const openingByAccount = useMemo(() => {
+    const arr = Array.isArray(prevTotals) ? prevTotals : [];
+    return Object.fromEntries(
+      arr.map((t) => [t.account_id, t.closing_balance ?? 0])
+    );
+  }, [prevTotals]);
 
   const { data: transactions = [], isLoading, isError } = useTransactions({
     start: start.format('YYYY-MM-DD'),
@@ -363,13 +371,14 @@ export const TimelineView = () => {
   }, [startParam, endParam]);
 
   const monthKeys = useMemo(() => {
+    if (!Array.isArray(dateArray)) return [];
     const seen = new Set();
     return dateArray.map((d) => d.format('YYYY-MM')).filter((m) => { if (seen.has(m)) return false; seen.add(m); return true; });
   }, [dateArray]);
 
   const txByAccountByDate = useMemo(() => {
     const map = {};
-    for (const tx of transactions) {
+    for (const tx of (Array.isArray(transactions) ? transactions : [])) {
       if (!tx?.account_id || !tx?.occurred_at) continue;
       if (!map[tx.account_id]) map[tx.account_id] = {};
       if (!map[tx.account_id][tx.occurred_at]) map[tx.account_id][tx.occurred_at] = [];
@@ -380,9 +389,10 @@ export const TimelineView = () => {
 
   const balanceByAccount = useMemo(() => {
     const result = {};
-    for (const accId of activeAccounts) {
+    for (const accId of (Array.isArray(activeAccounts) ? activeAccounts : [])) {
       result[accId] = {};
-      const accTx = transactions
+      const account = accounts.find((a) => a.id === accId);
+      const accTx   = transactions
         .filter((tx) => tx?.account_id === accId && !Boolean(tx?.is_disabled))
         .sort((a, b) => (a.occurred_at || '').localeCompare(b.occurred_at || ''));
 
@@ -391,20 +401,45 @@ export const TimelineView = () => {
       const byDate  = {};
 
       for (const tx of accTx) {
-        const sign = ['income', 'transfer_in'].includes(tx.flow_kind) ? 1 : -1;
+        // reconciliation может быть отрицательной (is_negative флаг)
+        const sign = ['income', 'transfer_in', 'reconciliation'].includes(tx.flow_kind)
+          ? (tx.is_negative ? -1 : 1)
+          : -1;
         running += sign * (tx.amount || 0);
         byDate[tx.occurred_at] = running;
       }
 
+      // Протягиваем баланс по дням + начисляем проценты для кредитных счетов
+      const hasInterest   = account?.interest_rate && account?.interest_start;
+      const interestStart = hasInterest ? dayjs(account.interest_start) : null;
+      const openedAt      = account?.opened_at ? dayjs(account.opened_at) : null;
+      const closedAt      = account?.closed_at ? dayjs(account.closed_at) : null;
+
       let last = opening;
       for (const date of [...dateArray].reverse()) {
         const dateStr = date.format('YYYY-MM-DD');
+
+        // Реальные транзакции
         if (byDate[dateStr] !== undefined) last = byDate[dateStr];
-        result[accId][dateStr] = last;
+
+        // Проценты: начисляем если счёт кредитный, дата >= interest_start, баланс < 0
+        if (hasInterest && interestStart && !date.isBefore(interestStart, 'day')) {
+          const interest = calcDailyInterest(last, account.interest_rate, date);
+          last += interest; // interest отрицательный — долг растёт
+        }
+
+        // Не показываем баланс до открытия счёта
+        if (openedAt && date.isBefore(openedAt, 'day')) {
+          result[accId][dateStr] = null; // null = счёт ещё не открыт
+        } else if (closedAt && date.isAfter(closedAt, 'day')) {
+          result[accId][dateStr] = null; // null = счёт закрыт
+        } else {
+          result[accId][dateStr] = last;
+        }
       }
     }
     return result;
-  }, [transactions, activeAccounts, dateArray, openingByAccount]);
+  }, [transactions, activeAccounts, dateArray, openingByAccount, accounts]);
 
   useEffect(() => {
     if (!isLoading) {

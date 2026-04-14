@@ -54,12 +54,13 @@ export const toMonthKey = (date) => {
 export const flowKindColor = (flowKind, isDisabled = false) => {
   if (isDisabled) return 'dimmed';
   switch (flowKind) {
-    case 'income':       return 'teal';
-    case 'expense':      return 'red';
-    case 'transfer_out': return 'blue';
-    case 'transfer_in':  return 'blue';
-    case 'adjustment':   return 'gray';
-    default:             return 'gray';
+    case 'income':          return 'teal';
+    case 'expense':         return 'red';
+    case 'transfer_out':    return 'blue';
+    case 'transfer_in':     return 'blue';
+    case 'adjustment':      return 'gray';
+    case 'reconciliation':  return 'violet';
+    default:                return 'gray';
   }
 };
 
@@ -67,5 +68,30 @@ export const flowKindColor = (flowKind, isDisabled = false) => {
 export const flowKindSign = (flowKind) => {
   if (['income', 'transfer_in'].includes(flowKind)) return '+';
   if (['expense', 'transfer_out'].includes(flowKind)) return '−';
+  if (flowKind === 'reconciliation') return '⚖';
   return '';
+};
+
+// ─── Процентная ставка — хранится как INT (23.5% → 2350) ─────────
+// Никакого DECIMAL на бэке — только INT, как и суммы.
+
+/** 23.5 → 2350 */
+export const rateToInt   = (rate)    => Math.round(parseFloat(rate) * 100);
+/** 2350 → 23.5 */
+export const rateToFloat = (rateInt) => rateInt / 100;
+/** 2350 → "23.50" для отображения */
+export const rateToStr   = (rateInt) => (rateInt / 100).toFixed(2);
+
+/**
+ * Считает ежедневное начисление процентов для кредитного счёта.
+ * balance  — текущий баланс в минорных единицах (отрицательный = долг)
+ * rateInt  — годовая ставка как INT (2350 = 23.50%)
+ * date     — dayjs объект текущего дня
+ * Возвращает начисление в минорных единицах (отрицательное — долг растёт)
+ */
+export const calcDailyInterest = (balance, rateInt, date) => {
+  if (!rateInt || balance >= 0) return 0;
+  const daysInYear = date.isLeapYear() ? 366 : 365;
+  // rateInt / 10000 = ставка в долях (2350 / 10000 = 0.235)
+  return Math.round(balance * rateInt / 10000 / daysInYear);
 };
