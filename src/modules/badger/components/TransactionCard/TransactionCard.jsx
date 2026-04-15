@@ -9,9 +9,14 @@ export const TransactionCard = ({ transaction, dragHandleProps = {} }) => {
   const deleteTransaction = useDeleteTransaction();
 
   const {
-    id, title, amount, flow_kind, status,
+    id, title, note, amount, flow_kind, status,
     is_disabled, tags = [],
   } = transaction;
+
+  // Превью заметки — первые 80 символов первой строки
+  const notePreview = note
+    ? note.split('\n')[0].slice(0, 80) + (note.split('\n')[0].length > 80 || note.includes('\n') ? '…' : '')
+    : null;
 
   const disabled = Boolean(is_disabled);
   const isPending = status === 'pending';
@@ -68,7 +73,16 @@ export const TransactionCard = ({ transaction, dragHandleProps = {} }) => {
 
       {/* Название */}
       {title && (
-        <Text size="xs" c="dimmed" lineClamp={2} mt={2}>{title}</Text>
+        <Text size="xs" c="dimmed" lineClamp={1} mt={2}>{title}</Text>
+      )}
+
+      {/* Превью заметки */}
+      {notePreview && (
+        <Text size="xs" c="dimmed" mt={1}
+          style={{ fontStyle: 'italic', opacity: 0.75, fontFamily: 'monospace', fontSize: 11 }}
+          lineClamp={1}>
+          {notePreview}
+        </Text>
       )}
 
       {/* Теги */}

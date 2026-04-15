@@ -1,22 +1,112 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { Text, Center, Loader, Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrAfter  from 'dayjs/plugin/isSameOrAfter';
+import {
+  DndContext, DragOverlay, PointerSensor, TouchSensor,
+  useSensor, useSensors, useDroppable,
+} from '@dnd-kit/core';
+import { useDraggable } from '@dnd-kit/core';
 import { useBadgerStore } from '../../store/badgerStore';
-import { useTransactions, useAccounts, useMonthTotals } from '../../api/badgerApi';
-import { TransactionCard } from '../../components/TransactionCard/TransactionCard';
-import { formatMoney } from '../../utils/badgerUtils';
+import { useTransactions, useAccounts, useMonthTotals, useMoveTransaction, useSaveTransaction } from '../../api/badgerApi';
+import { formatMoney, flowKindColor, flowKindSign, calcDailyInterest } from '../../utils/badgerUtils';
+import { notifications } from '@mantine/notifications';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
+// ─── DraggableCard ────────────────────────────────────────────────
+const DraggableCard = ({ transaction, onDoubleClick }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: transaction.id,
+    data: { transaction },
+  });
+
+  const disabled  = Boolean(transaction.is_disabled);
+  const isPending = transaction.status === 'pending';
+  const kindColor = flowKindColor(transaction.flow_kind, disabled);
+  const kindSign  = flowKindSign(transaction.flow_kind);
+
+  const notePreview = transaction.note
+    ? transaction.note.split('\n')[0].slice(0, 60) +
+      (transaction.note.split('\n')[0].length > 60 || transaction.note.includes('\n') ? '…' : '')
+    : null;
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="bud-transaction-card"
+      style={{
+        opacity:    isDragging ? 0.35 : disabled ? 0.5 : 1,
+        cursor:     'grab',
+        borderStyle: isPending ? 'dashed' : 'solid',
+        border:     `1px solid var(--mantine-color-gray-3)`,
+        borderRadius: 6,
+        padding:    '5px 8px',
+        background: 'white',
+        userSelect: 'none',
+        touchAction: 'none',  /* ← критично для мобилки */
+        transition: 'box-shadow 0.15s',
+      }}
+      onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(transaction.id); }}
+      {...attributes}
+      {...listeners}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+        <Text size="sm" fw={600} c={disabled ? 'dimmed' : kindColor} style={{ whiteSpace: 'nowrap' }}>
+          {kindSign}{formatMoney(transaction.amount)}
+        </Text>
+      </div>
+      {transaction.title && (
+        <Text size="xs" c="dimmed" style={{ lineHeight: 1.3 }} lineClamp={1}>{transaction.title}</Text>
+      )}
+      {notePreview && (
+        <Text size="xs" c="dimmed"
+          style={{ fontStyle: 'italic', opacity: 0.7, fontFamily: 'monospace', fontSize: 11 }}
+          lineClamp={1}>{notePreview}</Text>
+      )}
+    </div>
+  );
+};
+
+// ─── DroppableSlot ────────────────────────────────────────────────
+// id формат: "DATE__ACCOUNT_ID"
+const DroppableSlot = ({ dateStr, accountId, children, onAdd, isDisabled }) => {
+  const dropId = `${dateStr}__${accountId}`;
+  const { setNodeRef, isOver } = useDroppable({ id: dropId, data: { dateStr, accountId }, disabled: isDisabled });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="bud-account-slot"
+      style={{
+        background: isOver ? 'var(--mantine-color-green-0)' : undefined,
+        outline: isOver ? '2px dashed var(--mantine-color-green-4)' : undefined,
+        transition: 'background 0.15s, outline 0.15s',
+      }}
+      onDoubleClick={(e) => {
+        if (e.target.closest('.bud-transaction-card')) return;
+        onAdd({ date: dateStr, account_id: accountId });
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
 // ─── SlotBalance ─────────────────────────────────────────────────
 const SlotBalance = ({ balance, mode, currency, totals }) => {
+  // null = счёт не активен в этот день
+  if (balance === null) return (
+    <div className="bud-slot-balance">
+      <Text size="xs" c="dimmed" style={{ opacity: 0.4, fontStyle: 'italic' }}>—</Text>
+    </div>
+  );
   if (mode === 'extended' && totals) {
     return (
       <div className="bud-slot-balance extended">
@@ -41,46 +131,21 @@ const SlotBalance = ({ balance, mode, currency, totals }) => {
   );
 };
 
-// ─── AccountSlot ──────────────────────────────────────────────────
-const AccountSlot = ({ account, transactions, balance, totals, mode, onAdd, dateStr }) => (
-  <div
-    className="bud-account-slot"
-    onDoubleClick={(e) => {
-      if (e.target.closest('.bud-transaction-card')) return;
-      onAdd({ date: dateStr, account_id: account?.id });
-    }}
-    title="Double-click to add"
-  >
-    <div className="bud-slot-cards">
-      {(transactions || []).map((tx) => (
-        <TransactionCard key={tx.id} transaction={tx} />
-      ))}
-      <div className="bud-slot-add">
-        <Button variant="subtle" color="gray" size="compact-xs"
-          leftSection={<IconPlus size={11} />}
-          onClick={() => onAdd({ date: dateStr, account_id: account?.id })}
-          styles={{ root: { fontSize: 11 } }}
-        >Add</Button>
-      </div>
-    </div>
-    <SlotBalance balance={balance} totals={totals} mode={mode} currency={account?.currency || 'RUB'} />
-  </div>
-);
-
 // ─── MonthTotalsRow ───────────────────────────────────────────────
-// Строка итогов — показывается СВЕРХУ каждого месяца (DESC порядок).
-// closingDateStr — последний день месяца, баланс на конец которого показываем.
-const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, balanceByAccount, closingDateStr, label }) => {
-  // Считаем итоги по транзакциям этого месяца
+// Правило: перевод ≠ доход/расход.
+// Net = income - expense (переводы исключены).
+// В grand total по всем счетам переводы тоже исключаем — они нулевые для капитала.
+const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, balanceByAccount, closingDateStr, label, variant = 'closing' }) => {
   const totalsByAccount = useMemo(() => {
     const result = {};
-    for (const accId of activeAccounts) {
-      const accTx = transactions.filter(
+    for (const accId of (Array.isArray(activeAccounts) ? activeAccounts : [])) {
+      const accTx = (Array.isArray(transactions) ? transactions : []).filter(
         (tx) => tx.account_id === accId && tx.month_key === monthKey && !Boolean(tx.is_disabled)
       );
       result[accId] = {
         income:       accTx.filter((t) => t.flow_kind === 'income').reduce((s, t) => s + t.amount, 0),
         expense:      accTx.filter((t) => t.flow_kind === 'expense').reduce((s, t) => s + t.amount, 0),
+        // Переводы — отдельный котёл, не смешиваем с доходами/расходами
         transfer_in:  accTx.filter((t) => t.flow_kind === 'transfer_in').reduce((s, t) => s + t.amount, 0),
         transfer_out: accTx.filter((t) => t.flow_kind === 'transfer_out').reduce((s, t) => s + t.amount, 0),
       };
@@ -89,50 +154,65 @@ const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, bala
   }, [transactions, activeAccounts, monthKey]);
 
   const activeCurrency = accounts.find((a) => a.id === activeAccounts[0])?.currency || 'RUB';
+  const isOpening = variant === 'opening';
 
+  // Баланс на конец периода — сумма по всем счетам
   const grandClosing = activeAccounts.reduce(
     (sum, accId) => sum + (balanceByAccount[accId]?.[closingDateStr] ?? 0), 0
   );
 
+  // Grand net = только реальный финансовый результат (без переводов)
+  // Переводы между своими счетами = 0 для общего капитала
+  const grandIncome  = activeAccounts.reduce((s, id) => s + (totalsByAccount[id]?.income  ?? 0), 0);
+  const grandExpense = activeAccounts.reduce((s, id) => s + (totalsByAccount[id]?.expense ?? 0), 0);
+  const grandNet     = grandIncome - grandExpense;
+
   return (
-    <div className="bud-month-totals-row">
-      {/* Лейбл */}
+    <div className={`bud-month-totals-row ${isOpening ? 'bud-month-totals-opening' : ''}`}>
       <div className="bud-month-totals-label">
-        <Text size="xs" c="green.6" fw={700}
+        <Text size="xs" c={isOpening ? 'dimmed' : 'green.6'} fw={700}
           style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)', lineHeight: 1 }}>
           {label}
         </Text>
       </div>
 
-      {/* Итоги по каждому счёту */}
       {activeAccounts.map((accId) => {
         const acc     = accounts.find((a) => a.id === accId) || { currency: 'RUB' };
         const t       = totalsByAccount[accId] || {};
-        const net     = (t.income ?? 0) - (t.expense ?? 0) + (t.transfer_in ?? 0) - (t.transfer_out ?? 0);
-        // Баланс на конец месяца — берём из balanceByAccount по последнему дню
+        // Net по счёту = только доходы − расходы
+        const net     = (t.income ?? 0) - (t.expense ?? 0);
+        // Трансферный баланс — отдельно (показываем для информации)
+        const txNet   = (t.transfer_in ?? 0) - (t.transfer_out ?? 0);
         const closing = balanceByAccount[accId]?.[closingDateStr] ?? 0;
 
         return (
           <div key={accId} className="bud-month-totals-slot">
-            {(t.income ?? 0) > 0 && (
+            {!isOpening && (t.income ?? 0) > 0 && (
               <Text size="xs" c="teal">+ {formatMoney(t.income, acc.currency)}</Text>
             )}
-            {(t.expense ?? 0) > 0 && (
+            {!isOpening && (t.expense ?? 0) > 0 && (
               <Text size="xs" c="red">− {formatMoney(t.expense, acc.currency)}</Text>
             )}
-            {(t.transfer_in ?? 0) > 0 && (
-              <Text size="xs" c="blue">↓ {formatMoney(t.transfer_in, acc.currency)}</Text>
+
+            {/* Переводы — отдельной строкой, серые */}
+            {!isOpening && txNet !== 0 && (
+              <Text size="xs" c="blue.4"
+                style={{ borderTop: '1px dashed var(--mantine-color-gray-2)', paddingTop: 2, marginTop: 2 }}>
+                ↕ {txNet >= 0 ? '+' : ''}{formatMoney(txNet, acc.currency)}
+              </Text>
             )}
-            {(t.transfer_out ?? 0) > 0 && (
-              <Text size="xs" c="blue">↑ {formatMoney(t.transfer_out, acc.currency)}</Text>
-            )}
-            {net !== 0 && (
-              <Text size="xs" fw={600} c={net >= 0 ? 'teal' : 'red'} style={{ borderTop: '1px solid var(--mantine-color-gray-2)', paddingTop: 2, marginTop: 2 }}>
+
+            {/* Net = реальный финансовый результат (без переводов) */}
+            {!isOpening && net !== 0 && (
+              <Text size="xs" fw={600} c={net >= 0 ? 'teal' : 'red'}
+                style={{ borderTop: '1px solid var(--mantine-color-gray-2)', paddingTop: 2, marginTop: 2 }}>
                 {net >= 0 ? '+' : ''}{formatMoney(net, acc.currency)}
               </Text>
             )}
-            {/* Баланс на конец месяца — главная цифра */}
-            <Text size="sm" fw={700} c={closing >= 0 ? 'dark' : 'red'}>
+
+            {/* Баланс на конец — главная цифра */}
+            <Text size="sm" fw={isOpening ? 500 : 700}
+              c={closing >= 0 ? (isOpening ? 'dimmed' : 'dark') : 'red'}>
               {formatMoney(closing, acc.currency)}
             </Text>
           </div>
@@ -141,8 +221,13 @@ const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, bala
 
       <div className="bud-month-totals-filler" />
 
-      {/* Гранд-итог = сумма балансов всех счетов на конец месяца */}
       <div className="bud-month-totals-total">
+        {/* Grand: только реальный P&L, без переводов */}
+        {!isOpening && grandNet !== 0 && (
+          <Text size="xs" c={grandNet >= 0 ? 'teal' : 'red'} fw={600} mb={2}>
+            {grandNet >= 0 ? '+' : ''}{formatMoney(grandNet, activeCurrency)}
+          </Text>
+        )}
         <Text size="xs" c="dimmed" style={{ fontSize: 10 }}>balance</Text>
         <Text size="sm" fw={700} c={grandClosing >= 0 ? 'dark' : 'red'}>
           {formatMoney(grandClosing, activeCurrency)}
@@ -153,11 +238,7 @@ const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, bala
 };
 
 // ─── DayRow ───────────────────────────────────────────────────────
-const DayRow = ({
-  date, activeAccounts, accounts,
-  txByAccountByDate, balanceByAccount,
-  balanceMode, onAdd, isToday, stripe,
-}) => {
+const DayRow = ({ date, activeAccounts, accounts, txByAccountByDate, balanceByAccount, balanceMode, onAdd, onCardDoubleClick, isToday, stripe }) => {
   const dateStr   = date.format('YYYY-MM-DD');
   const dayNum    = date.date();
   const dayName   = WEEKDAYS[date.day()];
@@ -169,9 +250,7 @@ const DayRow = ({
   else                rowBg = stripe ? 'rgba(0,0,0,0.018)' : 'transparent';
 
   const activeCurrency = accounts.find((a) => a.id === activeAccounts[0])?.currency || 'RUB';
-  const dayTotal = activeAccounts.reduce(
-    (sum, accId) => sum + (balanceByAccount[accId]?.[dateStr] ?? 0), 0
-  );
+  const dayTotal = activeAccounts.reduce((sum, accId) => sum + (balanceByAccount[accId]?.[dateStr] ?? 0), 0);
 
   return (
     <div className="bud-day-row" id={isToday ? 'today_row' : undefined} style={{ background: rowBg }}>
@@ -200,17 +279,26 @@ const DayRow = ({
 
       {activeAccounts.map((accId) => {
         const account = accounts.find((a) => a.id === accId) || { id: accId, currency: 'RUB' };
+        const txList  = txByAccountByDate[accId]?.[dateStr] || [];
+        const balance = balanceByAccount[accId]?.[dateStr] ?? 0;
+
         return (
-          <AccountSlot
-            key={accId}
-            account={account}
-            transactions={txByAccountByDate[accId]?.[dateStr] || []}
-            balance={balanceByAccount[accId]?.[dateStr] ?? 0}
-            totals={null}
-            mode={balanceMode}
-            onAdd={onAdd}
-            dateStr={dateStr}
-          />
+          <DroppableSlot key={accId} dateStr={dateStr} accountId={accId} onAdd={onAdd}>
+            <div className="bud-slot-cards">
+              {txList.map((tx) => (
+                <DraggableCard key={tx.id} transaction={tx} onDoubleClick={onCardDoubleClick} />
+              ))}
+              <div className="bud-slot-add">
+                <Button variant="subtle" color="gray" size="compact-xs"
+                  leftSection={<IconPlus size={11} />}
+                  onClick={() => onAdd({ date: dateStr, account_id: accId })}
+                  styles={{ root: { fontSize: 11 } }}>
+                  Add
+                </Button>
+              </div>
+            </div>
+            <SlotBalance balance={balance} mode={balanceMode} currency={account.currency} totals={null} />
+          </DroppableSlot>
         );
       })}
 
@@ -228,13 +316,48 @@ const DayRow = ({
   );
 };
 
+// ─── DragOverlayCard — призрак при перетаскивании ────────────────
+const DragOverlayCard = ({ transaction }) => {
+  if (!transaction) return null;
+  const kindColor = flowKindColor(transaction.flow_kind);
+  const kindSign  = flowKindSign(transaction.flow_kind);
+  return (
+    <div style={{
+      background: 'white',
+      border: '2px solid var(--mantine-color-green-4)',
+      borderRadius: 6,
+      padding: '5px 8px',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+      minWidth: 120,
+      cursor: 'grabbing',
+    }}>
+      <Text size="sm" fw={700} c={kindColor}>{kindSign}{formatMoney(transaction.amount)}</Text>
+      {transaction.title && <Text size="xs" c="dimmed" lineClamp={1}>{transaction.title}</Text>}
+    </div>
+  );
+};
+
 // ─── TimelineView ─────────────────────────────────────────────────
 export const TimelineView = () => {
   const [searchParams] = useSearchParams();
+  const [activeCard, setActiveCard] = useState(null); // для DragOverlay
+  const [shiftHeld,  setShiftHeld]  = useState(false); // Shift зажат при drop
+
+  // Слушаем Shift глобально — важно именно при drop, не при начале drag
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Shift') setShiftHeld(e.type === 'keydown'); };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('keyup',   onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup',   onKey);
+    };
+  }, []);
 
   const activeAccounts = useBadgerStore((s) => s.activeAccounts);
   const balanceMode    = useBadgerStore((s) => s.balanceMode);
   const openEditor     = useBadgerStore((s) => s.openEditor);
+  const openReader     = useBadgerStore((s) => s.openReader);
 
   const startParam = searchParams.get('start') || dayjs().format('YYYY-MM');
   const endParam   = searchParams.get('end')   || dayjs().format('YYYY-MM');
@@ -243,20 +366,19 @@ export const TimelineView = () => {
 
   const { data: accounts = [] } = useAccounts();
 
-  // Запрашиваем итоги предыдущего месяца перед началом диапазона
-  // closing_balance(prev) = opening_balance(start) → с него начинается наш running balance
   const prevMonthKey = dayjs(startParam + '-01').subtract(1, 'month').format('YYYY-MM');
   const { data: prevTotals = [] } = useMonthTotals({
     month_key:  prevMonthKey,
     account_id: activeAccounts.length > 0 ? activeAccounts.join(',') : undefined,
   });
 
-  // Map: account_id → opening_balance для первого месяца диапазона
-  const openingByAccount = useMemo(() =>
-    Object.fromEntries(
-      (prevTotals?.content || prevTotals || []).map((t) => [t.account_id, t.closing_balance ?? 0])
-    ),
-  [prevTotals]);
+  // prevTotals уже распакован через unwrap в badgerApi — просто массив
+  const openingByAccount = useMemo(() => {
+    const arr = Array.isArray(prevTotals) ? prevTotals : [];
+    return Object.fromEntries(
+      arr.map((t) => [t.account_id, t.closing_balance ?? 0])
+    );
+  }, [prevTotals]);
 
   const { data: transactions = [], isLoading, isError } = useTransactions({
     start: start.format('YYYY-MM-DD'),
@@ -264,7 +386,17 @@ export const TimelineView = () => {
     account_id: activeAccounts.length > 0 ? activeAccounts.join(',') : undefined,
   });
 
-  // Массив дат DESC
+  const moveTransaction  = useMoveTransaction();
+  const saveTransaction  = useSaveTransaction();
+
+  // DnD сенсоры
+  // TouchSensor: delay 400ms + tolerance 8px — даём время отличить скролл от drag
+  // PointerSensor: distance 8px — не срабатывает на случайное касание
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 400, tolerance: 8 } }),
+  );
+
   const dateArray = useMemo(() => {
     const days = [];
     let cur = end.clone();
@@ -276,17 +408,15 @@ export const TimelineView = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startParam, endParam]);
 
-  // Уникальные месяцы в порядке отображения (DESC)
   const monthKeys = useMemo(() => {
+    if (!Array.isArray(dateArray)) return [];
     const seen = new Set();
-    return dateArray
-      .map((d) => d.format('YYYY-MM'))
-      .filter((m) => { if (seen.has(m)) return false; seen.add(m); return true; });
+    return dateArray.map((d) => d.format('YYYY-MM')).filter((m) => { if (seen.has(m)) return false; seen.add(m); return true; });
   }, [dateArray]);
 
   const txByAccountByDate = useMemo(() => {
     const map = {};
-    for (const tx of transactions) {
+    for (const tx of (Array.isArray(transactions) ? transactions : [])) {
       if (!tx?.account_id || !tx?.occurred_at) continue;
       if (!map[tx.account_id]) map[tx.account_id] = {};
       if (!map[tx.account_id][tx.occurred_at]) map[tx.account_id][tx.occurred_at] = [];
@@ -297,33 +427,57 @@ export const TimelineView = () => {
 
   const balanceByAccount = useMemo(() => {
     const result = {};
-    for (const accId of activeAccounts) {
+    for (const accId of (Array.isArray(activeAccounts) ? activeAccounts : [])) {
       result[accId] = {};
-      const accTx = transactions
+      const account = accounts.find((a) => a.id === accId);
+      const accTx   = transactions
         .filter((tx) => tx?.account_id === accId && !Boolean(tx?.is_disabled))
         .sort((a, b) => (a.occurred_at || '').localeCompare(b.occurred_at || ''));
 
-      // Стартуем от closing_balance предыдущего месяца, не от нуля
       const opening = openingByAccount[accId] ?? 0;
-      let running = opening;
-      const byDate = {};
+      let running   = opening;
+      const byDate  = {};
 
       for (const tx of accTx) {
-        const sign = ['income', 'transfer_in'].includes(tx.flow_kind) ? 1 : -1;
+        // reconciliation может быть отрицательной (is_negative флаг)
+        const sign = ['income', 'transfer_in', 'reconciliation'].includes(tx.flow_kind)
+          ? (tx.is_negative ? -1 : 1)
+          : -1;
         running += sign * (tx.amount || 0);
         byDate[tx.occurred_at] = running;
       }
 
-      // Протягиваем баланс на дни без транзакций
-      let last = opening; // ← тоже стартуем от opening, не от 0
+      // Протягиваем баланс по дням + начисляем проценты для кредитных счетов
+      const hasInterest   = account?.interest_rate && account?.interest_start;
+      const interestStart = hasInterest ? dayjs(account.interest_start) : null;
+      const openedAt      = account?.opened_at ? dayjs(account.opened_at) : null;
+      const closedAt      = account?.closed_at ? dayjs(account.closed_at) : null;
+
+      let last = opening;
       for (const date of [...dateArray].reverse()) {
         const dateStr = date.format('YYYY-MM-DD');
+
+        // Реальные транзакции
         if (byDate[dateStr] !== undefined) last = byDate[dateStr];
-        result[accId][dateStr] = last;
+
+        // Проценты: начисляем если счёт кредитный, дата >= interest_start, баланс < 0
+        if (hasInterest && interestStart && !date.isBefore(interestStart, 'day')) {
+          const interest = calcDailyInterest(last, account.interest_rate, date);
+          last += interest; // interest отрицательный — долг растёт
+        }
+
+        // Не показываем баланс до открытия счёта
+        if (openedAt && date.isBefore(openedAt, 'day')) {
+          result[accId][dateStr] = null; // null = счёт ещё не открыт
+        } else if (closedAt && date.isAfter(closedAt, 'day')) {
+          result[accId][dateStr] = null; // null = счёт закрыт
+        } else {
+          result[accId][dateStr] = last;
+        }
       }
     }
     return result;
-  }, [transactions, activeAccounts, dateArray, openingByAccount]);
+  }, [transactions, activeAccounts, dateArray, openingByAccount, accounts]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -335,17 +489,77 @@ export const TimelineView = () => {
     }
   }, [isLoading]);
 
+  // ── DnD handlers ──────────────────────────────────────────────────
+  const handleDragStart = useCallback((event) => {
+    const tx = event.active.data.current?.transaction;
+    if (tx) setActiveCard(tx);
+  }, []);
+
+  const handleDragEnd = useCallback((event) => {
+    setActiveCard(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const tx = active.data.current?.transaction;
+    if (!tx) return;
+
+    // over.id формат: "DATE__ACCOUNT_ID"
+    const [targetDate, targetAccountId] = over.id.split('__');
+    if (!targetDate || !targetAccountId) return;
+
+    const sameDate    = targetDate === tx.occurred_at;
+    const sameAccount = targetAccountId === tx.account_id;
+    if (sameDate && sameAccount) return;
+
+    // Проверяем валюту — нельзя тащить между счетами разных валют
+    const srcAccount = accounts.find((a) => a.id === tx.account_id);
+    const dstAccount = accounts.find((a) => a.id === targetAccountId);
+    if (srcAccount && dstAccount && srcAccount.currency !== dstAccount.currency) {
+      notifications.show({ message: 'Cannot move between accounts with different currencies', color: 'red' });
+      return;
+    }
+
+    // isShift = Shift зажат в момент drop (читаем из state, обновляется live)
+    const isShift = shiftHeld;
+
+    if (isShift) {
+      // Создаём копию транзакции в целевой ячейке
+      const { id: _id, ...rest } = tx;
+      saveTransaction.mutate({
+        ...rest,
+        occurred_at: targetDate,
+        account_id:  targetAccountId,
+        month_key:   targetDate.slice(0, 7),
+      }, {
+        onSuccess: () => notifications.show({ message: 'Transaction copied', color: 'green', autoClose: 1500 }),
+        onError:   () => notifications.show({ message: 'Failed to copy', color: 'red' }),
+      });
+    } else {
+      // Перемещаем
+      moveTransaction.mutate({
+        id:          tx.id,
+        occurred_at: sameDate    ? undefined : targetDate,
+        account_id:  sameAccount ? undefined : targetAccountId,
+      }, {
+        onError: () => notifications.show({ message: 'Failed to move', color: 'red' }),
+      });
+    }
+  }, [accounts, moveTransaction, saveTransaction, shiftHeld]);
+
+  const handleCardDoubleClick = useCallback((txId) => {
+    openReader({ id: txId });
+  }, [openReader]);
+
   if (isLoading) return <Center h={200}><Loader size="sm" /></Center>;
   if (isError)   return <Center h={200}><Text c="dimmed" size="sm">Could not load transactions</Text></Center>;
   if (activeAccounts.length === 0) return (
     <Center h={300}><Text c="dimmed" size="sm">Select accounts in the sidebar to get started</Text></Center>
   );
 
-  const today   = dayjs().format('YYYY-MM-DD');
+  const today = dayjs().format('YYYY-MM-DD');
   const todayMK = dayjs().format('YYYY-MM');
   let rowIndex  = 0;
 
-  // Группируем даты по месяцам для рендера
   const datesByMonth = {};
   for (const date of dateArray) {
     const mk = date.format('YYYY-MM');
@@ -354,89 +568,88 @@ export const TimelineView = () => {
   }
 
   return (
-    <div className="content-scroll bud-timeline" style={{ paddingBottom: 80 }}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="content-scroll bud-timeline" style={{ paddingBottom: 80 }}>
 
-      {/* Шапка с названиями счетов */}
-      <div className="bud-timeline-header">
-        <div className="bud-date-label" style={{ visibility: 'hidden' }}>00</div>
-        {activeAccounts.map((accId) => {
-          const acc = accounts.find((a) => a.id === accId);
+        {/* Шапка */}
+        <div className="bud-timeline-header">
+          <div className="bud-date-label" style={{ visibility: 'hidden' }}>00</div>
+          {activeAccounts.map((accId) => {
+            const acc = accounts.find((a) => a.id === accId);
+            return (
+              <div key={accId} className="bud-account-slot bud-account-header">
+                <Text size="xs" fw={600} c="green.7" truncate>{acc?.name || '…'}</Text>
+                {acc && <Text size="xs" c="dimmed">{formatMoney(acc.balance_today ?? 0, acc.currency)}</Text>}
+              </div>
+            );
+          })}
+          <div className="bud-flex-filler" />
+          <div className="bud-day-total">
+            <Text size="xs" c="dimmed" fw={500}>Total</Text>
+          </div>
+        </div>
+
+        {monthKeys.map((monthKey, monthIndex) => {
+          const monthDates     = datesByMonth[monthKey] || [];
+          const monthDate      = dayjs(monthKey + '-01');
+          const isCurrentMonth = monthKey === todayMK;
+          const isLastMonth    = monthIndex === monthKeys.length - 1;
+          const lastDayOfMonth  = monthDate.endOf('month').format('YYYY-MM-DD');
+          const firstDayOfMonth = monthDate.startOf('month').format('YYYY-MM-DD');
+
           return (
-            <div key={accId} className="bud-account-slot bud-account-header">
-              <Text size="xs" fw={600} c="green.7" truncate>{acc?.name || '…'}</Text>
-              {acc && <Text size="xs" c="dimmed">{formatMoney(acc.balance_today ?? 0, acc.currency)}</Text>}
+            <div key={monthKey}>
+              <MonthTotalsRow
+                monthKey={monthKey} activeAccounts={activeAccounts}
+                accounts={accounts} transactions={transactions}
+                balanceByAccount={balanceByAccount}
+                closingDateStr={lastDayOfMonth}
+                label={isCurrentMonth ? 'now' : 'end'}
+                variant="closing"
+              />
+
+              <div className="bud-month-header">
+                {monthDate.format('MMMM YYYY')}
+                {isCurrentMonth && <Text component="span" size="xs" c="green.5" ml={8}>← current</Text>}
+              </div>
+
+              {monthDates.map((date) => {
+                const dateStr = date.format('YYYY-MM-DD');
+                const isToday = dateStr === today;
+                const stripe  = rowIndex % 2 === 1;
+                rowIndex++;
+                return (
+                  <DayRow
+                    key={dateStr} date={date}
+                    activeAccounts={activeAccounts} accounts={accounts}
+                    txByAccountByDate={txByAccountByDate}
+                    balanceByAccount={balanceByAccount}
+                    balanceMode={balanceMode}
+                    onAdd={openEditor}
+                    onCardDoubleClick={handleCardDoubleClick}
+                    isToday={isToday} stripe={stripe}
+                  />
+                );
+              })}
+
+              {isLastMonth && (
+                <MonthTotalsRow
+                  monthKey={monthKey} activeAccounts={activeAccounts}
+                  accounts={accounts} transactions={transactions}
+                  balanceByAccount={balanceByAccount}
+                  closingDateStr={firstDayOfMonth}
+                  label="start" variant="opening"
+                />
+              )}
             </div>
           );
         })}
-        <div className="bud-flex-filler" />
-        <div className="bud-day-total">
-          <Text size="xs" c="dimmed" fw={500}>Total</Text>
-        </div>
       </div>
 
-      {/* Рендерим помесячно DESC:
-           [Итоги МАЯ]   ← конец мая = баланс на начало июня
-           май 31..май 1
-           [Итоги АПР]   ← конец апреля
-           апр 30..апр 1
-           ...
-      */}
-      {monthKeys.map((monthKey, monthIndex) => {
-        const monthDates = datesByMonth[monthKey] || [];
-        const monthDate  = dayjs(monthKey + '-01');
-
-        // Последний день этого месяца — по нему берём closing balance
-        const lastDayOfMonth = monthDate.endOf('month').format('YYYY-MM-DD');
-        // Первый день следующего месяца — метка над строкой итогов
-        const isCurrentMonth = monthKey === todayMK;
-        // Лейбл итоговой строки
-        const totalsLabel = isCurrentMonth ? 'now' : monthDate.format('MMM');
-
-        return (
-          <div key={monthKey}>
-            {/* Итоговая строка — СВЕРХУ (конец месяца в DESC порядке) */}
-            <MonthTotalsRow
-              monthKey={monthKey}
-              activeAccounts={activeAccounts}
-              accounts={accounts}
-              transactions={transactions}
-              balanceByAccount={balanceByAccount}
-              closingDateStr={lastDayOfMonth}
-              label={totalsLabel}
-            />
-
-            {/* Заголовок месяца */}
-            <div className="bud-month-header">
-              {monthDate.format('MMMM YYYY')}
-              {isCurrentMonth && (
-                <Text component="span" size="xs" c="green.5" ml={8}>← current</Text>
-              )}
-            </div>
-
-            {/* Строки дней */}
-            {monthDates.map((date) => {
-              const dateStr = date.format('YYYY-MM-DD');
-              const isToday = dateStr === today;
-              const stripe  = rowIndex % 2 === 1;
-              rowIndex++;
-              return (
-                <DayRow
-                  key={dateStr}
-                  date={date}
-                  activeAccounts={activeAccounts}
-                  accounts={accounts}
-                  txByAccountByDate={txByAccountByDate}
-                  balanceByAccount={balanceByAccount}
-                  balanceMode={balanceMode}
-                  onAdd={openEditor}
-                  isToday={isToday}
-                  stripe={stripe}
-                />
-              );
-            })}
-          </div>
-        );
-      })}
-    </div>
+      {/* Призрак при перетаскивании */}
+      <DragOverlay dropAnimation={null}>
+        {activeCard ? <DragOverlayCard transaction={activeCard} /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 };

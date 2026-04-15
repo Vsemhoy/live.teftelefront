@@ -107,10 +107,11 @@
   gap: 1px;
 }
 
-/* Ячейка-заполнитель — остаётся для случая когда счетов нет */
+/* Ячейка-заполнитель — временно скрыта, пригодится позже */
 .bud-flex-filler {
   flex: 1 1 0;
   min-width: 0;
+  display: none;
 }
 
 /* Итого дня */
@@ -130,6 +131,9 @@
 .bud-transaction-card {
   background: var(--mantine-color-white);
   transition: box-shadow 0.15s ease;
+  touch-action: none;      /* не отдавать тач браузеру — нужно для DnD */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .bud-transaction-card:hover {
   box-shadow: 0 2px 8px rgba(0,0,0,0.10);
@@ -204,19 +208,44 @@
 
 /* ── Мобилка ─────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  /* Полотно уходит в горизонтальный scroll */
+  .bud-timeline {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Строки не сжимаются — уходят вправо */
+  .bud-day-row,
+  .bud-timeline-header,
+  .bud-month-header,
+  .bud-month-totals-row {
+    min-width: max-content;
+  }
+
+  /* Колонки фиксированные — чтобы оставались друг над другом */
   .bud-account-slot,
-  .bud-account-header {
-    min-width: 120px; /* минимум на мобилке */
-  }
-  .bud-slot-cards {
-    max-width: 100%; /* карточки на всю ячейку */
-  }
+  .bud-account-header,
   .bud-month-totals-slot {
-    min-width: 120px;
+    flex: 0 0 250px;  /* фиксированная ширина, не сжимается */
+    min-width: 250px;
+    max-width: 250px;
   }
+
+  .bud-slot-cards {
+    max-width: 100%;
+  }
+
   .bud-day-total,
   .bud-month-totals-total {
     width: 90px;
     min-width: 90px;
   }
+}
+
+/* ── Opening строка (снизу последнего месяца) ────────────────── */
+.bud-month-totals-opening {
+  background: var(--mantine-color-gray-0);
+  border-top: 2px solid var(--mantine-color-gray-3);
+  border-bottom: none;
+  opacity: 0.8;
 }
