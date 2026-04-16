@@ -4,6 +4,10 @@
 // ─────────────────────────────────────────────────────────────────
 
 /** Рубли → копейки: 1500 → 150000 */
+import dayjs from 'dayjs';
+import isLeapYear from 'dayjs/plugin/isLeapYear';
+dayjs.extend(isLeapYear);
+
 export const toMinor = (amount) => Math.round(amount * 100);
 
 /** Копейки → рубли: 150000 → 1500 */
@@ -91,7 +95,9 @@ export const rateToStr   = (rateInt) => (rateInt / 100).toFixed(2);
  */
 export const calcDailyInterest = (balance, rateInt, date) => {
   if (!rateInt || balance >= 0) return 0;
-  const daysInYear = date.isLeapYear() ? 366 : 365;
+  // Приводим к dayjs если пришла строка или JS Date
+  const d = dayjs.isDayjs(date) ? date : dayjs(date);
+  const daysInYear = d.isLeapYear() ? 366 : 365;
   // rateInt / 10000 = ставка в долях (2350 / 10000 = 0.235)
   return Math.round(balance * rateInt / 10000 / daysInYear);
 };
