@@ -5,7 +5,8 @@ import {
 } from '@tabler/icons-react';
 import { useBadgerStore } from '../../store/badgerStore';
 import { useAccounts } from '../../api/badgerApi';
-import { formatMoney } from '../../utils/badgerUtils';
+import { formatMoney, calcDailyInterest, rateToStr } from '../../utils/badgerUtils';
+import dayjs from 'dayjs';
 import { AccountsManager } from '../AccountsManager/AccountsManager';
 
 const AccountTypeIcon = ({ type, size = 15 }) => {
@@ -98,9 +99,22 @@ export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
                                 style={{ opacity: isOtherCurrency ? 0.4 : 1 }}>
                                 {account.name}
                               </Text>
-                              <Text size="xs" c="dimmed" style={{ opacity: isOtherCurrency ? 0.4 : 1 }}>
-                                {formatMoney(account.balance_today ?? 0, account.currency)}
-                              </Text>
+                              <div style={{ textAlign: 'right' }}>
+                                <Text size="xs" c={
+                                  (account.balance_today ?? 0) < 0 ? 'red.5' : 'dimmed'
+                                } style={{ opacity: isOtherCurrency ? 0.4 : 1 }}>
+                                  {formatMoney(account.balance_today ?? 0, account.currency)}
+                                </Text>
+                                {/* Ежедневное начисление для кредитных счетов */}
+                                {account.interest_rate && (account.balance_today ?? 0) < 0 && (
+                                  <Text size="xs" c="orange.5" style={{ fontSize: 10 }}>
+                                    {formatMoney(
+                                      calcDailyInterest(account.balance_today, account.interest_rate, dayjs()),
+                                      account.currency
+                                    )}/день
+                                  </Text>
+                                )}
+                              </div>
                             </Group>
                           }
                           leftSection={

@@ -272,3 +272,27 @@ export const useDeleteTag = () => {
     },
   });
 };
+
+// ─── Pinned events ────────────────────────────────────────────────
+
+export const usePinnedEvents = () => {
+  const user = useAuthStore((s) => s.user);
+  return useQuery({
+    queryKey: ['evt_pinned'],
+    queryFn: () => api.post('/eventor/getpinned').then((r) => r.data?.content ?? r.data ?? []),
+    enabled: Boolean(user),
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useTogglePin = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) =>
+      api.post(`/eventor/togglepinned/${id}`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['evt_events'] });
+      qc.invalidateQueries({ queryKey: ['evt_pinned'] });
+    },
+  });
+};

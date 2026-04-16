@@ -55,6 +55,9 @@ const AccountTypeIcon = ({ type, size = 15 }) => {
 const AccountForm = ({ account, onSave, onCancel, isSaving }) => {
   const isNew = !account?.id;
 
+  // Ставка лочится после первой транзакции
+  const isRateLocked = !isNew && Boolean(account?.has_transactions);
+
   const [name,          setName]         = useState(account?.name           || '');
   const [literals,      setLiterals]     = useState(account?.literals       || '');
   const [type,          setType]         = useState(account?.type           || 'card');
@@ -213,6 +216,18 @@ const AccountForm = ({ account, onSave, onCancel, isSaving }) => {
             {isCreditLike && (
               <>
                 <Divider label="Interest accrual" labelPosition="center" />
+                {isRateLocked && (
+                  <Box p={8} style={{
+                    background: 'var(--mantine-color-gray-0)',
+                    borderRadius: 6,
+                    border: '1px solid var(--mantine-color-gray-3)',
+                  }}>
+                    <Group gap={6}>
+                      <Text size="xs" c="dimmed">🔒 Rate locked —</Text>
+                      <Text size="xs" c="dimmed">archive this account to change rate</Text>
+                    </Group>
+                  </Box>
+                )}
                 <Group grow gap={10}>
                   <NumberInput
                     label="Annual rate (%)"
@@ -225,6 +240,7 @@ const AccountForm = ({ account, onSave, onCancel, isSaving }) => {
                     suffix=" %"
                     description="e.g. 23 = 23% per year"
                     size="sm"
+                    disabled={isRateLocked}
                   />
                   <DatePickerInput
                     label="Accrual starts"
@@ -234,6 +250,7 @@ const AccountForm = ({ account, onSave, onCancel, isSaving }) => {
                     clearable
                     size="sm"
                     description="Day after credit received"
+                    disabled={isRateLocked}
                   />
                 </Group>
                 {interestRate && (

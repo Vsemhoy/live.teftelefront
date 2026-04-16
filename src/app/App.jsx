@@ -24,6 +24,7 @@ import { AccountsSidenav } from '@/modules/badger/components/AccountsSidenav/Acc
 import { BadgerToolbar } from '@/modules/badger/components/Toolbar/BadgerToolbar';
 import { TimelineView } from '@/modules/badger/views/TimelineView/TimelineView';
 import '@/modules/badger/badger.css';
+import { PinboardButton } from '@/modules/eventor/components/Pinboard/Pinboard';
 import { TransactionReadModal } from '@/modules/badger/components/TransactionReadModal/TransactionReadModal';
 import { TransactionEditor } from '@/modules/badger/components/TransactionEditor/TransactionEditor';
 
@@ -184,6 +185,7 @@ export default function App() {
       <SectionsManager />
       <TransactionEditor />
       <TransactionReadModal />
+      <PinboardButton />
     </div>
   );
 }

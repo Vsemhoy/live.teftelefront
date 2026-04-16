@@ -273,6 +273,7 @@ body {
   font-weight: 600;
 }
 
+.md-preview { overflow-x: auto; overflow-wrap: break-word; word-break: break-word; }
 .md-preview p { margin: 0 0 4px; font-size: 13px; color: var(--mantine-color-gray-7); }
 .md-preview p:last-child { margin-bottom: 0; }
 .md-preview h1, .md-preview h2, .md-preview h3 { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
