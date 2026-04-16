@@ -249,3 +249,16 @@
   border-bottom: none;
   opacity: 0.8;
 }
+
+/* ── AccountsManager row actions ────────────────────────────── */
+.bud-account-row {
+  border-radius: 8px;
+  border: 1px solid var(--mantine-color-gray-2);
+}
+.bud-account-row .row-actions {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.bud-account-row:hover .row-actions {
+  opacity: 1;
+}

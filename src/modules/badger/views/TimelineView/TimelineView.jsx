@@ -100,13 +100,21 @@ const DroppableSlot = ({ dateStr, accountId, children, onAdd, isDisabled }) => {
 };
 
 // ─── SlotBalance ─────────────────────────────────────────────────
-const SlotBalance = ({ balance, mode, currency, totals }) => {
+const SlotBalance = ({ balance, mode, currency, totals, dailyInterest }) => {
   // null = счёт не активен в этот день
   if (balance === null) return (
     <div className="bud-slot-balance">
       <Text size="xs" c="dimmed" style={{ opacity: 0.4, fontStyle: 'italic' }}>—</Text>
     </div>
   );
+
+  // Строка начисления процентов (только если есть начисление за этот день)
+  const interestLine = dailyInterest ? (
+    <Text size="xs" c="dimmed" style={{ fontSize: 10 }}>
+      {formatMoney(dailyInterest, currency)}/д
+    </Text>
+  ) : null;
+
   if (mode === 'extended' && totals) {
     return (
       <div className="bud-slot-balance extended">
@@ -119,6 +127,7 @@ const SlotBalance = ({ balance, mode, currency, totals }) => {
         <Text size="xs" fw={600} c={(balance ?? 0) >= 0 ? 'dark' : 'red'}>
           {formatMoney(balance ?? 0, currency)}
         </Text>
+        {interestLine}
       </div>
     );
   }
@@ -127,6 +136,7 @@ const SlotBalance = ({ balance, mode, currency, totals }) => {
       <Text size="xs" fw={500} c={(balance ?? 0) >= 0 ? 'dimmed' : 'red'}>
         {formatMoney(balance ?? 0, currency)}
       </Text>
+      {interestLine}
     </div>
   );
 };
@@ -238,7 +248,7 @@ const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, bala
 };
 
 // ─── DayRow ───────────────────────────────────────────────────────
-const DayRow = ({ date, activeAccounts, accounts, txByAccountByDate, balanceByAccount, balanceMode, onAdd, onCardDoubleClick, isToday, stripe }) => {
+const DayRow = ({ date, activeAccounts, accounts, txByAccountByDate, balanceByAccount, interestByAccount, balanceMode, onAdd, onCardDoubleClick, isToday, stripe }) => {
   const dateStr   = date.format('YYYY-MM-DD');
   const dayNum    = date.date();
   const dayName   = WEEKDAYS[date.day()];
@@ -297,7 +307,13 @@ const DayRow = ({ date, activeAccounts, accounts, txByAccountByDate, balanceByAc
                 </Button>
               </div>
             </div>
-            <SlotBalance balance={balance} mode={balanceMode} currency={account.currency} totals={null} />
+            <SlotBalance
+              balance={balance}
+              mode={balanceMode}
+              currency={account.currency}
+              totals={null}
+              dailyInterest={interestByAccount?.[accId]?.[dateStr] || null}
+            />
           </DroppableSlot>
         );
       })}
@@ -435,11 +451,11 @@ export const TimelineView = () => {
         .sort((a, b) => (a.occurred_at || '').localeCompare(b.occurred_at || ''));
 
       const opening = openingByAccount[accId] ?? 0;
-      let running   = opening;
       const byDate  = {};
 
+      // Сначала строим баланс только по транзакциям (без процентов), ASC
+      let running = opening;
       for (const tx of accTx) {
-        // reconciliation может быть отрицательной (is_negative флаг)
         const sign = ['income', 'transfer_in', 'reconciliation'].includes(tx.flow_kind)
           ? (tx.is_negative ? -1 : 1)
           : -1;
@@ -447,30 +463,29 @@ export const TimelineView = () => {
         byDate[tx.occurred_at] = running;
       }
 
-      // Протягиваем баланс по дням + начисляем проценты для кредитных счетов
+      // Протягиваем баланс по дням ASC (dateArray DESC — реверс) + начисляем проценты
       const hasInterest   = account?.interest_rate && account?.interest_start;
       const interestStart = hasInterest ? dayjs(account.interest_start) : null;
       const openedAt      = account?.opened_at ? dayjs(account.opened_at) : null;
       const closedAt      = account?.closed_at ? dayjs(account.closed_at) : null;
 
       let last = opening;
-      for (const date of [...dateArray].reverse()) {
+      for (const date of [...dateArray].reverse()) { // reverse: идём ASC (старые → новые)
         const dateStr = date.format('YYYY-MM-DD');
 
-        // Реальные транзакции
+        // 1. Применяем транзакции дня (если есть)
         if (byDate[dateStr] !== undefined) last = byDate[dateStr];
 
-        // Проценты: начисляем если счёт кредитный, дата >= interest_start, баланс < 0
+        // 2. Начисляем проценты НА итоговый баланс после транзакций дня
         if (hasInterest && interestStart && !date.isBefore(interestStart, 'day')) {
           const interest = calcDailyInterest(last, account.interest_rate, date);
           last += interest; // interest отрицательный — долг растёт
         }
 
-        // Не показываем баланс до открытия счёта
         if (openedAt && date.isBefore(openedAt, 'day')) {
-          result[accId][dateStr] = null; // null = счёт ещё не открыт
+          result[accId][dateStr] = null;
         } else if (closedAt && date.isAfter(closedAt, 'day')) {
-          result[accId][dateStr] = null; // null = счёт закрыт
+          result[accId][dateStr] = null;
         } else {
           result[accId][dateStr] = last;
         }
@@ -478,6 +493,31 @@ export const TimelineView = () => {
     }
     return result;
   }, [transactions, activeAccounts, dateArray, openingByAccount, accounts]);
+
+  // interestByAccount — сколько процентов начислилось за каждый день (для серого вывода в UI)
+  const interestByAccount = useMemo(() => {
+    const result = {};
+    for (const accId of (Array.isArray(activeAccounts) ? activeAccounts : [])) {
+      result[accId] = {};
+      const account = accounts.find((a) => a.id === accId);
+      if (!account?.interest_rate || !account?.interest_start) continue;
+      const interestStart = dayjs(account.interest_start);
+
+      for (const date of dateArray) {
+        const dateStr = date.format('YYYY-MM-DD');
+        if (date.isBefore(interestStart, 'day')) continue;
+
+        // Баланс предыдущего дня (ASC-порядок: предыдущий = date - 1)
+        const prevDateStr = date.subtract(1, 'day').format('YYYY-MM-DD');
+        const prevBalance = balanceByAccount[accId]?.[prevDateStr] ?? null;
+        if (prevBalance === null || prevBalance >= 0) continue;
+
+        const interest = calcDailyInterest(prevBalance, account.interest_rate, date);
+        if (interest !== 0) result[accId][dateStr] = interest;
+      }
+    }
+    return result;
+  }, [balanceByAccount, activeAccounts, accounts, dateArray]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -624,6 +664,7 @@ export const TimelineView = () => {
                     activeAccounts={activeAccounts} accounts={accounts}
                     txByAccountByDate={txByAccountByDate}
                     balanceByAccount={balanceByAccount}
+                    interestByAccount={interestByAccount}
                     balanceMode={balanceMode}
                     onAdd={openEditor}
                     onCardDoubleClick={handleCardDoubleClick}

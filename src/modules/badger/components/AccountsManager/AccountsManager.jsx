@@ -308,8 +308,7 @@ const AccountRow = ({ account, onEdit, onDelete }) => {
   const isClosed = Boolean(account.closed_at);
 
   return (
-    <Box ref={setNodeRef} style={style} p={10}
-      sx={{ borderRadius: 8, border: '1px solid var(--mantine-color-gray-2)', '&:hover .row-actions': { opacity: 1 } }}>
+    <Box ref={setNodeRef} className="bud-account-row" style={style} p={10}>
       <Group gap={8} wrap="nowrap">
         <ActionIcon variant="transparent" color="gray" size="sm"
           style={{ cursor: 'grab', flexShrink: 0 }} {...attributes} {...listeners}>
@@ -346,7 +345,7 @@ const AccountRow = ({ account, onEdit, onDelete }) => {
           {formatMoney(account.balance_today ?? 0, account.currency)}
         </Text>
 
-        <Group gap={4} className="row-actions" style={{ opacity: 0, transition: 'opacity 0.15s', flexShrink: 0 }}>
+        <Group gap={4} className="row-actions" style={{ flexShrink: 0 }}>
           <Tooltip label="Edit">
             <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => onEdit(account)}>
               <IconEdit size={14} />
