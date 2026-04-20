@@ -382,19 +382,36 @@ export const TimelineView = () => {
 
   const { data: accounts = [] } = useAccounts();
 
-  const prevMonthKey = dayjs(startParam + '-01').subtract(1, 'month').format('YYYY-MM');
-  const { data: prevTotals = [] } = useMonthTotals({
-    month_key:  prevMonthKey,
-    account_id: activeAccounts.length > 0 ? activeAccounts.join(',') : undefined,
+  // Запрашиваем тоталы от месяца ДО начала диапазона до конца диапазона
+  // prevMonth нужен как opening первого видимого месяца
+  const prevMonthKey    = dayjs(startParam + '-01').subtract(1, 'month').format('YYYY-MM');
+  const totalsAccountId = activeAccounts.length > 0 ? activeAccounts.join(',') : undefined;
+
+  const { data: allTotals = [] } = useMonthTotals({
+    start:      prevMonthKey,
+    end:        endParam,
+    account_id: totalsAccountId,
   });
 
-  // prevTotals уже распакован через unwrap в badgerApi — просто массив
+  // totalsByAccount: { accId: { 'YYYY-MM': { opening_balance, closing_balance, ... } } }
+  const totalsByAccount = useMemo(() => {
+    const arr = Array.isArray(allTotals) ? allTotals : [];
+    const map = {};
+    for (const t of arr) {
+      if (!map[t.account_id]) map[t.account_id] = {};
+      map[t.account_id][t.month_key] = t;
+    }
+    return map;
+  }, [allTotals]);
+
+  // opening первого видимого месяца = closing предыдущего месяца
   const openingByAccount = useMemo(() => {
-    const arr = Array.isArray(prevTotals) ? prevTotals : [];
-    return Object.fromEntries(
-      arr.map((t) => [t.account_id, t.closing_balance ?? 0])
-    );
-  }, [prevTotals]);
+    const result = {};
+    for (const accId of activeAccounts) {
+      result[accId] = totalsByAccount[accId]?.[prevMonthKey]?.closing_balance ?? 0;
+    }
+    return result;
+  }, [totalsByAccount, activeAccounts, prevMonthKey]);
 
   const { data: transactions = [], isLoading, isError } = useTransactions({
     start: start.format('YYYY-MM-DD'),
@@ -446,40 +463,50 @@ export const TimelineView = () => {
     for (const accId of (Array.isArray(activeAccounts) ? activeAccounts : [])) {
       result[accId] = {};
       const account = accounts.find((a) => a.id === accId);
-      const accTx   = transactions
-        .filter((tx) => tx?.account_id === accId && !Boolean(tx?.is_disabled))
-        .sort((a, b) => (a.occurred_at || '').localeCompare(b.occurred_at || ''));
 
-      const opening = openingByAccount[accId] ?? 0;
-      const byDate  = {};
-
-      // Сначала строим баланс только по транзакциям (без процентов), ASC
-      let running = opening;
-      for (const tx of accTx) {
-        const sign = ['income', 'transfer_in', 'reconciliation'].includes(tx.flow_kind)
-          ? (tx.is_negative ? -1 : 1)
-          : -1;
-        running += sign * (tx.amount || 0);
-        byDate[tx.occurred_at] = running;
-      }
-
-      // Протягиваем баланс по дням ASC (dateArray DESC — реверс) + начисляем проценты
-      const hasInterest   = account?.interest_rate && account?.interest_start;
+      const hasInterest   = Boolean(account?.interest_rate && account?.interest_start);
       const interestStart = hasInterest ? dayjs(account.interest_start) : null;
       const openedAt      = account?.opened_at ? dayjs(account.opened_at) : null;
       const closedAt      = account?.closed_at ? dayjs(account.closed_at) : null;
 
-      let last = opening;
-      for (const date of [...dateArray].reverse()) { // reverse: идём ASC (старые → новые)
+      // Транзакции счёта сгруппированные по дате
+      const byDate = {};
+      for (const tx of transactions) {
+        if (tx.account_id !== accId || Boolean(tx.is_disabled)) continue;
+        const sign = ['income', 'transfer_in', 'reconciliation'].includes(tx.flow_kind)
+          ? (tx.is_negative ? -1 : 1)
+          : -1;
+        byDate[tx.occurred_at] = (byDate[tx.occurred_at] ?? 0) + sign * (tx.amount || 0);
+      }
+
+      // Итерируем по дням ASC (dateArray DESC → reverse)
+      // Каждый месяц стартует от closing этого месяца с бэка (если есть),
+      // иначе продолжаем от предыдущего дня (для текущего незакрытого месяца).
+      let last        = openingByAccount[accId] ?? 0;
+      let currentMK   = null; // month_key текущей итерации
+
+      for (const date of [...dateArray].reverse()) {
         const dateStr = date.format('YYYY-MM-DD');
+        const mk      = date.format('YYYY-MM');
 
-        // 1. Применяем транзакции дня (если есть)
-        if (byDate[dateStr] !== undefined) last = byDate[dateStr];
+        // При смене месяца — сбрасываем last на closing предыдущего месяца с бэка
+        // Это предотвращает накопление ошибок между месяцами
+        if (mk !== currentMK) {
+          currentMK = mk;
+          const prevMK      = date.subtract(1, 'month').format('YYYY-MM');
+          const backendTotal = totalsByAccount[accId]?.[prevMK];
+          if (backendTotal !== undefined) {
+            last = backendTotal.closing_balance ?? 0;
+          }
+          // Если тотала нет (первый месяц или ещё не посчитан) — используем last как есть
+        }
 
-        // 2. Начисляем проценты НА итоговый баланс после транзакций дня
-        if (hasInterest && interestStart && !date.isBefore(interestStart, 'day')) {
-          const interest = calcDailyInterest(last, account.interest_rate, date);
-          last += interest; // interest отрицательный — долг растёт
+        // 1. Применяем транзакции дня
+        if (byDate[dateStr] !== undefined) last += byDate[dateStr];
+
+        // 2. Начисляем проценты итеративно (только если дата >= interest_start)
+        if (hasInterest && !date.isBefore(interestStart, 'day')) {
+          last += calcDailyInterest(last, account.interest_rate, date);
         }
 
         if (openedAt && date.isBefore(openedAt, 'day')) {
@@ -492,9 +519,9 @@ export const TimelineView = () => {
       }
     }
     return result;
-  }, [transactions, activeAccounts, dateArray, openingByAccount, accounts]);
+  }, [transactions, activeAccounts, dateArray, openingByAccount, totalsByAccount, accounts]);
 
-  // interestByAccount — сколько процентов начислилось за каждый день (для серого вывода в UI)
+  // interestByAccount — дневное начисление для серого вывода в SlotBalance
   const interestByAccount = useMemo(() => {
     const result = {};
     for (const accId of (Array.isArray(activeAccounts) ? activeAccounts : [])) {
@@ -507,7 +534,8 @@ export const TimelineView = () => {
         const dateStr = date.format('YYYY-MM-DD');
         if (date.isBefore(interestStart, 'day')) continue;
 
-        // Баланс предыдущего дня (ASC-порядок: предыдущий = date - 1)
+        // Начисление = разница баланса между этим днём и предыдущим за вычетом транзакций
+        // Проще: считаем напрямую от баланса предыдущего дня
         const prevDateStr = date.subtract(1, 'day').format('YYYY-MM-DD');
         const prevBalance = balanceByAccount[accId]?.[prevDateStr] ?? null;
         if (prevBalance === null || prevBalance >= 0) continue;

@@ -136,13 +136,16 @@ export const useSaveGroup = () => {
 
 // ─── Month Totals ─────────────────────────────────────────────────
 
-export const useMonthTotals = ({ month_key, account_id } = {}) => {
+// Запрос диапазона месяцев — основной режим
+// start/end в формате 'YYYY-MM', account_id через запятую
+export const useMonthTotals = ({ start, end, account_id } = {}) => {
   const user = useAuthStore((s) => s.user);
   return useQuery({
-    queryKey: ['bud_month_totals', { month_key, account_id }],
+    queryKey: ['bud_month_totals', { start, end, account_id }],
     queryFn: () =>
-      api.get('/badger/month-totals', { params: { month_key, account_id } }).then(unwrap),
-    enabled: Boolean(user) && Boolean(month_key),
+      api.get('/badger/month-totals', { params: { start, end, account_id } }).then(unwrap),
+    // account_id обязателен — без него бэк не вызовет fillGapsUntil
+    enabled: Boolean(user) && Boolean(start) && Boolean(end) && Boolean(account_id),
     staleTime: 2 * 60 * 1000,
   });
 };
