@@ -1,9 +1,11 @@
-import { Stack, NavLink, Text, Group, ActionIcon, Divider, Skeleton, Tooltip, Badge } from '@mantine/core';
+import { Stack, NavLink, Text, Group, ActionIcon, Divider, Skeleton, Tooltip, Badge, Button } from '@mantine/core';
 import {
   IconPlus, IconX, IconSettings,
   IconWallet, IconCreditCard, IconBuildingBank, IconPigMoney, IconGhost,
 } from '@tabler/icons-react';
 import { useBadgerStore } from '../../store/badgerStore';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { IconTimeline, IconChartBar } from '@tabler/icons-react';
 import { useAccounts } from '../../api/badgerApi';
 import { formatMoney, calcDailyInterest, rateToStr } from '../../utils/badgerUtils';
 import dayjs from 'dayjs';
@@ -21,6 +23,9 @@ const AccountTypeIcon = ({ type, size = 15 }) => {
 
 export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobileClose }) => {
   const { activeAccounts, activeCurrency, toggleAccount, managerOpen, openManager, closeManager } = useBadgerStore();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const isStats   = location.pathname.includes('/stats');
   const { data: accounts = [], isLoading } = useAccounts();
 
   const grouped = (accounts || [])
@@ -44,12 +49,41 @@ export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
   return (
     <>
       <div className={sidebarClass}>
-        {/* Заголовок */}
-        <Group px={collapsed ? 4 : 12} py={10} justify="space-between" style={{ flexShrink: 0 }}>
-          {!collapsed && (
-            <Text size="sm" fw={600} c="green.7" className="sidebar-label">Badger</Text>
-          )}
-          <Group gap={4} ml={collapsed ? 'auto' : undefined} mr={collapsed ? 'auto' : undefined}>
+        {/* Навигация Timeline / Stats + кнопка добавления счёта */}
+        <Group px={collapsed ? 4 : 8} py={8} gap={4} justify="space-between" style={{ flexShrink: 0 }} wrap="nowrap">
+
+          {/* Кнопки навигации */}
+          <Group gap={4} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+            <Tooltip label="Timeline" position="right">
+              <ActionIcon variant={!isStats ? 'light' : 'subtle'} color="green" size="sm"
+                onClick={() => navigate('/badger/timeline')}>
+                <IconTimeline size={15} />
+              </ActionIcon>
+            </Tooltip>
+            {!collapsed && (
+              <Button variant={!isStats ? 'light' : 'subtle'} color="green" size="compact-xs"
+                onClick={() => navigate('/badger/timeline')}
+                styles={{ root: { fontWeight: !isStats ? 600 : 400 } }}>
+                Timeline
+              </Button>
+            )}
+            <Tooltip label="Stats" position="right">
+              <ActionIcon variant={isStats ? 'light' : 'subtle'} color="green" size="sm"
+                onClick={() => navigate('/badger/stats')}>
+                <IconChartBar size={15} />
+              </ActionIcon>
+            </Tooltip>
+            {!collapsed && (
+              <Button variant={isStats ? 'light' : 'subtle'} color="green" size="compact-xs"
+                onClick={() => navigate('/badger/stats')}
+                styles={{ root: { fontWeight: isStats ? 600 : 400 } }}>
+                Stats
+              </Button>
+            )}
+          </Group>
+
+          {/* Плюс + закрытие мобилки */}
+          <Group gap={4} style={{ flexShrink: 0 }}>
             <Tooltip label="New account" position="right">
               <ActionIcon variant="light" color="green" size="sm" onClick={openManager}>
                 <IconPlus size={14} />
@@ -62,7 +96,6 @@ export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
             )}
           </Group>
         </Group>
-
         <Divider style={{ flexShrink: 0 }} />
 
         {!collapsed && (

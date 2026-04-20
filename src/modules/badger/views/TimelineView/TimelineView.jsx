@@ -15,6 +15,7 @@ import { useTransactions, useAccounts, useMonthTotals, useMoveTransaction, useSa
 import { formatMoney, flowKindColor, flowKindSign, calcDailyInterest } from '../../utils/badgerUtils';
 import { notifications } from '@mantine/notifications';
 import { DuplicateModal } from '../../components/DuplicateModal/DuplicateModal';
+import { BadgerToolbar } from '../../components/Toolbar/BadgerToolbar';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -678,6 +679,8 @@ export const TimelineView = () => {
   }
 
   return (
+    <>
+    <BadgerToolbar />
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="content-scroll bud-timeline" style={{ paddingBottom: 80 }}>
 
@@ -765,5 +768,6 @@ export const TimelineView = () => {
       {/* Дупликатор */}
       {duplicatorOpen && <DuplicateModal />}
     </DndContext>
+    </>
   );
 };
