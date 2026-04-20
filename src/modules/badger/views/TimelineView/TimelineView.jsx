@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState, useCallback } from 'react';
-import { Text, Center, Loader, Button } from '@mantine/core';
-import { IconPlus } from '@tabler/icons-react';
+import { Text, Center, Loader, Menu, Button, ActionIcon } from '@mantine/core';
+import { IconPlus, IconDots, IconPencil, IconCopy, IconEyeOff, IconEye, IconTrash } from '@tabler/icons-react';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
@@ -11,9 +11,10 @@ import {
 } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
 import { useBadgerStore } from '../../store/badgerStore';
-import { useTransactions, useAccounts, useMonthTotals, useMoveTransaction, useSaveTransaction } from '../../api/badgerApi';
+import { useTransactions, useAccounts, useMonthTotals, useMoveTransaction, useSaveTransaction, useDeleteTransaction, useToggleTransaction } from '../../api/badgerApi';
 import { formatMoney, flowKindColor, flowKindSign, calcDailyInterest } from '../../utils/badgerUtils';
 import { notifications } from '@mantine/notifications';
+import { DuplicateModal } from '../../components/DuplicateModal/DuplicateModal';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -27,6 +28,10 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
     data: { transaction },
   });
 
+  const { openEditor, openDuplicator } = useBadgerStore();
+  const deleteTransaction = useDeleteTransaction();
+  const toggleTransaction = useToggleTransaction();
+
   const disabled  = Boolean(transaction.is_disabled);
   const isPending = transaction.status === 'pending';
   const kindColor = flowKindColor(transaction.flow_kind, disabled);
@@ -37,21 +42,24 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
       (transaction.note.split('\n')[0].length > 60 || transaction.note.includes('\n') ? '…' : '')
     : null;
 
+  // Останавливаем DnD-listeners на элементах меню
+  const stopDnd = (e) => e.stopPropagation();
+
   return (
     <div
       ref={setNodeRef}
       className="bud-transaction-card"
       style={{
-        opacity:    isDragging ? 0.35 : disabled ? 0.5 : 1,
-        cursor:     'grab',
+        opacity:     isDragging ? 0.35 : disabled ? 0.5 : 1,
+        cursor:      'grab',
         borderStyle: isPending ? 'dashed' : 'solid',
-        border:     `1px solid var(--mantine-color-gray-3)`,
+        border:      `1px solid var(--mantine-color-gray-3)`,
         borderRadius: 6,
-        padding:    '5px 8px',
-        background: 'white',
-        userSelect: 'none',
-        touchAction: 'none',  /* ← критично для мобилки */
-        transition: 'box-shadow 0.15s',
+        padding:     '5px 8px',
+        background:  'white',
+        userSelect:  'none',
+        touchAction: 'none',
+        transition:  'box-shadow 0.15s',
       }}
       onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(transaction.id); }}
       {...attributes}
@@ -61,7 +69,40 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
         <Text size="sm" fw={600} c={disabled ? 'dimmed' : kindColor} style={{ whiteSpace: 'nowrap' }}>
           {kindSign}{formatMoney(transaction.amount)}
         </Text>
+
+        {/* Меню — изолировано от DnD listeners через pointerdown stopPropagation */}
+        <div onPointerDown={stopDnd} onMouseDown={stopDnd} onClick={stopDnd}>
+          <Menu shadow="md" size="xs" position="bottom-end" withinPortal>
+            <Menu.Target>
+              <ActionIcon variant="subtle" color="gray" size="xs">
+                <IconDots size={12} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<IconPencil size={13} />}
+                onClick={() => openEditor({ id: transaction.id })}>
+                Edit
+              </Menu.Item>
+              <Menu.Item leftSection={<IconCopy size={13} />}
+                onClick={() => openDuplicator(transaction)}>
+                Duplicate
+              </Menu.Item>
+              <Menu.Item
+                leftSection={disabled ? <IconEye size={13} /> : <IconEyeOff size={13} />}
+                color="orange"
+                onClick={() => toggleTransaction.mutate({ id: transaction.id, is_disabled: disabled ? 0 : 1 })}>
+                {disabled ? 'Enable' : 'Disable'}
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item leftSection={<IconTrash size={13} />} color="red"
+                onClick={() => { if (confirm('Delete transaction?')) deleteTransaction.mutate(transaction.id); }}>
+                Delete
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </div>
       </div>
+
       {transaction.title && (
         <Text size="xs" c="dimmed" style={{ lineHeight: 1.3 }} lineClamp={1}>{transaction.title}</Text>
       )}
@@ -370,10 +411,11 @@ export const TimelineView = () => {
     };
   }, []);
 
-  const activeAccounts = useBadgerStore((s) => s.activeAccounts);
-  const balanceMode    = useBadgerStore((s) => s.balanceMode);
-  const openEditor     = useBadgerStore((s) => s.openEditor);
-  const openReader     = useBadgerStore((s) => s.openReader);
+  const activeAccounts  = useBadgerStore((s) => s.activeAccounts);
+  const balanceMode     = useBadgerStore((s) => s.balanceMode);
+  const openEditor      = useBadgerStore((s) => s.openEditor);
+  const openReader      = useBadgerStore((s) => s.openReader);
+  const duplicatorOpen  = useBadgerStore((s) => s.duplicatorOpen);
 
   const startParam = searchParams.get('start') || dayjs().format('YYYY-MM');
   const endParam   = searchParams.get('end')   || dayjs().format('YYYY-MM');
@@ -719,6 +761,9 @@ export const TimelineView = () => {
       <DragOverlay dropAnimation={null}>
         {activeCard ? <DragOverlayCard transaction={activeCard} /> : null}
       </DragOverlay>
+
+      {/* Дупликатор */}
+      {duplicatorOpen && <DuplicateModal />}
     </DndContext>
   );
 };

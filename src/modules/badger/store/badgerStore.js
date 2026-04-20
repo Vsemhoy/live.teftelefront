@@ -40,6 +40,12 @@ export const useBadgerStore = create((set, get) => ({
   activeLayerId: null,
   setActiveLayer: (layerId) => set({ activeLayerId: layerId }),
 
+  // ── Дупликатор транзакций ───────────────────────────────────────
+  duplicatorOpen: false,
+  duplicatorTx: null,
+  openDuplicator:  (tx) => set({ duplicatorOpen: true,  duplicatorTx: tx }),
+  closeDuplicator: ()   => set({ duplicatorOpen: false, duplicatorTx: null }),
+
   // ── Режим итога счёта ────────────────────────────────────────────
   balanceMode: 'basic',
   toggleBalanceMode: () =>

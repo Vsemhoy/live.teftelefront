@@ -98,6 +98,19 @@ export const useMoveTransaction = () => {
   });
 };
 
+export const useToggleTransaction = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, is_disabled }) =>
+      api.patch(`/badger/transactions/${id}/toggledisabled`, { is_disabled }).then(unwrap),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bud_transactions'] });
+      qc.invalidateQueries({ queryKey: ['bud_month_totals'] });
+      qc.invalidateQueries({ queryKey: ['bud_accounts'] });
+    },
+  });
+};
+
 // ─── Transaction Groups ──────────────────────────────────────────
 
 export const useTransactionGroups = () => {
