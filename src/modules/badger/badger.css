@@ -271,3 +271,41 @@
 .bud-account-row:hover .row-actions {
   opacity: 1;
 }
+
+/* ── Category tree ───────────────────────────────────────────────── */
+.bud-cat-tree {
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bud-cat-node {
+  border-bottom: 1px solid var(--mantine-color-gray-1);
+}
+
+.bud-cat-node:last-child {
+  border-bottom: none;
+}
+
+.bud-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  min-height: 36px;
+  transition: background 0.1s;
+}
+
+.bud-cat-row:hover {
+  background: var(--mantine-color-gray-0);
+}
+
+.bud-cat-actions {
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.bud-cat-row:hover .bud-cat-actions {
+  opacity: 1;
+}

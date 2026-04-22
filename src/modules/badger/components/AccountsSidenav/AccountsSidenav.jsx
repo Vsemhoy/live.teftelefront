@@ -1,12 +1,13 @@
-import { Stack, NavLink, Text, Group, ActionIcon, Divider, Skeleton, Tooltip, Badge, Button } from '@mantine/core';
+import { Stack, NavLink, Text, Group, ActionIcon, Divider, Skeleton, Tooltip, Badge, Button, Select } from '@mantine/core';
 import {
   IconPlus, IconX, IconSettings,
   IconWallet, IconCreditCard, IconBuildingBank, IconPigMoney, IconGhost,
+  IconTag,
 } from '@tabler/icons-react';
 import { useBadgerStore } from '../../store/badgerStore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { IconTimeline, IconChartBar } from '@tabler/icons-react';
-import { useAccounts } from '../../api/badgerApi';
+import { useAccounts, useCategories } from '../../api/badgerApi';
 import { formatMoney, calcDailyInterest, rateToStr } from '../../utils/badgerUtils';
 import dayjs from 'dayjs';
 import { AccountsManager } from '../AccountsManager/AccountsManager';
@@ -22,11 +23,13 @@ const AccountTypeIcon = ({ type, size = 15 }) => {
 };
 
 export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobileClose }) => {
-  const { activeAccounts, activeCurrency, toggleAccount, managerOpen, openManager, closeManager } = useBadgerStore();
+  const { activeAccounts, activeCurrency, toggleAccount, managerOpen, openManager, closeManager, categoryFilter, setCategoryFilter } = useBadgerStore();
   const navigate  = useNavigate();
   const location  = useLocation();
-  const isStats   = location.pathname.includes('/stats');
-  const { data: accounts = [], isLoading } = useAccounts();
+  const isStats      = location.pathname.includes('/stats');
+  const isCategories = location.pathname.includes('/categories');
+  const { data: accounts    = [], isLoading } = useAccounts();
+  const { data: categories  = [] }            = useCategories();
 
   const grouped = (accounts || [])
     .filter((a) => !Boolean(a.is_archived))
@@ -49,53 +52,47 @@ export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
   return (
     <>
       <div className={sidebarClass}>
-        {/* Навигация Timeline / Stats + кнопка добавления счёта */}
-        <Group px={collapsed ? 4 : 8} py={8} gap={4} justify="space-between" style={{ flexShrink: 0 }} wrap="nowrap">
 
-          {/* Кнопки навигации */}
-          <Group gap={4} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-            <Tooltip label="Timeline" position="right">
-              <ActionIcon variant={!isStats ? 'light' : 'subtle'} color="green" size="sm"
-                onClick={() => navigate('/badger/timeline')}>
-                <IconTimeline size={15} />
-              </ActionIcon>
-            </Tooltip>
-            {!collapsed && (
-              <Button variant={!isStats ? 'light' : 'subtle'} color="green" size="compact-xs"
-                onClick={() => navigate('/badger/timeline')}
-                styles={{ root: { fontWeight: !isStats ? 600 : 400 } }}>
-                Timeline
-              </Button>
-            )}
-            <Tooltip label="Stats" position="right">
-              <ActionIcon variant={isStats ? 'light' : 'subtle'} color="green" size="sm"
-                onClick={() => navigate('/badger/stats')}>
-                <IconChartBar size={15} />
-              </ActionIcon>
-            </Tooltip>
-            {!collapsed && (
-              <Button variant={isStats ? 'light' : 'subtle'} color="green" size="compact-xs"
-                onClick={() => navigate('/badger/stats')}
-                styles={{ root: { fontWeight: isStats ? 600 : 400 } }}>
-                Stats
-              </Button>
-            )}
-          </Group>
-
-          {/* Плюс + закрытие мобилки */}
-          <Group gap={4} style={{ flexShrink: 0 }}>
-            <Tooltip label="New account" position="right">
-              <ActionIcon variant="light" color="green" size="sm" onClick={openManager}>
-                <IconPlus size={14} />
-              </ActionIcon>
-            </Tooltip>
+        {/* ── Шапка: кнопка закрытия на мобилке + добавление счёта ── */}
+        {(mobileOpen || !collapsed) && (
+          <Group px={8} py={6} gap={4} justify="flex-end" style={{ flexShrink: 0 }}>
             {mobileOpen && (
               <ActionIcon variant="subtle" color="gray" size="sm" onClick={onMobileClose}>
                 <IconX size={14} />
               </ActionIcon>
             )}
           </Group>
-        </Group>
+        )}
+
+        {/* ── Вертикальное меню модуля ────────────────────────────── */}
+        <Stack gap={2} px={collapsed ? 4 : 8} pt={collapsed ? 8 : 4} pb={4} style={{ flexShrink: 0 }}>
+          {[
+            { path: '/badger/timeline',   icon: IconTimeline, label: 'Timeline'   },
+            { path: '/badger/stats',      icon: IconChartBar, label: 'Stats'      },
+            { path: '/badger/categories', icon: IconTag,      label: 'Categories' },
+          ].map(({ path, icon: Icon, label }) => {
+            const active = location.pathname.includes(path.split('/')[2]);
+            return (
+              <Tooltip key={path} label={label} position="right" disabled={!collapsed}>
+                <NavLink
+                  label={!collapsed && <span className="sidebar-label">{label}</span>}
+                  leftSection={<Icon size={15} />}
+                  active={active}
+                  onClick={() => navigate(path)}
+                  styles={{
+                    root: {
+                      borderRadius: 6,
+                      paddingTop: 6,
+                      paddingBottom: 6,
+                      fontWeight: active ? 600 : 400,
+                    },
+                  }}
+                />
+              </Tooltip>
+            );
+          })}
+        </Stack>
+
         <Divider style={{ flexShrink: 0 }} />
 
         {!collapsed && (
@@ -106,8 +103,8 @@ export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
                 Accounts
               </Text>
               <Tooltip label="Manage accounts" withArrow position="right">
-                <ActionIcon size="xs" variant="subtle" color="gray" onClick={openManager}>
-                  <IconSettings size={13} />
+                <ActionIcon size="xs" variant="light" color="green" onClick={openManager}>
+                  <IconPlus size={13} />
                 </ActionIcon>
               </Tooltip>
             </Group>
@@ -182,6 +179,34 @@ export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
                     {activeCurrency} · {activeAccounts.length} selected
                   </Badge>
                 </Group>
+              </>
+            )}
+
+            {/* Фильтр по категории */}
+            {categories.length > 0 && (
+              <>
+                <Divider style={{ flexShrink: 0 }} />
+                <Stack gap={4} px={12} py={8} style={{ flexShrink: 0 }}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}
+                    style={{ letterSpacing: '0.06em' }}>
+                    Category
+                  </Text>
+                  <Select
+                    placeholder="All categories"
+                    value={categoryFilter}
+                    onChange={setCategoryFilter}
+                    clearable
+                    size="xs"
+                    data={[...categories]
+                      .filter((c) => !Boolean(c.is_archived))
+                      .sort((a, b) => (a.path || '').localeCompare(b.path || ''))
+                      .map((c) => ({
+                        value: c.id,
+                        label: '\u00a0'.repeat((c.depth || 0) * 2) + c.name,
+                      }))
+                    }
+                  />
+                </Stack>
               </>
             )}
 

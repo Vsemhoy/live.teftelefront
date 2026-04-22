@@ -19,6 +19,7 @@ import {
   useAccounts, useTransactionGroups,
 } from '../../api/badgerApi';
 import { toMinor, toMajor } from '../../utils/badgerUtils';
+import { CategorySelect } from '../CategorySelect/CategorySelect';
 
 // ─── Безопасный eval ──────────────────────────────────────────────
 const safeEval = (expr) => {
@@ -172,6 +173,7 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
   const [accountId, setAccountId] = useState(initial?.account_id    || null);
   const [targetId,  setTargetId]  = useState(initial?.target_account_id || null);
   const [groupId,   setGroupId]   = useState(initial?.group_id       || null);
+  const [categoryId, setCategoryId] = useState(initial?.category_id   || null);
   const [status,    setStatus]    = useState(initial?.status         || 'cleared');
   const [activeTab, setActiveTab] = useState('main');
 
@@ -224,6 +226,7 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
       account_id:        accountId,
       target_account_id: isTransfer ? targetId : null,
       group_id:          groupId || null,
+      category_id:       categoryId || null,
       status,
     });
   };
@@ -337,6 +340,11 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
                 ]}
               />
             </Group>
+
+            <CategorySelect
+              value={categoryId}
+              onChange={setCategoryId}
+            />
           </Stack>
         </Tabs.Panel>
 

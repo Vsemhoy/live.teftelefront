@@ -50,4 +50,8 @@ export const useBadgerStore = create((set, get) => ({
   balanceMode: 'basic',
   toggleBalanceMode: () =>
     set((s) => ({ balanceMode: s.balanceMode === 'basic' ? 'extended' : 'basic' })),
+
+  // ── Фильтр по категории ──────────────────────────────────────────
+  categoryFilter: null, // category id или null
+  setCategoryFilter: (id) => set({ categoryFilter: id }),
 }));

@@ -112,6 +112,24 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
           style={{ fontStyle: 'italic', opacity: 0.7, fontFamily: 'monospace', fontSize: 11 }}
           lineClamp={1}>{notePreview}</Text>
       )}
+      {transaction.category && (
+        <div style={{
+          fontSize: 10,
+          fontWeight: 500,
+          lineHeight: 1.3,
+          color: '#515151',
+          background: '#e8e8e8',
+          borderRadius: 3,
+          padding: '2px 4px',
+          width: 'min-content',
+          whiteSpace: 'nowrap',
+          boxShadow: '1px 3px 4px #00000047',
+          outline: '1px solid #00000033',
+          marginTop: 6,
+        }}>
+          {transaction.category.name}
+        </div>
+      )}
     </div>
   );
 };
@@ -437,6 +455,7 @@ export const TimelineView = () => {
   const openEditor      = useBadgerStore((s) => s.openEditor);
   const openReader      = useBadgerStore((s) => s.openReader);
   const duplicatorOpen  = useBadgerStore((s) => s.duplicatorOpen);
+  const categoryFilter  = useBadgerStore((s) => s.categoryFilter);
 
   const startParam = searchParams.get('start') || dayjs().format('YYYY-MM');
   const endParam   = searchParams.get('end')   || dayjs().format('YYYY-MM');
@@ -514,12 +533,14 @@ export const TimelineView = () => {
     const map = {};
     for (const tx of (Array.isArray(transactions) ? transactions : [])) {
       if (!tx?.account_id || !tx?.occurred_at) continue;
+      // Фильтр по категории — если выбран, скрываем транзакции без совпадения
+      if (categoryFilter && tx.category_id !== categoryFilter) continue;
       if (!map[tx.account_id]) map[tx.account_id] = {};
       if (!map[tx.account_id][tx.occurred_at]) map[tx.account_id][tx.occurred_at] = [];
       map[tx.account_id][tx.occurred_at].push(tx);
     }
     return map;
-  }, [transactions]);
+  }, [transactions, categoryFilter]);
 
   const balanceByAccount = useMemo(() => {
     const result = {};

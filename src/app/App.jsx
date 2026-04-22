@@ -21,8 +21,9 @@ import { DraftsView } from '@/modules/eventor/views/DraftsView/DraftsView';
 
 // Badger
 import { AccountsSidenav } from '@/modules/badger/components/AccountsSidenav/AccountsSidenav';
-import { TimelineView } from '@/modules/badger/views/TimelineView/TimelineView';
-import { StatsView }    from '@/modules/badger/views/StatsView/StatsView';
+import { TimelineView }    from '@/modules/badger/views/TimelineView/TimelineView';
+import { StatsView }       from '@/modules/badger/views/StatsView/StatsView';
+import { CategoryManager } from '@/modules/badger/views/CategoryManager/CategoryManager';
 import '@/modules/badger/badger.css';
 import { PinboardButton } from '@/modules/eventor/components/Pinboard/Pinboard';
 import { TransactionReadModal } from '@/modules/badger/components/TransactionReadModal/TransactionReadModal';
@@ -168,8 +169,9 @@ export default function App() {
             />
           }>
             <Route index element={<Navigate to="timeline" replace />} />
-            <Route path="timeline" element={<TimelineView />} />
-            <Route path="stats"    element={<StatsView />} />
+            <Route path="timeline"   element={<TimelineView />} />
+            <Route path="stats"      element={<StatsView />} />
+            <Route path="categories" element={<CategoryManager />} />
           </Route>
 
           <Route path="/exploiter/*" element={<div className="main-content"><ComingSoon name="Exploiter" /></div>} />

@@ -162,3 +162,42 @@ export const useMonthTotals = ({ start, end, account_id } = {}) => {
     staleTime: 2 * 60 * 1000,
   });
 };
+
+// ─── Categories ──────────────────────────────────────────────────
+
+export const useCategories = () => {
+  const user = useAuthStore((s) => s.user);
+  return useQuery({
+    queryKey: ['bud_categories'],
+    queryFn: () => api.get('/badger/categories').then(unwrap),
+    enabled: Boolean(user),
+    staleTime: 10 * 60 * 1000,
+  });
+};
+
+export const useSaveCategory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data) =>
+      data.id
+        ? api.put(`/badger/categories/${data.id}`, data).then(unwrap)
+        : api.post('/badger/categories', data).then(unwrap),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bud_categories'] }),
+  });
+};
+
+export const useDeleteCategory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.delete(`/badger/categories/${id}`).then(unwrap),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bud_categories'] }),
+  });
+};
+
+export const useReorderCategories = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items) => api.post('/badger/categories/reorder', { items }).then(unwrap),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bud_categories'] }),
+  });
+};
