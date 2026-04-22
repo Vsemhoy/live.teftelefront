@@ -250,6 +250,36 @@
   opacity: 0.8;
 }
 
+/* ── Badger Toolbar grid ─────────────────────────────────────── */
+/* content-toolbar имеет display:flex — переопределяем на grid */
+.content-toolbar.bud-toolbar-grid {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.bud-toolbar-month {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.bud-toolbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.bud-toolbar-lock {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 /* ── AccountsManager row actions ────────────────────────────── */
 .bud-account-row {
   border-radius: 8px;

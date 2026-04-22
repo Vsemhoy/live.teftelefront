@@ -398,8 +398,10 @@ const DragOverlayCard = ({ transaction }) => {
 // ─── TimelineView ─────────────────────────────────────────────────
 export const TimelineView = () => {
   const [searchParams] = useSearchParams();
-  const [activeCard, setActiveCard] = useState(null); // для DragOverlay
-  const [shiftHeld,  setShiftHeld]  = useState(false); // Shift зажат при drop
+  const [activeCard,   setActiveCard]   = useState(null);  // для DragOverlay
+  const [shiftHeld,    setShiftHeld]    = useState(false); // Shift зажат при drop
+  const [dragLocked,   setDragLocked]   = useState(true);  // Drag-Lock: по умолчанию включён
+  const [visibleMonth, setVisibleMonth] = useState(null);  // текущий видимый месяц в тулбаре
 
   // Слушаем Shift глобально — важно именно при drop, не при начале drag
   useEffect(() => {
@@ -411,6 +413,28 @@ export const TimelineView = () => {
       window.removeEventListener('keyup',   onKey);
     };
   }, []);
+
+  // IntersectionObserver — следим за .bud-month-header, пишем верхний видимый месяц
+  useEffect(() => {
+    const headers = document.querySelectorAll('.bud-month-header[data-month]');
+    if (!headers.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Берём все видимые хедеры, сортируем по позиции — самый верхний = текущий
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible.length > 0) {
+          setVisibleMonth(visible[0].target.dataset.month);
+        }
+      },
+      { threshold: 0, rootMargin: '0px 0px -80% 0px' }
+    );
+
+    headers.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  });
 
   const activeAccounts  = useBadgerStore((s) => s.activeAccounts);
   const balanceMode     = useBadgerStore((s) => s.balanceMode);
@@ -466,11 +490,11 @@ export const TimelineView = () => {
   const saveTransaction  = useSaveTransaction();
 
   // DnD сенсоры
-  // TouchSensor: delay 400ms + tolerance 8px — даём время отличить скролл от drag
-  // PointerSensor: distance 8px — не срабатывает на случайное касание
+  // Когда dragLocked — distance 999999, драг физически невозможен
+  // Когда разлочен — обычные пороги: pointer 8px, touch 400ms+8px
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor,   { activationConstraint: { delay: 400, tolerance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: dragLocked ? 999999 : 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: dragLocked ? { delay: 999999, tolerance: 0 } : { delay: 400, tolerance: 8 } }),
   );
 
   const dateArray = useMemo(() => {
@@ -680,7 +704,11 @@ export const TimelineView = () => {
 
   return (
     <>
-    <BadgerToolbar />
+    <BadgerToolbar
+      visibleMonth={visibleMonth}
+      dragLocked={dragLocked}
+      onToggleDragLock={() => setDragLocked((v) => !v)}
+    />
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="content-scroll bud-timeline" style={{ paddingBottom: 80 }}>
 
@@ -721,7 +749,7 @@ export const TimelineView = () => {
                 variant="closing"
               />
 
-              <div className="bud-month-header">
+              <div className="bud-month-header" data-month={monthKey}>
                 {monthDate.format('MMMM YYYY')}
                 {isCurrentMonth && <Text component="span" size="xs" c="green.5" ml={8}>← current</Text>}
               </div>
