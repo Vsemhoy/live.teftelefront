@@ -10,10 +10,10 @@
 
 /* Шапка таблицы — sticky */
 .bud-timeline-header {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: var(--timeline-cols);
   align-items: center;
-  min-width: max-content;   /* ← не сжиматься */
+  min-width: max-content;
   border-bottom: 2px solid var(--mantine-color-gray-3);
   background: var(--mantine-color-white);
   position: sticky;
@@ -24,10 +24,10 @@
 
 /* Строка дня */
 .bud-day-row {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: var(--timeline-cols);
   align-items: stretch;
-  min-width: max-content;   /* ← ключевое: не сжиматься ниже содержимого */
+  min-width: max-content;
   border-bottom: 1px solid var(--mantine-color-gray-2);
   min-height: 48px;
 }
@@ -47,10 +47,9 @@
 .bud-day-num  { font-size: 14px; font-weight: 500; line-height: 1; }
 .bud-day-name { font-size: 10px; color: var(--mantine-color-gray-5); text-transform: uppercase; line-height: 1; }
 
-/* Слот счёта — тянется равномерно между датой и тоталом */
+/* Слот счёта — грид сам делит 1fr равномерно */
 .bud-account-slot {
-  flex: 1 1 0;          /* равномерно делят пространство */
-  min-width: 160px;     /* минимум чтобы не схлопнуться */
+  min-width: 0;
   border-left: 1px solid var(--mantine-color-gray-2);
   display: flex;
   flex-direction: column;
@@ -67,8 +66,6 @@
   justify-content: center;
   padding: 4px 8px;
   min-height: unset;
-  flex: 1 1 0;
-  min-width: 160px;
 }
 
 /* Карточка транзакции — ограничена шириной */
@@ -107,17 +104,14 @@
   gap: 1px;
 }
 
-/* Ячейка-заполнитель — временно скрыта, пригодится позже */
+/* Ячейка-заполнитель — не нужна в grid-модели */
 .bud-flex-filler {
-  flex: 1 1 0;
-  min-width: 0;
   display: none;
 }
 
-/* Итого дня */
+/* Итого дня — последняя колонка грида */
 .bud-day-total {
-  width: 120px;
-  min-width: 120px;
+  min-width: 0;
   flex-shrink: 0;
   border-left: 2px solid var(--mantine-color-gray-3);
   display: flex;
@@ -158,8 +152,8 @@
 
 /* ── Month totals row ────────────────────────────────────────── */
 .bud-month-totals-row {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: var(--timeline-cols);
   align-items: stretch;
   min-width: max-content;
   border-bottom: 2px solid var(--mantine-color-green-3);
@@ -167,8 +161,7 @@
 }
 
 .bud-month-totals-label {
-  width: 52px;
-  min-width: 52px;
+  min-width: 0;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -177,10 +170,7 @@
 }
 
 .bud-month-totals-slot {
-  width: 260px;
-  min-width: 260px;
-  max-width: 260px;
-  flex-shrink: 0;
+  min-width: 0;
   border-left: 1px solid var(--mantine-color-green-2);
   padding: 6px 8px;
   display: flex;
@@ -189,13 +179,11 @@
 }
 
 .bud-month-totals-filler {
-  flex: 1 1 0;
-  min-width: 0;
+  display: none;
 }
 
 .bud-month-totals-total {
-  width: 120px;
-  min-width: 120px;
+  min-width: 0;
   flex-shrink: 0;
   border-left: 2px solid var(--mantine-color-green-3);
   display: flex;
@@ -214,6 +202,12 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* На мобилке 1fr не работает с горизонтальным scroll —
+     переопределяем переменную на фиксированные колонки */
+  .bud-timeline {
+    --timeline-cols: 44px repeat(auto-fill, 220px) 90px;
+  }
+
   /* Строки не сжимаются — уходят вправо */
   .bud-day-row,
   .bud-timeline-header,
@@ -222,23 +216,8 @@
     min-width: max-content;
   }
 
-  /* Колонки фиксированные — чтобы оставались друг над другом */
-  .bud-account-slot,
-  .bud-account-header,
-  .bud-month-totals-slot {
-    flex: 0 0 250px;  /* фиксированная ширина, не сжимается */
-    min-width: 250px;
-    max-width: 250px;
-  }
-
   .bud-slot-cards {
     max-width: 100%;
-  }
-
-  .bud-day-total,
-  .bud-month-totals-total {
-    width: 90px;
-    min-width: 90px;
   }
 }
 

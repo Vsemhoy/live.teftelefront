@@ -271,8 +271,6 @@ const MonthTotalsRow = ({ monthKey, activeAccounts, accounts, transactions, bala
         );
       })}
 
-      <div className="bud-month-totals-filler" />
-
       <div className="bud-month-totals-total">
         {/* Grand: только реальный P&L, без переводов */}
         {!isOpening && grandNet !== 0 && (
@@ -359,8 +357,6 @@ const DayRow = ({ date, activeAccounts, accounts, txByAccountByDate, balanceByAc
           </DroppableSlot>
         );
       })}
-
-      <div className="bud-flex-filler" />
 
       {activeAccounts.length > 0 && (
         <div className="bud-day-total">
@@ -710,7 +706,15 @@ export const TimelineView = () => {
       onToggleDragLock={() => setDragLocked((v) => !v)}
     />
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="content-scroll bud-timeline" style={{ paddingBottom: 80 }}>
+      <div
+        className="content-scroll bud-timeline"
+        style={{
+          paddingBottom: 80,
+          // CSS-переменная сетки: дата | N счетов по 1fr | total
+          // Все строки (header, day-row, totals) читают её и дают одинаковые колонки
+          '--timeline-cols': `52px repeat(${activeAccounts.length}, 1fr) 120px`,
+        }}
+      >
 
         {/* Шапка */}
         <div className="bud-timeline-header">
@@ -724,7 +728,6 @@ export const TimelineView = () => {
               </div>
             );
           })}
-          <div className="bud-flex-filler" />
           <div className="bud-day-total">
             <Text size="xs" c="dimmed" fw={500}>Total</Text>
           </div>
