@@ -16,8 +16,8 @@ import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { getModuleTheme } from './moduleThemes';
 
 const MODULES = [
-  { id: 'eventor',   label: 'Eventor',   icon: IconCalendarEvent, path: '/eventor/flow',   desc: 'Calendar & notes' },
-  { id: 'exploiter', label: 'Exploiter', icon: IconPackage,        path: '/exploiter',      desc: 'Inventory tracker' },
+  { id: 'eventor',   label: 'Eventor',   icon: IconCalendarEvent,  path: '/eventor/flow',   desc: 'Calendar & notes' },
+  { id: 'stuffer',   label: 'Stuffer',   icon: IconPackage,        path: '/stuffer/things', desc: 'Stuff & locations' },
   { id: 'badger',    label: 'Badger',    icon: IconCurrencyDollar, path: '/badger',         desc: 'Budget & expenses' },
   { id: 'tasker',    label: 'Tasker',    icon: IconChecklist,      path: '/tasker',         desc: 'Tasks & kanban' },
   { id: 'pm',        label: 'PM',        icon: IconBriefcase,      path: '/pm',             desc: 'Project management' },

@@ -11,6 +11,12 @@ export const MODULE_THEMES = {
     textColor: '#4a2e06',
     label: 'Exploiter',
   },
+  stuffer: {
+    gradient: 'linear-gradient(90deg, #fef3c7 0%, #fde8a8 100%)',
+    accent: '#b45309',
+    textColor: '#4a2e06',
+    label: 'Stuffer',
+  },
   badger: {
     gradient: 'linear-gradient(90deg, #d5f7df 0%, #b8f0c8 100%)',
     accent: '#2d9e6b',

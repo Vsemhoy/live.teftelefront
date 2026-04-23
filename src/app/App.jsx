@@ -29,6 +29,12 @@ import { PinboardButton } from '@/modules/eventor/components/Pinboard/Pinboard';
 import { TransactionReadModal } from '@/modules/badger/components/TransactionReadModal/TransactionReadModal';
 import { TransactionEditor } from '@/modules/badger/components/TransactionEditor/TransactionEditor';
 
+// Stuffer
+import { StufferSidenav } from '@/modules/stuffer/components/StufferSidenav/StufferSidenav';
+import { ThingsView } from '@/modules/stuffer/views/ThingsView/ThingsView';
+import { FeedView } from '@/modules/stuffer/views/FeedView/FeedView';
+import { ThingPage } from '@/modules/stuffer/components/ThingPage/ThingPage';
+
 const ComingSoon = ({ name }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
     <Text c="dimmed" size="sm">{name} — coming soon</Text>
@@ -73,6 +79,20 @@ const BadgerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) =>
   </>
 );
 
+// ── Лэйаут Stuffer ────────────────────────────────────────────────
+const StufferLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
+  <>
+    <StufferSidenav
+      collapsed={sidebarCollapsed}
+      mobileOpen={mobileSidebarOpen}
+      onMobileClose={onMobileClose}
+    />
+    <div className="main-content">
+      <Outlet />
+    </div>
+  </>
+);
+
 export default function App() {
   const user = useAuthStore((s) => s.user);
   const isChecked = useAuthStore((s) => s.isChecked);
@@ -104,6 +124,9 @@ export default function App() {
     }
     if (location.pathname === '/badger' || location.pathname === '/badger/') {
       navigate('/badger/timeline', { replace: true });
+    }
+    if (location.pathname === '/stuffer' || location.pathname === '/stuffer/') {
+      navigate('/stuffer/things', { replace: true });
     }
   }, [location.pathname, navigate]);
 
@@ -172,6 +195,20 @@ export default function App() {
             <Route path="timeline"   element={<TimelineView />} />
             <Route path="stats"      element={<StatsView />} />
             <Route path="categories" element={<CategoryManager />} />
+          </Route>
+
+          {/* Stuffer: nested routes */}
+          <Route path="/stuffer" element={
+            <StufferLayout
+              sidebarCollapsed={!isMobile && sidebarCollapsed}
+              mobileSidebarOpen={isMobile && mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+            />
+          }>
+            <Route index element={<Navigate to="things" replace />} />
+            <Route path="things"     element={<ThingsView />} />
+            <Route path="things/:id" element={<ThingPage />} />
+            <Route path="feed"       element={<FeedView />} />
           </Route>
 
           <Route path="/exploiter/*" element={<div className="main-content"><ComingSoon name="Exploiter" /></div>} />
