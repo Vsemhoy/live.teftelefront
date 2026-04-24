@@ -1,7 +1,8 @@
-import { Group, Button, SegmentedControl, Select, Text, ActionIcon, Tooltip } from '@mantine/core';
+import { Group, Button, SegmentedControl, Select, ActionIcon, Tooltip } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import {
   IconPlus, IconLayoutGrid, IconList,
-  IconFilter, IconX,
+  IconX, IconLock, IconLockOpen,
 } from '@tabler/icons-react';
 import { useStufferStore } from '../../store/stufferStore';
 import { MOCK_CATEGORIES } from '../../api/stufferMocks';
@@ -12,64 +13,75 @@ export const StufferToolbar = () => {
     filterType, setFilterType,
     filterStatus, setFilterStatus,
     filterCategory, setFilterCategory,
-    activeLocationId,
+    dragLocked, toggleDragLock,
   } = useStufferStore();
 
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const hasFilters = filterType || filterStatus || filterCategory;
 
   return (
     <div className="content-toolbar">
       <Group gap={8} style={{ flex: 1 }}>
-        {/* Кнопка добавления */}
-        <Button
-          size="xs"
-          leftSection={<IconPlus size={13} />}
-          onClick={() => openEditor({})}
-        >
-          Добавить
-        </Button>
 
-        {/* Фильтр по типу */}
-        <Select
-          size="xs"
-          placeholder="Тип"
-          clearable
-          value={filterType}
-          onChange={setFilterType}
-          data={[
-            { value: 'asset', label: 'Asset' },
-            { value: 'item',  label: 'Item' },
-          ]}
-          style={{ width: 100 }}
-        />
+        {isMobile ? (
+          <Tooltip label="Добавить вещь" withArrow>
+            <ActionIcon size="sm" onClick={() => openEditor({})}>
+              <IconPlus size={15} />
+            </ActionIcon>
+          </Tooltip>
+        ) : (
+          <Button size="xs" leftSection={<IconPlus size={13} />} onClick={() => openEditor({})}>
+            Добавить
+          </Button>
+        )}
 
-        {/* Фильтр по категории */}
-        <Select
-          size="xs"
-          placeholder="Категория"
-          clearable
-          value={filterCategory}
-          onChange={setFilterCategory}
-          data={MOCK_CATEGORIES.map((c) => ({ value: c.id, label: c.name }))}
-          style={{ width: 140 }}
-        />
+        <Tooltip label={dragLocked ? 'Drag заблокирован — разблокировать' : 'Заблокировать drag'} withArrow>
+          <ActionIcon
+            size="sm"
+            variant={dragLocked ? 'filled' : 'subtle'}
+            color={dragLocked ? 'orange' : 'gray'}
+            onClick={toggleDragLock}
+          >
+            {dragLocked ? <IconLock size={14} /> : <IconLockOpen size={14} />}
+          </ActionIcon>
+        </Tooltip>
 
-        {/* Сброс фильтров */}
+        {!isMobile && (
+          <>
+            <Select
+              size="xs"
+              placeholder="Тип"
+              clearable
+              value={filterType}
+              onChange={setFilterType}
+              data={[
+                { value: 'asset', label: 'Asset' },
+                { value: 'item',  label: 'Item' },
+              ]}
+              style={{ width: 100 }}
+            />
+            <Select
+              size="xs"
+              placeholder="Категория"
+              clearable
+              value={filterCategory}
+              onChange={setFilterCategory}
+              data={MOCK_CATEGORIES.map((c) => ({ value: c.id, label: c.name }))}
+              style={{ width: 140 }}
+            />
+          </>
+        )}
+
         {hasFilters && (
           <Tooltip label="Сбросить фильтры" withArrow>
-            <ActionIcon
-              size="sm"
-              variant="light"
-              color="red"
-              onClick={() => { setFilterType(null); setFilterStatus(null); setFilterCategory(null); }}
-            >
+            <ActionIcon size="sm" variant="light" color="red"
+              onClick={() => { setFilterType(null); setFilterStatus(null); setFilterCategory(null); }}>
               <IconX size={13} />
             </ActionIcon>
           </Tooltip>
         )}
       </Group>
 
-      {/* Переключатель вида */}
       <SegmentedControl
         size="xs"
         value={viewMode}

@@ -33,4 +33,8 @@ export const useStufferStore = create((set) => ({
   // ── Вид списка ────────────────────────────────────────────────
   viewMode: 'grid',        // 'grid' | 'table'
   setViewMode: (v) => set({ viewMode: v }),
+
+  // ── Блокировка drag ───────────────────────────────────────────
+  dragLocked: false,
+  toggleDragLock: () => set((s) => ({ dragLocked: !s.dragLocked })),
 }));

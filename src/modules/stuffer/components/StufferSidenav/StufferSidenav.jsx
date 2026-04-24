@@ -13,7 +13,8 @@ import { useDroppable } from '@dnd-kit/core';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStufferStore } from '../../store/stufferStore';
 import { buildLocationTree } from '../../utils/stufferUtils';
-import { MOCK_LOCATIONS, MOCK_THINGS } from '../../api/stufferMocks';
+import { MOCK_THINGS } from '../../api/stufferMocks';
+import { useLocations } from '../../api/stufferApi';
 
 // Иконка для локации по названию
 const LocationIcon = ({ name, size = 14 }) => {
@@ -119,16 +120,16 @@ export const StufferSidenav = ({ collapsed = false, mobileOpen = false, onMobile
   const navigate = useNavigate();
   const location = useLocation();
   const { activeLocationId, setActiveLocation, openLocations } = useStufferStore();
+  const { data: locations = [] } = useLocations();
 
-  const tree = buildLocationTree(MOCK_LOCATIONS);
+  const tree = buildLocationTree(locations);
 
-  // Считаем вещи по локациям
+  // Считаем вещи по локациям из реальных данных через things query
+  // Пока просто пустой объект — счётчики появятся когда подключим useThings в сайдбар
   const thingCounts = {};
-  MOCK_THINGS.forEach((t) => {
-    if (t.current_location_id) {
-      thingCounts[t.current_location_id] = (thingCounts[t.current_location_id] || 0) + 1;
-    }
-  });
+
+  // collapsed-режим использует реальные локации
+  const rootLocations = locations.filter((l) => !l.parent_id);
 
   const sidebarClass = [
     'sections-sidebar',
@@ -190,7 +191,7 @@ export const StufferSidenav = ({ collapsed = false, mobileOpen = false, onMobile
       <Box style={{ flex: 1, overflowY: 'auto', paddingBottom: 8 }}>
         {collapsed ? (
           <Stack gap={2} px={4} pt={4}>
-            {MOCK_LOCATIONS.filter((l) => !l.parent_id).map((loc) => (
+            {rootLocations.map((loc) => (
               <LocationNode
                 key={loc.id}
                 node={{ ...loc, children: [] }}

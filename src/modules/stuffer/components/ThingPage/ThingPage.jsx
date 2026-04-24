@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Text, Group, Badge, Button, Stack, Paper, Divider,
-  ActionIcon, Tooltip, Anchor, Timeline, ThemeIcon,
+  ActionIcon, Tooltip, Anchor, Timeline, ThemeIcon, Loader,
 } from '@mantine/core';
 import {
   IconArrowLeft, IconEdit, IconPlus, IconMapPin,
@@ -10,9 +10,9 @@ import {
   IconAlertTriangle, IconTrash, IconPackage,
   IconArrowRight, IconCurrencyRubel,
 } from '@tabler/icons-react';
-import { MOCK_THINGS, MOCK_REGISTER, MOCK_CATEGORIES, THING_STATUSES, REGISTER_EVENT_TYPES } from '../../api/stufferMocks';
-import { formatPrice, getLocationPath } from '../../utils/stufferUtils';
-import { MOCK_LOCATIONS } from '../../api/stufferMocks';
+import { useThing, useDeleteRegister } from '../../api/stufferApi';
+import { REGISTER_EVENT_TYPES, THING_STATUSES } from '../../api/stufferMocks';
+import { formatPrice } from '../../utils/stufferUtils';
 import { useStufferStore } from '../../store/stufferStore';
 
 const EventIcon = ({ type }) => {
@@ -37,8 +37,11 @@ export const ThingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { openEditor, openRegister } = useStufferStore();
+  const { data: thing, isLoading } = useThing(id);
+  const deleteRegister = useDeleteRegister();
 
-  const thing = MOCK_THINGS.find((t) => t.id === id);
+  if (isLoading) return <Box p="xl"><Loader size="sm" /></Box>;
+
   if (!thing) {
     return (
       <Box p="xl">
@@ -48,18 +51,12 @@ export const ThingPage = () => {
     );
   }
 
-  const category = MOCK_CATEGORIES.find((c) => c.id === thing.category_id);
-  const locationPath = getLocationPath(thing.current_location_id, MOCK_LOCATIONS);
-  const price = formatPrice(thing.purchase_price);
-  const status = THING_STATUSES[thing.current_status];
-
-  // Регистр этой вещи
-  const registers = MOCK_REGISTER
-    .filter((r) => r.thing_id === id)
-    .sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
-
-  // Связанные вещи (дети)
-  const children = MOCK_THINGS.filter((t) => t.parent_id === id);
+  const category  = thing.category;
+  const locationPath = thing.location?.name || null;
+  const price     = formatPrice(thing.purchase_price);
+  const status    = THING_STATUSES[thing.current_status];
+  const registers = thing.register || [];
+  const children  = thing.children || [];
 
   return (
     <Box style={{ maxWidth: 720, margin: '0 auto', padding: '16px 16px 40px' }}>
@@ -202,8 +199,8 @@ export const ThingPage = () => {
           <Timeline bulletSize={28} lineWidth={2}>
             {registers.map((reg) => {
               const et = REGISTER_EVENT_TYPES[reg.event_type];
-              const fromLoc = getLocationPath(reg.from_location_id, MOCK_LOCATIONS);
-              const toLoc = getLocationPath(reg.to_location_id, MOCK_LOCATIONS);
+              const fromLoc = reg.from_location?.name || null;
+              const toLoc   = reg.to_location?.name   || null;
               return (
                 <Timeline.Item
                   key={reg.id}
@@ -213,11 +210,21 @@ export const ThingPage = () => {
                     </ThemeIcon>
                   }
                   title={
-                    <Group gap={6}>
-                      <Text size="sm" fw={500}>{et?.label || reg.event_type}</Text>
-                      <Text size="xs" c="dimmed">
-                        {new Date(reg.occurred_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </Text>
+                    <Group gap={6} justify="space-between">
+                      <Group gap={6}>
+                        <Text size="sm" fw={500}>{et?.label || reg.event_type}</Text>
+                        <Text size="xs" c="dimmed">
+                          {new Date(reg.occurred_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </Text>
+                      </Group>
+                      <Tooltip label="Отменить событие" withArrow>
+                        <ActionIcon
+                          size="xs" variant="subtle" color="red"
+                          onClick={() => deleteRegister.mutate(reg.id)}
+                        >
+                          <IconTrash size={11} />
+                        </ActionIcon>
+                      </Tooltip>
                     </Group>
                   }
                 >
@@ -229,8 +236,8 @@ export const ThingPage = () => {
                     </Group>
                   )}
                   {reg.note && <Text size="xs" c="dimmed" mt={2}>{reg.note}</Text>}
-                  {reg.lent_to && (
-                    <Text size="xs" c="yellow.7" mt={2}>→ {reg.lent_to} (вернуть до {reg.return_expected})</Text>
+                  {reg.contact && (
+                    <Text size="xs" c="yellow.7" mt={2}>→ {reg.contact}{reg.return_expected ? ` (до ${reg.return_expected})` : ''}</Text>
                   )}
                 </Timeline.Item>
               );

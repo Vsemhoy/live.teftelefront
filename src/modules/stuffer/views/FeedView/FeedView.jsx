@@ -5,7 +5,8 @@ import {
   IconTrash, IconPackage, IconCurrencyRubel,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_REGISTER, MOCK_THINGS, REGISTER_EVENT_TYPES } from '../../api/stufferMocks';
+import { useRegister } from '../../api/stufferApi';
+import { REGISTER_EVENT_TYPES } from '../../api/stufferMocks';
 import { getLocationPath } from '../../utils/stufferUtils';
 import { MOCK_LOCATIONS } from '../../api/stufferMocks';
 
@@ -29,9 +30,9 @@ const EventIcon = ({ type, size = 14 }) => {
 
 export const FeedView = () => {
   const navigate = useNavigate();
+  const { data: registers = [], isLoading } = useRegister({ limit: 100 });
 
-  // Все события, сортировка по дате убывание
-  const sorted = [...MOCK_REGISTER].sort(
+  const sorted = [...registers].sort(
     (a, b) => new Date(b.occurred_at) - new Date(a.occurred_at)
   );
 
@@ -62,14 +63,13 @@ export const FeedView = () => {
                     <Badge size="xs" color={et?.color || 'gray'} variant="light">
                       {et?.label || reg.event_type}
                     </Badge>
-                    {thing && (
+                    {reg.thing && (
                       <Text
-                        size="sm"
-                        fw={500}
+                        size="sm" fw={500}
                         style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
-                        onClick={() => navigate(`/stuffer/things/${thing.id}`)}
+                        onClick={() => navigate(`/stuffer/things/${reg.thing.id}`)}
                       >
-                        {thing.name}
+                        {reg.thing.name}
                       </Text>
                     )}
                     <Text size="xs" c="dimmed">
