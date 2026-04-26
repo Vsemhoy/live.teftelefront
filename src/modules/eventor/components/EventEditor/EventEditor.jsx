@@ -155,6 +155,8 @@ export const EventEditor = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [isBlurred, setIsBlurred] = useState(false);
+  const [parentId, setParentId] = useState(null);
+  const [parentInput, setParentInput] = useState(''); // raw input — ссылка или id
 
   const editorRef = useRef(null);
 
@@ -179,6 +181,8 @@ export const EventEditor = () => {
       setIsLocked(Boolean(draftSrc.is_locked));
       setIsPinned(Boolean(draftSrc.is_pinned));
       setIsBlurred(Boolean(draftSrc.is_blurred));
+      setParentId(draftSrc.parent_id || null);
+      setParentInput(draftSrc.parent_id || '');
     } else if (serverId) {
       if (!existingEvent) return;
       setName(existingEvent.name || '');
@@ -195,6 +199,8 @@ export const EventEditor = () => {
       setIsLocked(Boolean(existingEvent.is_locked));
       setIsPinned(Boolean(existingEvent.is_pinned));
       setIsBlurred(Boolean(existingEvent.is_blurred));
+      setParentId(existingEvent.parent_id || null);
+      setParentInput(existingEvent.parent_id || '');
     } else {
       const initialDate = editorData?.date ? new Date(editorData.date) : new Date();
       setName('');
@@ -214,6 +220,8 @@ export const EventEditor = () => {
       setIsLocked(false);
       setIsPinned(false);
       setIsBlurred(false);
+      setParentId(editorData?.parent_id || null);
+      setParentInput(editorData?.parent_id || '');
     }
 
     setTab('editor');
@@ -242,6 +250,7 @@ export const EventEditor = () => {
       is_locked: isLocked,
       is_pinned: isPinned,
       is_blurred: isBlurred,
+      parent_id: parentId || null,
     };
 
     const fullPayload = { ...basePayload, ...localMeta };
@@ -585,14 +594,36 @@ export const EventEditor = () => {
                 />
                 <Select
                   label="Access"
-                  value={access}
-                  onChange={(value) => setAccess(value || 'private')}
+                  value={String(access)}
+                  onChange={(value) => setAccess(value ? parseInt(value) : 1)}
                   data={[
-                    { value: 'private', label: 'Private' },
-                    { value: 'team', label: 'Team' },
-                    { value: 'public', label: 'Public' },
+                    { value: '1', label: 'Private' },
+                    { value: '3', label: 'Public' },
                   ]}
                   allowDeselect={false}
+                />
+                <TextInput
+                  label="Parent event"
+                  placeholder="Paste link or ID…"
+                  value={parentInput}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setParentInput(val);
+                    // Вычленяем id из ссылки типа https://teftele.com/e/01KQ...
+                    const match = val.match(/\/e\/([A-Z0-9]{26})/i);
+                    if (match) {
+                      setParentId(match[1]);
+                    } else if (val.match(/^[A-Z0-9]{26}$/i)) {
+                      setParentId(val);
+                    } else if (!val) {
+                      setParentId(null);
+                    }
+                  }}
+                  rightSection={parentId && parentInput !== parentId ? (
+                    <Tooltip label={`ID: ${parentId}`} withArrow>
+                      <IconCheck size={14} style={{ color: 'var(--mantine-color-teal-5)' }} />
+                    </Tooltip>
+                  ) : null}
                 />
                 <Select
                   label="Section"

@@ -74,15 +74,9 @@
   flex-direction: column;
   gap: 4px;
   flex: 1;
-  max-width: 650px;     /* карточки не шире 650px */
-}
-
-/* Карточки внутри слота */
-.bud-slot-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  max-width: 650px;
 }
 
 /* Кнопка добавить — скрыта, видна при ховере */
@@ -125,9 +119,12 @@
 .bud-transaction-card {
   background: var(--mantine-color-white);
   transition: box-shadow 0.15s ease;
-  touch-action: none;      /* не отдавать тач браузеру — нужно для DnD */
+  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
 }
 .bud-transaction-card:hover {
   box-shadow: 0 2px 8px rgba(0,0,0,0.10);

@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Text, Box, Group, Badge, Table, ActionIcon, Tooltip, Stack, Paper } from '@mantine/core';
 import { IconPackage, IconEdit, IconArrowRight } from '@tabler/icons-react';
 import {
   DndContext, DragOverlay, PointerSensor, TouchSensor,
   useSensor, useSensors,
 } from '@dnd-kit/core';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 
 import { useStufferStore } from '../../store/stufferStore';
@@ -15,7 +15,7 @@ import { DraggableThing } from '../../components/DraggableThing/DraggableThing';
 import { DropPanel } from '../../components/DropPanel/DropPanel';
 import { DropActionModal } from '../../components/DropActionModal/DropActionModal';
 import { useThings, useSaveRegister } from '../../api/stufferApi';
-import { MOCK_CATEGORIES, THING_STATUSES } from '../../api/stufferMocks'; // категории пока мок
+import { MOCK_CATEGORIES, THING_STATUSES } from '../../api/stufferMocks';
 import { formatPrice, getLocationPath } from '../../utils/stufferUtils';
 import { useMasonryColumns } from '@/shared/hooks/useMasonryColumns';
 
@@ -36,9 +36,31 @@ const SimpleMasonry = ({ columns, children }) => {
 };
 
 export const ThingsView = () => {
-  const { filterType, filterCategory, filterStatus, activeLocationId, viewMode, openEditor, openRegister } = useStufferStore();
+  const { filterType, filterCategory, filterStatus, activeLocationId, setActiveLocation, viewMode, openEditor, openRegister } = useStufferStore();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { columns: masonryColumns } = useMasonryColumns(320);
+
+  // Синхронизация URL → стор при первой загрузке
+  useEffect(() => {
+    const locFromUrl = searchParams.get('location');
+    if (locFromUrl && locFromUrl !== activeLocationId) {
+      setActiveLocation(locFromUrl);
+    }
+  }, []); // только при маунте
+
+  // Синхронизация стор → URL при смене локации
+  useEffect(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (activeLocationId) {
+        next.set('location', activeLocationId);
+      } else {
+        next.delete('location');
+      }
+      return next;
+    }, { replace: true });
+  }, [activeLocationId]);
 
   const [activeThing, setActiveThing] = useState(null);
   const [dropModalData, setDropModalData] = useState(null);

@@ -14,6 +14,7 @@ export const StufferToolbar = () => {
     filterStatus, setFilterStatus,
     filterCategory, setFilterCategory,
     dragLocked, toggleDragLock,
+    activeLocationId,
   } = useStufferStore();
 
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -24,14 +25,14 @@ export const StufferToolbar = () => {
       <Group gap={8} style={{ flex: 1 }}>
 
         {isMobile ? (
-          <Tooltip label="Добавить вещь" withArrow>
-            <ActionIcon size="sm" onClick={() => openEditor({})}>
+          <Tooltip label="Add thing" withArrow>
+            <ActionIcon size="sm" onClick={() => openEditor({ location_id: activeLocationId || undefined })}>
               <IconPlus size={15} />
             </ActionIcon>
           </Tooltip>
         ) : (
-          <Button size="xs" leftSection={<IconPlus size={13} />} onClick={() => openEditor({})}>
-            Добавить
+          <Button size="xs" leftSection={<IconPlus size={13} />} onClick={() => openEditor({ location_id: activeLocationId || undefined })}>
+            Add
           </Button>
         )}
 

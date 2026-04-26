@@ -160,6 +160,7 @@ export const StufferSidenav = ({ collapsed = false, mobileOpen = false, onMobile
           return (
             <Tooltip key={path} label={label} position="right" disabled={!collapsed}>
               <NavLink
+                component="button"
                 label={!collapsed && <span className="sidebar-label">{label}</span>}
                 leftSection={<Icon size={15} />}
                 active={active}

@@ -2,8 +2,10 @@ import { Paper, Text, Group, Box, Tooltip, Menu, ActionIcon } from '@mantine/cor
 import {
   IconLock, IconDotsVertical, IconEdit, IconTrash,
   IconCircleDashed, IconPin, IconPinnedOff,
+  IconLink, IconGitFork,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
+import { useNavigate } from 'react-router-dom';
 import { useEventorStore } from '../../store/eventorStore';
 import { useDeleteEvent, useTogglePin } from '../../api/eventorApi';
 import { MdPreview } from '@/shared/components/MdRenderer';
@@ -13,6 +15,7 @@ export const EventCard = ({ event, isDraft = false }) => {
   const { openReader, openEditor } = useEventorStore();
   const { mutateAsync: deleteEvent, isPending: isDeleting } = useDeleteEvent();
   const { mutateAsync: togglePin, isPending: isSaving } = useTogglePin();
+  const navigate = useNavigate();
 
   const typeBgcolor  = event.evt_type?.bgcolor || null;
   const sectionColor = event.section?.bgcolor || 'var(--mantine-color-gray-3)';
@@ -21,6 +24,20 @@ export const EventCard = ({ event, isDraft = false }) => {
   const isLocked  = Boolean(event.is_locked);
   const isBlurred = Boolean(event.is_blurred);
   const isPinned  = Boolean(event.is_pinned);
+
+  const handleCopyLink = (e) => {
+    e.stopPropagation();
+    if (!event.id) return;
+    const url = `${window.location.origin}/e/${event.id}`;
+    navigator.clipboard.writeText(url);
+    notifications.show({ message: 'Ссылка скопирована', color: 'teal', autoClose: 2000 });
+  };
+
+  const handleCreateChild = (e) => {
+    e.stopPropagation();
+    if (!event.id) return;
+    openEditor({ parent_id: event.id, date: event.setdate?.slice(0, 10), section_id: event.section_id });
+  };
 
   const handleDoubleClick = (e) => {
     e.stopPropagation();
@@ -114,14 +131,20 @@ export const EventCard = ({ event, isDraft = false }) => {
               Edit
             </Menu.Item>
             <Menu.Item
-              leftSection={isPinned
-                ? <IconPinnedOff size={14} />
-                : <IconPin size={14} />}
+              leftSection={isPinned ? <IconPinnedOff size={14} /> : <IconPin size={14} />}
               onClick={handleTogglePin}
               disabled={isSaving}
             >
               {isPinned ? 'Unpin' : 'Pin'}
             </Menu.Item>
+            <Menu.Item leftSection={<IconLink size={14} />} onClick={handleCopyLink}>
+              Copy link
+            </Menu.Item>
+            {!isDraft && (
+              <Menu.Item leftSection={<IconGitFork size={14} />} onClick={handleCreateChild}>
+                Make child
+              </Menu.Item>
+            )}
             <Menu.Divider />
             <Menu.Item color="red" leftSection={<IconTrash size={14} />}
               onClick={handleDelete} disabled={isDeleting}>

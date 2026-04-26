@@ -116,13 +116,13 @@ const AmountInput = ({ value, onChange, flowKind, currency, onTitleSpill }) => {
             autoFocus
             style={{
               width: '100%',
-              fontSize: 36,
-              fontWeight: 700,
+              fontSize: '2rem',
+              fontWeight: 500,
               textAlign: 'right',
               color: amountColor,
               border: `1px solid ${hasExpr ? 'var(--mantine-color-orange-4)' : 'var(--mantine-color-gray-3)'}`,
               borderRadius: 8,
-              padding: '10px 14px',
+              padding: '0px 12px',
               outline: 'none',
               background: hasExpr ? 'var(--mantine-color-orange-0)' : 'white',
               fontFamily: 'monospace',
@@ -373,7 +373,7 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
       </Tabs>
 
       {/* ── Футер ────────────────────────────────────────────── */}
-      <Box px={20} py={12}
+      <Box px={16} py={6}
         style={{ borderTop: '1px solid var(--mantine-color-gray-2)', flexShrink: 0 }}>
         <Group justify="space-between">
           {!isNew ? (
@@ -455,9 +455,9 @@ export const TransactionEditor = () => {
       fullScreen={isMobile}
       padding={0}
       styles={{
-        content: { display: 'flex', flexDirection: 'column', height: isMobile ? '100dvh' : '580px' },
-        body:    { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: 0 },
-        header:  { padding: '12px 20px 8px', borderBottom: '1px solid var(--mantine-color-gray-2)', flexShrink: 0 },
+        content: { display: 'flex', flexDirection: 'column', height: isMobile ? '100dvh' : 'min(90vh, 700px)' },
+        body:    { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: 0, overflowY: 'auto' },
+        header:  { padding: '6px 16px', borderBottom: '1px solid var(--mantine-color-gray-2)', flexShrink: 0 },
       }}
     >
       {editorOpen && (

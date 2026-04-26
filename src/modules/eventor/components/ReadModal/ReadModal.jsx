@@ -1,36 +1,50 @@
-import { Modal, Text, Group, Badge, Box, Divider, ActionIcon, Tooltip, Loader, Center, Button, Skeleton } from '@mantine/core';
-import { IconEdit, IconCalendar, IconFolder } from '@tabler/icons-react';
+import { Modal, Text, Group, Badge, Box, Divider, ActionIcon, Tooltip, Loader, Center, Stack, Paper, Anchor } from '@mantine/core';
+import { IconEdit, IconCalendar, IconFolder, IconChevronUp, IconChevronDown, IconLink, IconGitFork } from '@tabler/icons-react';
 import { MdFull } from '@/shared/components/MdRenderer';
 import { useState } from 'react';
 import { useMediaQuery } from '@mantine/hooks';
+import { useNavigate } from 'react-router-dom';
+import { notifications } from '@mantine/notifications';
 import dayjs from 'dayjs';
 import { useEventorStore } from '../../store/eventorStore';
 import { useEvent } from '../../api/eventorApi';
 
 export const ReadModal = () => {
-  const { readerOpen, readerData, closeReader, openEditorFromReader } = useEventorStore();
+  const { readerOpen, readerData, closeReader, openEditorFromReader, openReader, openEditor } = useEventorStore();
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const navigate = useNavigate();
 
-  // Режим: черновик или серверное событие
   const isDraft = !readerData?.id && !!readerData?.draft;
   const eventId = readerData?.id || null;
 
-  // Грузим с сервера только если есть id
   const { data: serverEvent, isLoading } = useEvent(eventId);
   const event = isDraft ? readerData.draft : serverEvent;
 
-  const typeColor = event?.type_bgcolor ? event.type_bgcolor.substring(0, 7) : null;
+  const typeColor = event?.evt_type?.color || null;
+  const typeBgcolor = event?.evt_type?.bgcolor || null;
 
   const handleEdit = () => {
     if (isDraft) {
-      openEditorFromReader({
-        id: null,
-        draftLocalId: event.localId,
-        _draftData: { ...event },
-      });
+      openEditorFromReader({ id: null, draftLocalId: event.localId, _draftData: { ...event } });
     } else {
       openEditorFromReader({ id: readerData?.id });
     }
+  };
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/e/${event.id}`;
+    navigator.clipboard.writeText(url);
+    notifications.show({ message: 'Ссылка скопирована', color: 'teal', autoClose: 2000 });
+  };
+
+  const handleOpenPublic = () => {
+    closeReader();
+    navigate(`/e/${event.id}`);
+  };
+
+  const handleCreateChild = () => {
+    closeReader();
+    openEditor({ parent_id: event.id, date: event.setdate?.slice(0, 10), section_id: event.section_id });
   };
 
   return (
@@ -76,27 +90,67 @@ export const ReadModal = () => {
       ) : (
         <>
           {/* Мета-строка */}
-          <Group px={20} py={10} gap={16} style={{ background: 'var(--mantine-color-gray-0)', borderBottom: '1px solid var(--mantine-color-gray-1)' }}>
+          <Group px={20} py={10} gap={12} wrap="wrap" style={{ background: 'var(--mantine-color-gray-0)', borderBottom: '1px solid var(--mantine-color-gray-1)' }}>
             {event.setdate && (
               <Group gap={6}>
                 <IconCalendar size={13} color="var(--mantine-color-gray-5)" />
                 <Text size="xs" c="dimmed">{dayjs(event.setdate).format('D MMMM YYYY')}</Text>
               </Group>
             )}
-            {event.section_name && (
+            {event.section?.name && (
               <Group gap={6}>
                 <IconFolder size={13} color="var(--mantine-color-gray-5)" />
-                <Text size="xs" c="dimmed">{event.section_name}</Text>
+                <Text size="xs" c="dimmed">{event.section.name}</Text>
               </Group>
             )}
-            {event.type_name && (
+            {event.evt_type?.name && (
               <Badge size="xs" variant="dot"
-                color={typeColor ? undefined : 'gray'}
                 style={typeColor ? { '--badge-dot-size': '7px', '--badge-color': typeColor } : {}}>
-                {event.type_name}
+                {event.evt_type.name}
               </Badge>
             )}
             <Box style={{ flex: 1 }} />
+
+            {/* Родитель */}
+            {event.parent && (
+              <Tooltip label={`Родитель: ${event.parent.name}`} withArrow>
+                <ActionIcon variant="light" color="gray" size="sm"
+                  onClick={() => openReader({ id: event.parent.id })}>
+                  <IconChevronUp size={13} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+
+            {/* Дочерние */}
+            {event.children?.length > 0 && (
+              <Tooltip label={`${event.children.length} дочерних`} withArrow>
+                <Badge size="sm" variant="light" color="blue" style={{ cursor: 'pointer' }}
+                  leftSection={<IconChevronDown size={11} />}
+                  onClick={() => document.getElementById('read-modal-children')?.scrollIntoView({ behavior: 'smooth' })}>
+                  {event.children.length}
+                </Badge>
+              </Tooltip>
+            )}
+
+            {/* Создать дочернюю */}
+            {!isDraft && (
+              <Tooltip label="Make child" withArrow>
+                <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleCreateChild}>
+                  <IconGitFork size={13} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+
+            {/* Ссылка */}
+            {!isDraft && (
+              <Tooltip label="Copy link" withArrow>
+                <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleCopyLink}>
+                  <IconLink size={13} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+
+            {/* Редактировать */}
             <Tooltip label="Edit" withArrow>
               <ActionIcon variant="light" color="blue" size="sm" onClick={handleEdit}>
                 <IconEdit size={14} />
@@ -114,6 +168,30 @@ export const ReadModal = () => {
               <MdFull content={event.content} />
             ) : (
               <Center h={100}><Text size="sm" c="dimmed">No content</Text></Center>
+            )}
+
+            {/* Дочерние записи */}
+            {event.children?.length > 0 && (
+              <Box id="read-modal-children" mt={32}>
+                <Divider mb={16} label="Дочерние записи" labelPosition="left" />
+                <Stack gap={8}>
+                  {event.children.map((child) => (
+                    <Paper key={child.id} withBorder p="sm"
+                      style={{ cursor: 'pointer', borderLeft: '3px solid var(--mantine-color-blue-4)' }}
+                      onClick={() => openReader({ id: child.id })}>
+                      <Group justify="space-between">
+                        <Box>
+                          <Text size="sm" fw={600}>{child.name || 'Без названия'}</Text>
+                          {child.setdate && (
+                            <Text size="xs" c="dimmed">{dayjs(child.setdate).format('D MMMM YYYY')}</Text>
+                          )}
+                        </Box>
+                        <IconChevronDown size={13} style={{ color: 'var(--mantine-color-gray-4)', transform: 'rotate(-90deg)' }} />
+                      </Group>
+                    </Paper>
+                  ))}
+                </Stack>
+              </Box>
             )}
           </Box>
         </>

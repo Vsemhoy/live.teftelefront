@@ -18,7 +18,7 @@ export const useStufferStore = create((set) => ({
   openLocations:  () => set({ locationsOpen: true }),
   closeLocations: () => set({ locationsOpen: false }),
 
-  // ── Активная локация в сайдбаре ───────────────────────────────
+  // Активная локация в сайдбаре — синхронизируем с URL ?location=
   activeLocationId: null,
   setActiveLocation: (id) => set({ activeLocationId: id }),
 

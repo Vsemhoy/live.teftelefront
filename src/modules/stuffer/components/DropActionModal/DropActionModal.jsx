@@ -7,8 +7,8 @@ import {
   IconMapPin, IconUser, IconCurrencyRubel,
   IconTool, IconTrash, IconArrowRight,
 } from '@tabler/icons-react';
-import { MOCK_LOCATIONS, REGISTER_EVENT_TYPES } from '../../api/stufferMocks';
 import { buildLocationOptions } from '../../utils/stufferUtils';
+import { useLocations } from '../../api/stufferApi';
 
 const ZONE_CONFIG = {
   'location-picker': {
@@ -58,11 +58,12 @@ export const DropActionModal = ({ opened, onClose, thing, dropData, onConfirm })
 
   if (!thing || !dropData) return null;
 
+  const { data: locations = [] } = useLocations();
+  const locationOptions = buildLocationOptions(locations);
+
   const actionKey = dropData.type === 'location-picker' ? 'location-picker' : dropData.event_type;
   const config = ZONE_CONFIG[actionKey];
   if (!config) return null;
-
-  const locationOptions = buildLocationOptions(MOCK_LOCATIONS);
   const Icon = config.icon;
 
   const handleConfirm = () => {

@@ -66,18 +66,22 @@ export const AppHeader = ({ onToggleSidebar, authModalOpen }) => {
     searchRef.current?.blur();
   };
 
+  const isPublicEventPage = location.pathname.startsWith('/e/');
+
   return (
     <>
       <header className="app-header" style={{ background: theme.gradient }}>
 
         {/* ЛЕВЫЙ БЛОК */}
         <div className="header-left">
-          <Tooltip label="Toggle sidebar" withArrow>
-            <ActionIcon variant="subtle" size="md" onClick={onToggleSidebar}
-              style={{ color: theme.textColor, opacity: 0.7 }}>
-              <IconLayoutSidebar size={18} />
-            </ActionIcon>
-          </Tooltip>
+          {!isPublicEventPage && (
+            <Tooltip label="Toggle sidebar" withArrow>
+              <ActionIcon variant="subtle" size="md" onClick={onToggleSidebar}
+                style={{ color: theme.textColor, opacity: 0.7 }}>
+                <IconLayoutSidebar size={18} />
+              </ActionIcon>
+            </Tooltip>
+          )}
           {!isMobile && activeModule && (
             <Group gap={6} style={{ cursor: 'default' }}>
               <activeModule.icon size={15} style={{ color: theme.textColor, opacity: 0.75 }} />

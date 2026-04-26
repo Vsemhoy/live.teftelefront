@@ -61,13 +61,15 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
         userSelect:  'none',
         touchAction: 'none',
         transition:  'box-shadow 0.15s',
+        minWidth:    0,
+        overflow:    'hidden',
       }}
       onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(transaction.id); }}
       {...attributes}
       {...listeners}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-        <Text size="sm" fw={600} c={disabled ? 'dimmed' : kindColor} style={{ whiteSpace: 'nowrap' }}>
+        <Text size="sm" fw={600} c={disabled ? 'dimmed' : kindColor} style={{ flexShrink: 0 }}>
           {kindSign}{formatMoney(transaction.amount)}
         </Text>
 
@@ -105,12 +107,18 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
       </div>
 
       {transaction.title && (
-        <Text size="xs" c="dimmed" style={{ lineHeight: 1.3 }} lineClamp={1}>{transaction.title}</Text>
+        <Text size="xs" c="dimmed" style={{ lineHeight: 1.3, overflow: 'hidden', wordBreak: 'break-word' }} lineClamp={1}>{transaction.title}</Text>
       )}
       {notePreview && (
-        <Text size="xs" c="dimmed"
-          style={{ fontStyle: 'italic', opacity: 0.7, fontFamily: 'monospace', fontSize: 11 }}
-          lineClamp={1}>{notePreview}</Text>
+        <div style={{
+          fontStyle: 'italic', opacity: 0.7, fontFamily: 'monospace', fontSize: 11,
+          lineHeight: 1.4, color: 'var(--mantine-color-dimmed)',
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          overflow: 'hidden', minWidth: 0, maxWidth: '100%',
+          wordBreak: 'break-all',
+        }}>
+          {notePreview}
+        </div>
       )}
       {transaction.category && (
         <div style={{

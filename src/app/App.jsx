@@ -18,6 +18,8 @@ import { FlowView } from '@/modules/eventor/views/FlowView/FlowView';
 import { GridCalendar } from '@/modules/eventor/views/GridCalendar/GridCalendar';
 import { SearchPanel } from '@/modules/eventor/views/SearchPanel/SearchPanel';
 import { DraftsView } from '@/modules/eventor/views/DraftsView/DraftsView';
+import { EventPublicPage } from '@/modules/eventor/views/EventPublicPage/EventPublicPage';
+import { PinboardButton } from '@/modules/eventor/components/Pinboard/Pinboard';
 
 // Badger
 import { AccountsSidenav } from '@/modules/badger/components/AccountsSidenav/AccountsSidenav';
@@ -25,7 +27,6 @@ import { TimelineView }    from '@/modules/badger/views/TimelineView/TimelineVie
 import { StatsView }       from '@/modules/badger/views/StatsView/StatsView';
 import { CategoryManager } from '@/modules/badger/views/CategoryManager/CategoryManager';
 import '@/modules/badger/badger.css';
-import { PinboardButton } from '@/modules/eventor/components/Pinboard/Pinboard';
 import { TransactionReadModal } from '@/modules/badger/components/TransactionReadModal/TransactionReadModal';
 import { TransactionEditor } from '@/modules/badger/components/TransactionEditor/TransactionEditor';
 
@@ -34,6 +35,9 @@ import { StufferSidenav } from '@/modules/stuffer/components/StufferSidenav/Stuf
 import { ThingsView } from '@/modules/stuffer/views/ThingsView/ThingsView';
 import { FeedView } from '@/modules/stuffer/views/FeedView/FeedView';
 import { ThingPage } from '@/modules/stuffer/components/ThingPage/ThingPage';
+import { ThingEditor } from '@/modules/stuffer/components/ThingEditor/ThingEditor';
+import { RegisterModal } from '@/modules/stuffer/components/RegisterModal/RegisterModal';
+import { LocationsManager } from '@/modules/stuffer/components/LocationsManager/LocationsManager';
 
 const ComingSoon = ({ name }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -41,16 +45,13 @@ const ComingSoon = ({ name }) => (
   </div>
 );
 
-// ── Лэйаут Eventor ────────────────────────────────────────────────
+// ── Лэйауты модулей ───────────────────────────────────────────────
+
 const EventorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => {
   const isOnline = useOnlineStatus();
   return (
     <>
-      <SectionsSidenav
-        collapsed={sidebarCollapsed}
-        mobileOpen={mobileSidebarOpen}
-        onMobileClose={onMobileClose}
-      />
+      <SectionsSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
       <div className="main-content">
         {!isOnline && (
           <div className="offline-banner">
@@ -65,46 +66,46 @@ const EventorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) =
   );
 };
 
-// ── Лэйаут Badger ─────────────────────────────────────────────────
 const BadgerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
   <>
-    <AccountsSidenav
-      collapsed={sidebarCollapsed}
-      mobileOpen={mobileSidebarOpen}
-      onMobileClose={onMobileClose}
-    />
-    <div className="main-content">
-      <Outlet />
-    </div>
+    <AccountsSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
+    <div className="main-content"><Outlet /></div>
   </>
 );
 
-// ── Лэйаут Stuffer ────────────────────────────────────────────────
 const StufferLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
   <>
-    <StufferSidenav
-      collapsed={sidebarCollapsed}
-      mobileOpen={mobileSidebarOpen}
-      onMobileClose={onMobileClose}
-    />
-    <div className="main-content">
-      <Outlet />
-    </div>
+    <StufferSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
+    <div className="main-content"><Outlet /></div>
+    <ThingEditor />
+    <RegisterModal />
+    <LocationsManager />
   </>
 );
 
-export default function App() {
-  const user = useAuthStore((s) => s.user);
-  const isChecked = useAuthStore((s) => s.isChecked);
-  const isKnownBrowser = useAuthStore((s) => s.isKnownBrowser);
-  const checkAuth = useAuthStore((s) => s.checkAuth);
+// ══════════════════════════════════════════════════════════════════
+// PUBLIC SHELL — без авторизации, без хедера, чистая страница
+// Роуты: /e/:id, /b/:id, /s/:id, /p/:id
+// ══════════════════════════════════════════════════════════════════
+function PublicApp() {
+  return (
+    <Routes>
+      <Route path="/e/:id" element={<EventPublicPage />} />
+      {/* /b/:id, /s/:id, /p/:id — добавим когда будут готовы */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
+// ══════════════════════════════════════════════════════════════════
+// AUTH SHELL — авторизованная часть приложения
+// ══════════════════════════════════════════════════════════════════
+function AuthApp() {
   const navigate = useNavigate();
   const location = useLocation();
   const [authOpened, { open: openAuth, close: closeAuth }] = useDisclosure(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Сайдбар: collapsed на десктопе, drawer на мобиле
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -113,10 +114,7 @@ export default function App() {
     else setSidebarCollapsed((v) => !v);
   };
 
-  // Закрываем мобильный сайдбар при смене роута
   useEffect(() => { setMobileSidebarOpen(false); }, [location.pathname]);
-
-  useEffect(() => { checkAuth(); }, [checkAuth]);
 
   useEffect(() => {
     if (location.pathname === '/' || location.pathname === '/eventor' || location.pathname === '/eventor/') {
@@ -130,45 +128,19 @@ export default function App() {
     }
   }, [location.pathname, navigate]);
 
-  if (!isChecked) {
-    return (
-      <Center style={{ width: '100vw', height: '100vh' }}>
-        <Loader size="lg" />
-      </Center>
-    );
-  }
-
-  // Новый браузер — жёсткая стена логина
-  if (!user && !isKnownBrowser) {
-    return <AuthWall />;
-  }
-
   return (
     <div className="app-shell">
+      <AppHeader onToggleSidebar={handleToggleSidebar} authModalOpen={openAuth} />
 
-      {/* Верхний хедер — не sticky */}
-      <AppHeader
-        onToggleSidebar={handleToggleSidebar}
-        authModalOpen={openAuth}
-      />
-
-      {/* Тело */}
       <div className="app-body">
-        {/* Оверлей под мобильным сайдбаром */}
         {isMobile && mobileSidebarOpen && (
           <div className="sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} />
         )}
-
-        {/* Rail — невидимая зона слева, открывает сайдбар на мобилке */}
         {isMobile && !mobileSidebarOpen && (
-          <div
-            className="sidebar-rail"
-            onClick={() => setMobileSidebarOpen(true)}
-          />
+          <div className="sidebar-rail" onClick={() => setMobileSidebarOpen(true)} />
         )}
 
         <Routes>
-          {/* Eventor: nested routes */}
           <Route path="/eventor" element={
             <EventorLayout
               sidebarCollapsed={!isMobile && sidebarCollapsed}
@@ -183,7 +155,6 @@ export default function App() {
             <Route path="drafts"   element={<DraftsView />} />
           </Route>
 
-          {/* Badger: nested routes */}
           <Route path="/badger" element={
             <BadgerLayout
               sidebarCollapsed={!isMobile && sidebarCollapsed}
@@ -197,7 +168,6 @@ export default function App() {
             <Route path="categories" element={<CategoryManager />} />
           </Route>
 
-          {/* Stuffer: nested routes */}
           <Route path="/stuffer" element={
             <StufferLayout
               sidebarCollapsed={!isMobile && sidebarCollapsed}
@@ -227,4 +197,45 @@ export default function App() {
       <PinboardButton />
     </div>
   );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ROOT — роутер верхнего уровня
+// Решает: публичный shell или авторизованный
+// ══════════════════════════════════════════════════════════════════
+const PUBLIC_PREFIXES = ['/e/', '/b/', '/s/', '/p/'];
+
+export default function App() {
+  const user = useAuthStore((s) => s.user);
+  const isChecked = useAuthStore((s) => s.isChecked);
+  const isKnownBrowser = useAuthStore((s) => s.isKnownBrowser);
+  const checkAuth = useAuthStore((s) => s.checkAuth);
+  const location = useLocation();
+
+  useEffect(() => { checkAuth(); }, [checkAuth]);
+
+  // Определяем тип роута до любых проверок авторизации
+  const isPublicRoute = PUBLIC_PREFIXES.some((p) => location.pathname.startsWith(p));
+
+  // Публичный shell — рендерим сразу, не ждём checkAuth
+  if (isPublicRoute) {
+    return <PublicApp />;
+  }
+
+  // Ждём проверки авторизации
+  if (!isChecked) {
+    return (
+      <Center style={{ width: '100vw', height: '100vh' }}>
+        <Loader size="lg" />
+      </Center>
+    );
+  }
+
+  // Незнакомый браузер — AuthWall
+  if (!user && !isKnownBrowser) {
+    return <AuthWall />;
+  }
+
+  // Авторизованный shell
+  return <AuthApp />;
 }
