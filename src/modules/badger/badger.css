@@ -27,7 +27,6 @@
   display: grid;
   grid-template-columns: var(--timeline-cols);
   align-items: stretch;
-  min-width: max-content;
   border-bottom: 1px solid var(--mantine-color-gray-2);
   min-height: 48px;
 }
@@ -152,7 +151,6 @@
   display: grid;
   grid-template-columns: var(--timeline-cols);
   align-items: stretch;
-  min-width: max-content;
   border-bottom: 2px solid var(--mantine-color-green-3);
   background: var(--mantine-color-green-0);
 }
@@ -210,7 +208,7 @@
   .bud-timeline-header,
   .bud-month-header,
   .bud-month-totals-row {
-    min-width: max-content;
+    min-width: min-content;
   }
 
   .bud-slot-cards {
