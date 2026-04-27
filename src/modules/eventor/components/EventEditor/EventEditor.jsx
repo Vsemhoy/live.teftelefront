@@ -150,7 +150,7 @@ export const EventEditor = () => {
 
   const [tagIds, setTagIds] = useState([]);
   const [project, setProject] = useState('');
-  const [access, setAccess] = useState('private');
+  const [access, setAccess] = useState(1);
   const [comments, setComments] = useState('');
   const [isLocked, setIsLocked] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
@@ -176,7 +176,7 @@ export const EventEditor = () => {
       setTypeId(draftSrc.type_id || null);
       setTagIds(Array.isArray(draftSrc.tag_ids) ? draftSrc.tag_ids : []);
       setProject(draftSrc.project || '');
-      setAccess(draftSrc.access || 'private');
+      setAccess(draftSrc.access || 1);
       setComments(draftSrc.comments || '');
       setIsLocked(Boolean(draftSrc.is_locked));
       setIsPinned(Boolean(draftSrc.is_pinned));
@@ -194,7 +194,7 @@ export const EventEditor = () => {
       setTypeId(existingEvent.type_id || null);
       setTagIds((existingEvent.tags || []).map((t) => t.id));
       setProject(existingEvent.project || '');
-      setAccess(existingEvent.access || 'private');
+      setAccess(existingEvent.access || 1);
       setComments(existingEvent.comments || '');
       setIsLocked(Boolean(existingEvent.is_locked));
       setIsPinned(Boolean(existingEvent.is_pinned));
@@ -215,7 +215,7 @@ export const EventEditor = () => {
       setTypeId(null);
       setTagIds([]);
       setProject('');
-      setAccess('private');
+      setAccess(1);
       setComments('');
       setIsLocked(false);
       setIsPinned(false);

@@ -10,6 +10,7 @@ export const formatPrice = (minor) => {
 };
 
 // Построить плоский список локаций с отступами (для Select)
+// Сортировка рекурсивная: сначала корневые по sort_order, потом сразу их дети
 export const buildLocationOptions = (locations = MOCK_LOCATIONS) => {
   const map = {};
   locations.forEach((l) => { map[l.id] = l; });
@@ -25,13 +26,26 @@ export const buildLocationOptions = (locations = MOCK_LOCATIONS) => {
     return depth;
   };
 
-  return locations
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((loc) => ({
-      value: loc.id,
-      label: '\u00A0'.repeat(getDepth(loc) * 3) + loc.name,
-      depth: getDepth(loc),
-    }));
+  // Рекурсивно строим плоский список в правильном порядке
+  const result = [];
+
+  const visit = (parentId, depth) => {
+    const children = locations
+      .filter((l) => (l.parent_id || null) === (parentId || null))
+      .sort((a, b) => a.sort_order - b.sort_order);
+
+    for (const loc of children) {
+      result.push({
+        value: loc.id,
+        label: '\u00A0'.repeat(depth * 3) + loc.name,
+        depth,
+      });
+      visit(loc.id, depth + 1);
+    }
+  };
+
+  visit(null, 0);
+  return result;
 };
 
 // Построить дерево для сайдбара

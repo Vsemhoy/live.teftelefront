@@ -700,6 +700,7 @@ export const TimelineView = () => {
         id:          tx.id,
         occurred_at: sameDate    ? undefined : targetDate,
         account_id:  sameAccount ? undefined : targetAccountId,
+        month_key:   targetDate.slice(0, 7),
       }, {
         onError: () => notifications.show({ message: 'Failed to move', color: 'red' }),
       });

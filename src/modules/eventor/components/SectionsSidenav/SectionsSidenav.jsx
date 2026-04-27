@@ -8,6 +8,7 @@ import {
   IconAlertCircle, IconX, IconSettings,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEventorStore } from '../../store/eventorStore';
 import { useSections } from '../../api/eventorApi';
@@ -35,6 +36,20 @@ export const SectionsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
   const currentView = location.pathname.split('/').filter(Boolean).pop();
   const activeSection = searchParams.get('section') || 'ALL';
 
+  // Восстанавливаем последнюю секцию при первом заходе
+  useEffect(() => {
+    if (!searchParams.get('section')) {
+      const saved = localStorage.getItem('eventor:lastSection');
+      if (saved) {
+        setSearchParams(
+          (prev) => { const p = new URLSearchParams(prev); p.set('section', saved); return p; },
+          { replace: true }
+        );
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleViewClick = (viewId) => {
     const section = searchParams.get('section') || 'ALL';
     const params = section !== 'ALL' ? `?section=${section}` : '';
@@ -43,6 +58,7 @@ export const SectionsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
   };
 
   const handleSectionClick = (sectionId) => {
+    localStorage.setItem('eventor:lastSection', sectionId);
     setSearchParams(
       (prev) => { const p = new URLSearchParams(prev); p.set('section', sectionId); return p; },
       { replace: true }

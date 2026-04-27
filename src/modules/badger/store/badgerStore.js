@@ -1,6 +1,9 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-export const useBadgerStore = create((set, get) => ({
+export const useBadgerStore = create(
+  persist(
+    (set, get) => ({
   // ── Редактор транзакции ──────────────────────────────────────────
   editorOpen: false,
   editorParams: null,
@@ -54,4 +57,15 @@ export const useBadgerStore = create((set, get) => ({
   // ── Фильтр по категории ──────────────────────────────────────────
   categoryFilter: null, // category id или null
   setCategoryFilter: (id) => set({ categoryFilter: id }),
-}));
+    }),
+    {
+      name: 'badger-ui',
+      // Сохраняем только нужное — не сохраняем состояния модалок
+      partialize: (s) => ({
+        activeAccounts: s.activeAccounts,
+        activeCurrency: s.activeCurrency,
+        balanceMode:    s.balanceMode,
+      }),
+    }
+  )
+);
