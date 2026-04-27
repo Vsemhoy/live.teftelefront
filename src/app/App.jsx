@@ -7,6 +7,7 @@ import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { AuthModal, AuthWall } from '@/modules/auth/AuthModal';
 import { AppHeader } from './AppHeader';
+import { TefteleLogo } from './TefteleLogo';
 
 // Eventor
 import { SectionsSidenav } from '@/modules/eventor/components/SectionsSidenav/SectionsSidenav';
