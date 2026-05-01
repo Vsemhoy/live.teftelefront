@@ -40,6 +40,12 @@ import { ThingEditor } from '@/modules/stuffer/components/ThingEditor/ThingEdito
 import { RegisterModal } from '@/modules/stuffer/components/RegisterModal/RegisterModal';
 import { LocationsManager } from '@/modules/stuffer/components/LocationsManager/LocationsManager';
 
+// Booker
+import { BookerSidenav } from '@/modules/booker/components/BookerSidenav/BookerSidenav';
+import { LibraryView } from '@/modules/booker/views/LibraryView/LibraryView';
+import { BookEditor } from '@/modules/booker/components/BookEditor/BookEditor';
+import '@/modules/booker/booker.css';
+
 const ComingSoon = ({ name }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
     <Text c="dimmed" size="sm">{name} — coming soon</Text>
@@ -81,6 +87,14 @@ const StufferLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) =
     <ThingEditor />
     <RegisterModal />
     <LocationsManager />
+  </>
+);
+
+const BookerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
+  <>
+    <BookerSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
+    <div className="main-content"><Outlet /></div>
+    <BookEditor />
   </>
 );
 
@@ -126,6 +140,9 @@ function AuthApp() {
     }
     if (location.pathname === '/stuffer' || location.pathname === '/stuffer/') {
       navigate('/stuffer/things', { replace: true });
+    }
+    if (location.pathname === '/booker' || location.pathname === '/booker/') {
+      navigate('/booker/library', { replace: true });
     }
   }, [location.pathname, navigate]);
 
@@ -180,6 +197,17 @@ function AuthApp() {
             <Route path="things"     element={<ThingsView />} />
             <Route path="things/:id" element={<ThingPage />} />
             <Route path="feed"       element={<FeedView />} />
+          </Route>
+
+          <Route path="/booker" element={
+            <BookerLayout
+              sidebarCollapsed={!isMobile && sidebarCollapsed}
+              mobileSidebarOpen={isMobile && mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+            />
+          }>
+            <Route index element={<Navigate to="library" replace />} />
+            <Route path="library" element={<LibraryView />} />
           </Route>
 
           <Route path="/exploiter/*" element={<div className="main-content"><ComingSoon name="Exploiter" /></div>} />

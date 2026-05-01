@@ -21,7 +21,13 @@ export const MODULE_THEMES = {
     gradient: 'linear-gradient(90deg, #d5f7df 0%, #b8f0c8 100%)',
     accent: '#2d9e6b',
     textColor: '#1a4a35',
-    label: 'Badger',
+    label: 'Ledger',
+  },
+  booker: {
+    gradient: 'linear-gradient(90deg, rgb(253 241 231) 0%, rgb(251 222 208) 100%)',
+    accent: '#D85A30',
+    textColor: '#712B13',
+    label: 'Booker',
   },
   tasker: {
     gradient: 'linear-gradient(90deg, #dbeafe 0%, #bfdbfe 100%)',
