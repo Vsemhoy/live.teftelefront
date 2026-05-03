@@ -43,6 +43,8 @@ import { LocationsManager } from '@/modules/stuffer/components/LocationsManager/
 // Booker
 import { BookerSidenav } from '@/modules/booker/components/BookerSidenav/BookerSidenav';
 import { LibraryView } from '@/modules/booker/views/LibraryView/LibraryView';
+import { BookView } from '@/modules/booker/views/BookView/BookView';
+import { DocView } from '@/modules/booker/views/DocView/DocView';
 import { BookEditor } from '@/modules/booker/components/BookEditor/BookEditor';
 import '@/modules/booker/booker.css';
 
@@ -208,6 +210,8 @@ function AuthApp() {
           }>
             <Route index element={<Navigate to="library" replace />} />
             <Route path="library" element={<LibraryView />} />
+            <Route path=":bookId" element={<BookView />} />
+            <Route path=":bookId/:docId" element={<DocView />} />
           </Route>
 
           <Route path="/exploiter/*" element={<div className="main-content"><ComingSoon name="Exploiter" /></div>} />

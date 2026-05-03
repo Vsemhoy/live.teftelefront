@@ -54,3 +54,52 @@
 .book-card:hover .book-menu-btn {
   opacity: 1;
 }
+
+/* ── DocListItem ───────────────────────────────────────────────── */
+.doc-list-item {
+  padding: 10px 12px;
+  border-radius: var(--mantine-radius-md);
+  border: 0.5px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.doc-list-item:hover { background: var(--mantine-color-gray-0); }
+.doc-menu-btn { opacity: 0; transition: opacity 0.1s; }
+.doc-list-item:hover .doc-menu-btn { opacity: 1; }
+
+/* ── DocView layout ────────────────────────────────────────────── */
+.doc-toc-sidebar {
+  width: 180px; min-width: 180px;
+  border-right: 0.5px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-gray-0);
+  overflow-y: auto;
+}
+.doc-sorter-sidebar {
+  width: 160px; min-width: 160px;
+  border-left: 0.5px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-gray-0);
+  overflow-y: auto;
+}
+.doc-body { flex: 1; overflow-y: auto; min-width: 0; }
+
+.toc-entry {
+  padding: 4px 10px; font-size: 12px; color: var(--mantine-color-dimmed);
+  cursor: pointer; border-radius: 4px; margin: 1px 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.toc-entry:hover { background: var(--mantine-color-body); color: var(--mantine-color-text); }
+.toc-h1 { font-weight: 500; color: var(--mantine-color-text); }
+.toc-h2 { padding-left: 18px; }
+.toc-h3 { padding-left: 28px; font-size: 11px; }
+
+/* ── DocBlock ──────────────────────────────────────────────────── */
+.doc-block { border: 0.5px solid transparent; border-radius: 8px; transition: border-color 0.1s; cursor: pointer; }
+.doc-block:hover { border-color: var(--mantine-color-default-border); }
+.doc-block--editing { border-color: #F0997B; background: var(--mantine-color-body); cursor: default; }
+.doc-block-header { display: flex; align-items: center; gap: 6px; padding: 4px 8px 2px; opacity: 0; transition: opacity 0.1s; }
+.doc-block:hover .doc-block-header, .doc-block--editing .doc-block-header { opacity: 1; }
+
+/* ── Add type button ───────────────────────────────────────────── */
+.add-type-btn { display: flex; align-items: center; gap: 6px; padding: 5px 10px; font-size: 12px; color: var(--mantine-color-dimmed); cursor: pointer; border-radius: 4px; margin: 1px 4px; }
+.add-type-btn:hover { background: var(--mantine-color-body); color: var(--mantine-color-text); }
