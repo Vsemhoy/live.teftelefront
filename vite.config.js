@@ -9,6 +9,15 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 3047,
+    proxy: {
+      '/api': {
+        target: 'http://teleback',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });
+
+

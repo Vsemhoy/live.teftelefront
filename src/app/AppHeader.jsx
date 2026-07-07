@@ -9,19 +9,20 @@ import {
   IconCalendarEvent, IconPackage, IconCurrencyDollar,
   IconChecklist, IconBriefcase, IconSettings,
   IconUser, IconLogout, IconLogin, IconSearch,
-  IconLayoutSidebar, IconX, IconApps, IconBooks,
+  IconLayoutSidebar, IconX, IconApps, IconBooks, IconTimeline,
 } from '@tabler/icons-react';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { getModuleTheme } from './moduleThemes';
 
 const MODULES = [
-  { id: 'eventor',   label: 'Eventor',   icon: IconCalendarEvent,  path: '/eventor/flow',   desc: 'Calendar & notes' },
-  { id: 'stuffer',   label: 'Stuffer',   icon: IconPackage,        path: '/stuffer/things', desc: 'Stuff & locations' },
-  { id: 'badger',    label: 'Ledger',    icon: IconCurrencyDollar, path: '/badger',         desc: 'Budget & expenses' },
-  { id: 'booker',    label: 'Booker',    icon: IconBooks,          path: '/booker',         desc: 'Books & knowledge' },
-  { id: 'tasker',    label: 'Tasker',    icon: IconChecklist,      path: '/tasker',         desc: 'Tasks & kanban' },
-  { id: 'pm',        label: 'PM',        icon: IconBriefcase,      path: '/pm',             desc: 'Project management' },
+  { id: 'eventor',   label: 'Eventor',   icon: IconCalendarEvent,  path: '/eventor/flow',        desc: 'Calendar & notes' },
+  { id: 'exploiter', label: 'Exploiter', icon: IconTimeline,       path: '/exploiter/timeline',  desc: 'Lifecycle & costs' },
+  { id: 'stuffer',   label: 'Stuffer',   icon: IconPackage,        path: '/stuffer/things',      desc: 'Stuff & locations' },
+  { id: 'badger',    label: 'Ledger',    icon: IconCurrencyDollar, path: '/badger',              desc: 'Budget & expenses' },
+  { id: 'booker',    label: 'Booker',    icon: IconBooks,          path: '/booker',              desc: 'Books & knowledge' },
+  { id: 'tasker',    label: 'Tasker',    icon: IconChecklist,      path: '/tasker',              desc: 'Tasks & kanban' },
+  { id: 'pm',        label: 'PM',        icon: IconBriefcase,      path: '/pm',                  desc: 'Project management' },
 ];
 
 const ConnectDot = ({ isOnline }) => (

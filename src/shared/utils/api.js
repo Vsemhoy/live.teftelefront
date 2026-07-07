@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// Базовый URL — берём из env или дефолт
-export const API_URL = import.meta.env.VITE_API_URL || 'https://api.teftele.com';
+// Базовый URL:
+// 1. Если задан VITE_API_URL в .env — используем его
+// 2. Иначе — текущий origin + /api (localhost → Vite proxy, прод → nginx)
+export const API_URL = import.meta.env.VITE_API_URL || `${window.location.origin}/api`;
 
 const api = axios.create({
   baseURL: API_URL,

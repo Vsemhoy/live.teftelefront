@@ -48,6 +48,14 @@ import { DocView } from '@/modules/booker/views/DocView/DocView';
 import { BookEditor } from '@/modules/booker/components/BookEditor/BookEditor';
 import '@/modules/booker/booker.css';
 
+// Exploiter
+import { ExploiterSidenav } from '@/modules/exploiter/components/ExploiterSidenav/ExploiterSidenav';
+import { ExploiterToolbar } from '@/modules/exploiter/components/Toolbar/ExploiterToolbar';
+import { TimelineView as ExploiterTimeline } from '@/modules/exploiter/views/TimelineView/TimelineView';
+import { EventEditor as ExploiterEventEditor } from '@/modules/exploiter/components/EventEditor/EventEditor';
+import { EventReadModal as ExploiterReadModal } from '@/modules/exploiter/components/EventReadModal/EventReadModal';
+import '@/modules/exploiter/exploiter.css';
+
 const ComingSoon = ({ name }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
     <Text c="dimmed" size="sm">{name} — coming soon</Text>
@@ -100,6 +108,18 @@ const BookerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) =>
   </>
 );
 
+const ExploiterLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
+  <>
+    <ExploiterSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
+    <div className="main-content">
+      <ExploiterToolbar />
+      <Outlet />
+    </div>
+    <ExploiterEventEditor />
+    <ExploiterReadModal />
+  </>
+);
+
 // ══════════════════════════════════════════════════════════════════
 // PUBLIC SHELL — без авторизации, без хедера, чистая страница
 // Роуты: /e/:id, /b/:id, /s/:id, /p/:id
@@ -145,6 +165,9 @@ function AuthApp() {
     }
     if (location.pathname === '/booker' || location.pathname === '/booker/') {
       navigate('/booker/library', { replace: true });
+    }
+    if (location.pathname === '/exploiter' || location.pathname === '/exploiter/') {
+      navigate('/exploiter/timeline', { replace: true });
     }
   }, [location.pathname, navigate]);
 
@@ -214,7 +237,16 @@ function AuthApp() {
             <Route path=":bookId/:docId" element={<DocView />} />
           </Route>
 
-          <Route path="/exploiter/*" element={<div className="main-content"><ComingSoon name="Exploiter" /></div>} />
+          <Route path="/exploiter" element={
+            <ExploiterLayout
+              sidebarCollapsed={!isMobile && sidebarCollapsed}
+              mobileSidebarOpen={isMobile && mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+            />
+          }>
+            <Route index element={<Navigate to="timeline" replace />} />
+            <Route path="timeline" element={<ExploiterTimeline />} />
+          </Route>
           <Route path="/tasker/*"    element={<div className="main-content"><ComingSoon name="Tasker" /></div>} />
           <Route path="/pm/*"        element={<div className="main-content"><ComingSoon name="Project Manager" /></div>} />
         </Routes>
