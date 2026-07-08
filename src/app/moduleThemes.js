@@ -17,7 +17,7 @@ export const MODULE_THEMES = {
     textColor: '#4a2e06',
     label: 'Stuffer',
   },
-  badger: {
+  ledger: {
     gradient: 'linear-gradient(90deg, #d5f7df 0%, #b8f0c8 100%)',
     accent: '#2d9e6b',
     textColor: '#1a4a35',

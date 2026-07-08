@@ -15,10 +15,10 @@ import { notifications } from '@mantine/notifications';
 
 import { useStufferStore } from '../../store/stufferStore';
 import { useThing, useSaveThing, useDeleteThing, useThings, useLocations } from '../../api/stufferApi';
-import { useCategories } from '@/modules/badger/api/badgerApi';
+import { useCategories } from '@/modules/ledger/api/ledgerApi';
 import { buildLocationOptions } from '../../utils/stufferUtils';
 import { THING_STATUSES } from '../../api/stufferMocks';
-import { toMinor, toMajor } from '@/modules/badger/utils/badgerUtils';
+import { toMinor, toMajor } from '@/modules/ledger/utils/ledgerUtils';
 
 const ENTITY_TYPES = [
   { value: 'asset', label: 'Asset' },

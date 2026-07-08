@@ -22,14 +22,14 @@ import { DraftsView } from '@/modules/eventor/views/DraftsView/DraftsView';
 import { EventPublicPage } from '@/modules/eventor/views/EventPublicPage/EventPublicPage';
 import { PinboardButton } from '@/modules/eventor/components/Pinboard/Pinboard';
 
-// Badger
-import { AccountsSidenav } from '@/modules/badger/components/AccountsSidenav/AccountsSidenav';
-import { TimelineView }    from '@/modules/badger/views/TimelineView/TimelineView';
-import { StatsView }       from '@/modules/badger/views/StatsView/StatsView';
-import { CategoryManager } from '@/modules/badger/views/CategoryManager/CategoryManager';
-import '@/modules/badger/badger.css';
-import { TransactionReadModal } from '@/modules/badger/components/TransactionReadModal/TransactionReadModal';
-import { TransactionEditor } from '@/modules/badger/components/TransactionEditor/TransactionEditor';
+// Ledger
+import { AccountsSidenav } from '@/modules/ledger/components/AccountsSidenav/AccountsSidenav';
+import { TimelineView }    from '@/modules/ledger/views/TimelineView/TimelineView';
+import { StatsView }       from '@/modules/ledger/views/StatsView/StatsView';
+import { CategoryManager } from '@/modules/ledger/views/CategoryManager/CategoryManager';
+import '@/modules/ledger/ledger.css';
+import { TransactionReadModal } from '@/modules/ledger/components/TransactionReadModal/TransactionReadModal';
+import { TransactionEditor } from '@/modules/ledger/components/TransactionEditor/TransactionEditor';
 
 // Stuffer
 import { StufferSidenav } from '@/modules/stuffer/components/StufferSidenav/StufferSidenav';
@@ -83,7 +83,7 @@ const EventorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) =
   );
 };
 
-const BadgerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
+const LedgerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
   <>
     <AccountsSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
     <div className="main-content"><Outlet /></div>
@@ -157,8 +157,8 @@ function AuthApp() {
     if (location.pathname === '/' || location.pathname === '/eventor' || location.pathname === '/eventor/') {
       navigate('/eventor/flow', { replace: true });
     }
-    if (location.pathname === '/badger' || location.pathname === '/badger/') {
-      navigate('/badger/timeline', { replace: true });
+    if (location.pathname === '/ledger' || location.pathname === '/ledger/') {
+      navigate('/ledger/timeline', { replace: true });
     }
     if (location.pathname === '/stuffer' || location.pathname === '/stuffer/') {
       navigate('/stuffer/things', { replace: true });
@@ -198,8 +198,8 @@ function AuthApp() {
             <Route path="drafts"   element={<DraftsView />} />
           </Route>
 
-          <Route path="/badger" element={
-            <BadgerLayout
+          <Route path="/ledger" element={
+            <LedgerLayout
               sidebarCollapsed={!isMobile && sidebarCollapsed}
               mobileSidebarOpen={isMobile && mobileSidebarOpen}
               onMobileClose={() => setMobileSidebarOpen(false)}

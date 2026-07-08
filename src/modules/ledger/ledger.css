@@ -1,0 +1,306 @@
+/* ================================================================
+   LEDGER - Timeline Table
+================================================================ */
+
+/* Обёртка — горизонтальный скролл */
+.led-timeline {
+  overflow-x: auto;
+  /* Скроллится само, не window */
+}
+
+/* Шапка таблицы — sticky */
+.led-timeline-header {
+  display: grid;
+  grid-template-columns: var(--timeline-cols);
+  align-items: center;
+  min-width: max-content;
+  border-bottom: 2px solid var(--mantine-color-gray-3);
+  background: var(--mantine-color-white);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 6px 0;
+}
+
+/* Строка дня */
+.led-day-row {
+  display: grid;
+  grid-template-columns: var(--timeline-cols);
+  align-items: stretch;
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+  min-height: 48px;
+}
+
+/* Колонка даты */
+.led-date-label {
+  width: 52px;
+  min-width: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 8px 8px 8px 4px;
+}
+
+.led-date-label.today { font-weight: 600; }
+.led-day-num  { font-size: 14px; font-weight: 500; line-height: 1; }
+.led-day-name { font-size: 10px; color: var(--mantine-color-gray-5); text-transform: uppercase; line-height: 1; }
+
+/* Слот счёта — грид сам делит 1fr равномерно */
+.led-account-slot {
+  min-width: 0;
+  border-left: 1px solid var(--mantine-color-gray-2);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  gap: 4px;
+  cursor: default;
+}
+
+.led-account-slot:hover {
+  background: rgba(47, 158, 107, 0.03);
+}
+
+.led-account-header {
+  justify-content: center;
+  padding: 4px 8px;
+  min-height: unset;
+}
+
+/* Карточка транзакции — ограничена шириной */
+.led-slot-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  max-width: 650px;
+}
+
+/* Кнопка добавить — скрыта, видна при ховере */
+.led-slot-add {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.led-day-row:hover .led-slot-add { opacity: 1; }
+
+/* Баланс счёта */
+.led-slot-balance {
+  border-top: 1px solid var(--mantine-color-gray-2);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+.led-slot-balance.extended {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* Ячейка-заполнитель — не нужна в grid-модели */
+.led-flex-filler {
+  display: none;
+}
+
+/* Итого дня — последняя колонка грида */
+.led-day-total {
+  min-width: 0;
+  flex-shrink: 0;
+  border-left: 2px solid var(--mantine-color-gray-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 6px 10px;
+}
+
+/* ── TransactionCard ─────────────────────────────────────────── */
+.led-transaction-card {
+  background: var(--mantine-color-white);
+  transition: box-shadow 0.15s ease;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+}
+.led-transaction-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+/* ── Month header ────────────────────────────────────────────── */
+.led-month-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: max-content;
+  padding: 8px 12px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mantine-color-green-7);
+  background: var(--mantine-color-green-0);
+  border-bottom: 1px solid var(--mantine-color-green-2);
+  letter-spacing: 0.02em;
+  position: sticky;
+  left: 0;
+}
+
+/* ── Month totals row ────────────────────────────────────────── */
+.led-month-totals-row {
+  display: grid;
+  grid-template-columns: var(--timeline-cols);
+  align-items: stretch;
+  border-bottom: 2px solid var(--mantine-color-green-3);
+  background: var(--mantine-color-green-0);
+}
+
+.led-month-totals-label {
+  min-width: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 8px;
+}
+
+.led-month-totals-slot {
+  min-width: 0;
+  border-left: 1px solid var(--mantine-color-green-2);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.led-month-totals-filler {
+  display: none;
+}
+
+.led-month-totals-total {
+  min-width: 0;
+  flex-shrink: 0;
+  border-left: 2px solid var(--mantine-color-green-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 6px 10px;
+  gap: 2px;
+}
+
+/* ── Мобилка ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Полотно уходит в горизонтальный scroll */
+  .led-timeline {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* На мобилке 1fr не работает с горизонтальным scroll —
+     переопределяем переменную на фиксированные колонки */
+  .led-timeline {
+    --timeline-cols: 44px repeat(auto-fill, 220px) 90px;
+  }
+
+  /* Строки не сжимаются — уходят вправо */
+  .led-day-row,
+  .led-timeline-header,
+  .led-month-header,
+  .led-month-totals-row {
+    min-width: min-content;
+  }
+
+  .led-slot-cards {
+    max-width: 100%;
+  }
+}
+
+/* ── Opening строка (снизу последнего месяца) ────────────────── */
+.led-month-totals-opening {
+  background: var(--mantine-color-gray-0);
+  border-top: 2px solid var(--mantine-color-gray-3);
+  border-bottom: none;
+  opacity: 0.8;
+}
+
+/* ── Ledger Toolbar grid ─────────────────────────────────────── */
+/* content-toolbar имеет display:flex — переопределяем на grid */
+.content-toolbar.led-toolbar-grid {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.led-toolbar-month {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.led-toolbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.led-toolbar-lock {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ── AccountsManager row actions ────────────────────────────── */
+.led-account-row {
+  border-radius: 8px;
+  border: 1px solid var(--mantine-color-gray-2);
+}
+.led-account-row .row-actions {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.led-account-row:hover .row-actions {
+  opacity: 1;
+}
+
+/* ── Category tree ───────────────────────────────────────────────── */
+.led-cat-tree {
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.led-cat-node {
+  border-bottom: 1px solid var(--mantine-color-gray-1);
+}
+
+.led-cat-node:last-child {
+  border-bottom: none;
+}
+
+.led-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  min-height: 36px;
+  transition: background 0.1s;
+}
+
+.led-cat-row:hover {
+  background: var(--mantine-color-gray-0);
+}
+
+.led-cat-actions {
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.led-cat-row:hover .led-cat-actions {
+  opacity: 1;
+}
