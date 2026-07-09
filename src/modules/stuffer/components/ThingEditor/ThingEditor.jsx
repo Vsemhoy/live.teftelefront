@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   Modal, Stack, Group, Text, TextInput, Textarea,
-  Button, Select, SegmentedControl, NumberInput,
-  ActionIcon, Divider, Box, Tooltip,
+  Button, Select, SegmentedControl, ActionIcon, Divider,
+  Box, Tooltip, Switch,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useMediaQuery } from '@mantine/hooks';
 import {
-  IconX, IconCheck, IconTrash, IconExternalLink,
-  IconPackage, IconCpu,
+  IconCheck, IconCpu, IconExternalLink, IconPackage, IconTrash,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { notifications } from '@mantine/notifications';
@@ -22,58 +21,73 @@ import { toMinor, toMajor } from '@/modules/ledger/utils/ledgerUtils';
 
 const ENTITY_TYPES = [
   { value: 'asset', label: 'Asset' },
-  { value: 'item',  label: 'Item' },
+  { value: 'item', label: 'Item' },
 ];
 
 const STATUS_OPTIONS = Object.entries(THING_STATUSES).map(([value, { label }]) => ({
-  value, label,
+  value,
+  label,
 }));
 
 const UNIT_OPTIONS = [
-  { value: 'шт',  label: 'шт' },
-  { value: 'л',   label: 'л' },
-  { value: 'мл',  label: 'мл' },
-  { value: 'кг',  label: 'кг' },
-  { value: 'г',   label: 'г' },
-  { value: 'м',   label: 'м' },
-  { value: 'см',  label: 'см' },
-  { value: 'упак',label: 'упак' },
+  { value: 'pcs', label: 'pcs' },
+  { value: 'l', label: 'l' },
+  { value: 'ml', label: 'ml' },
+  { value: 'kg', label: 'kg' },
+  { value: 'g', label: 'g' },
+  { value: 'm', label: 'm' },
+  { value: 'cm', label: 'cm' },
+  { value: 'pack', label: 'pack' },
 ];
+
+const getErrorMessage = (error) => (
+  error?.response?.data?.message
+  || Object.values(error?.response?.data?.errors || {})?.flat()?.[0]
+  || 'Save failed'
+);
 
 export const ThingEditor = () => {
   const { editorOpen, editorParams, closeEditor } = useStufferStore();
   const isMobile = useMediaQuery('(max-width: 768px)');
-
   const isEdit = Boolean(editorParams?.id);
 
-  // Данные существующей вещи (если редактируем)
   const { data: existing } = useThing(isEdit ? editorParams?.id : null);
-
-  // Данные для селектов
   const { data: locations = [] } = useLocations();
   const { data: categories = [] } = useCategories();
   const { data: allThings = [] } = useThings();
 
-  const saveThing   = useSaveThing();
+  const saveThing = useSaveThing();
   const deleteThing = useDeleteThing();
 
-  // ── Форма ──────────────────────────────────────────────────────
-  const [entityType,  setEntityType]  = useState('item');
-  const [name,        setName]        = useState('');
+  const [entityType, setEntityType] = useState('item');
+  const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [vendor,      setVendor]      = useState('');
-  const [url,         setUrl]         = useState('');
-  const [parentId,    setParentId]    = useState(null);
-  const [categoryId,  setCategoryId]  = useState(null);
-  const [locationId,  setLocationId]  = useState(null);
-  const [status,      setStatus]      = useState('active');
-  const [serialNo,    setSerialNo]    = useState('');
-  const [qty,         setQty]         = useState('');
-  const [unit,        setUnit]        = useState('шт');
-  const [priceRaw,    setPriceRaw]    = useState('');
-  const [purchaseDate,setPurchaseDate]= useState(null);
+  const [vendor, setVendor] = useState('');
+  const [url, setUrl] = useState('');
+  const [parentId, setParentId] = useState(null);
+  const [categoryId, setCategoryId] = useState(null);
+  const [locationId, setLocationId] = useState(null);
+  const [status, setStatus] = useState('active');
+  const [serialNo, setSerialNo] = useState('');
+  const [qty, setQty] = useState('');
+  const [unit, setUnit] = useState('pcs');
+  const [priceRaw, setPriceRaw] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState(null);
+  const [trackLocation, setTrackLocation] = useState(true);
+  const [trackLifecycle, setTrackLifecycle] = useState(false);
 
-  // Заполняем форму при редактировании
+  const handleEntityTypeChange = (value) => {
+    setEntityType(value);
+
+    if (value === 'asset') {
+      setQty('');
+      setUnit('pcs');
+      return;
+    }
+
+    setSerialNo('');
+  };
+
   useEffect(() => {
     if (isEdit && existing) {
       setEntityType(existing.entity_type || 'item');
@@ -87,11 +101,12 @@ export const ThingEditor = () => {
       setStatus(existing.current_status || 'active');
       setSerialNo(existing.serial_no || '');
       setQty(existing.qty ? String(existing.qty) : '');
-      setUnit(existing.unit || 'шт');
+      setUnit(existing.unit || 'pcs');
       setPriceRaw(existing.purchase_price ? String(toMajor(existing.purchase_price)) : '');
       setPurchaseDate(existing.purchase_date ? dayjs(existing.purchase_date).toDate() : null);
+      setTrackLocation(existing.track_location ?? true);
+      setTrackLifecycle(existing.track_lifecycle ?? false);
     } else if (!isEdit) {
-      // Новая вещь — сброс + дефолты из params
       setEntityType('item');
       setName('');
       setDescription('');
@@ -103,126 +118,123 @@ export const ThingEditor = () => {
       setStatus('active');
       setSerialNo('');
       setQty('');
-      setUnit('шт');
+      setUnit('pcs');
       setPriceRaw('');
       setPurchaseDate(null);
+      setTrackLocation(true);
+      setTrackLifecycle(Boolean(editorParams?.track_lifecycle));
     }
-  }, [isEdit, existing, editorOpen]);
+  }, [isEdit, existing, editorOpen, editorParams?.parent_id, editorParams?.location_id, editorParams?.track_lifecycle]);
 
   const handleSave = () => {
     if (!name.trim()) {
-      notifications.show({ message: 'Введите название', color: 'orange' });
+      notifications.show({ message: 'Enter a name', color: 'orange' });
       return;
     }
 
     const payload = {
       ...(isEdit ? { id: editorParams.id } : {}),
-      entity_type:          entityType,
-      name:                 name.trim(),
-      description:          description || null,
-      vendor:               vendor || null,
-      url:                  url || null,
-      parent_id:            parentId || null,
-      category_id:          categoryId || null,
-      current_location_id:  locationId || null,
-      current_status:       status,
-      serial_no:            entityType === 'asset' ? (serialNo || null) : null,
-      qty:                  entityType === 'item'  ? (qty ? parseFloat(qty) : null) : null,
-      unit:                 entityType === 'item'  ? (unit || null) : null,
-      purchase_price:       priceRaw ? toMinor(parseFloat(priceRaw)) : null,
-      purchase_date:        purchaseDate ? dayjs(purchaseDate).format('YYYY-MM-DD') : null,
+      entity_type: entityType,
+      name: name.trim(),
+      description: description || null,
+      vendor: vendor || null,
+      url: url || null,
+      parent_id: parentId || null,
+      category_id: categoryId || null,
+      current_location_id: locationId || null,
+      current_status: status,
+      serial_no: entityType === 'asset' ? (serialNo || null) : null,
+      qty: entityType === 'item' ? (qty ? parseFloat(qty) : null) : null,
+      unit: entityType === 'item' ? (unit || null) : null,
+      purchase_price: priceRaw ? toMinor(parseFloat(priceRaw)) : null,
+      purchase_date: purchaseDate ? dayjs(purchaseDate).format('YYYY-MM-DD') : null,
+      track_location: trackLocation,
+      track_lifecycle: trackLifecycle,
     };
 
     saveThing.mutate(payload, {
       onSuccess: () => {
         notifications.show({
-          message: isEdit ? 'Сохранено' : 'Вещь добавлена',
-          color:   'green',
+          message: isEdit ? 'Saved' : 'Thing added',
+          color: 'green',
           autoClose: 2000,
         });
         closeEditor();
       },
-      onError: () => notifications.show({ message: 'Ошибка сохранения', color: 'red' }),
+      onError: (error) => notifications.show({ message: getErrorMessage(error), color: 'red' }),
     });
   };
 
   const handleDelete = () => {
-    if (!confirm('Архивировать вещь?')) return;
+    if (!confirm('Archive this thing?')) return;
+
     deleteThing.mutate(editorParams.id, {
       onSuccess: () => {
-        notifications.show({ message: 'Архивировано', color: 'gray', autoClose: 2000 });
+        notifications.show({ message: 'Archived', color: 'gray', autoClose: 2000 });
         closeEditor();
       },
     });
   };
 
-  // Опции для селектов
   const locationOptions = buildLocationOptions(locations);
-
   const categoryOptions = categories
-    .filter((c) => !c.is_archived)
-    .map((c) => ({ value: c.id, label: '\u00A0'.repeat((c.depth || 0) * 3) + c.name }));
-
-  // Вещи как возможные родители (только assets, не сама вещь)
+    .filter((category) => !category.is_archived)
+    .map((category) => ({
+      value: category.id,
+      label: '\u00A0'.repeat((category.depth || 0) * 3) + category.name,
+    }));
   const parentOptions = allThings
-    .filter((t) => t.entity_type === 'asset' && t.id !== editorParams?.id)
-    .map((t) => ({ value: t.id, label: t.name }));
+    .filter((thing) => thing.entity_type === 'asset' && thing.id !== editorParams?.id)
+    .map((thing) => ({ value: thing.id, label: thing.name }));
 
   return (
     <Modal
       opened={editorOpen}
       onClose={closeEditor}
-      title={
+      title={(
         <Group gap={8}>
           {entityType === 'asset' ? <IconCpu size={16} /> : <IconPackage size={16} />}
-          <Text size="sm" fw={600}>
-            {isEdit ? 'Редактировать' : 'Добавить вещь'}
-          </Text>
+          <Text size="sm" fw={600}>{isEdit ? 'Edit thing' : 'Add thing'}</Text>
         </Group>
-      }
+      )}
       size="lg"
       fullScreen={isMobile}
       centered={!isMobile}
     >
       <Stack gap={12}>
-
-        {/* Тип сущности */}
         <SegmentedControl
           fullWidth
           size="xs"
           value={entityType}
-          onChange={setEntityType}
+          onChange={handleEntityTypeChange}
           data={ENTITY_TYPES}
         />
 
-        {/* Название */}
         <TextInput
-          label="Название"
-          placeholder="Паяльник Forsthoff, Фильтр Mann W712/75..."
+          label="Name"
+          placeholder="Soldering station, oil filter, bike..."
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(event) => setName(event.target.value)}
           required
           size="sm"
           autoFocus
         />
 
-        {/* Описание */}
         <Textarea
-          label="Описание"
-          placeholder="Технические характеристики, заметки..."
+          label="Description"
+          placeholder="Specs, notes, model details..."
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(event) => setDescription(event.target.value)}
           rows={2}
           size="sm"
         />
 
         <Divider />
 
-        {/* Категория + Родитель */}
         <Group grow gap={10}>
           <Select
-            label="Категория"
-            placeholder="Выбрать..."
+            label="Category"
+            placeholder="Select..."
             data={categoryOptions}
             value={categoryId}
             onChange={setCategoryId}
@@ -231,8 +243,8 @@ export const ThingEditor = () => {
             size="sm"
           />
           <Select
-            label="Относится к (Asset)"
-            placeholder="Опционально..."
+            label="Parent asset"
+            placeholder="Optional..."
             data={parentOptions}
             value={parentId}
             onChange={setParentId}
@@ -242,11 +254,10 @@ export const ThingEditor = () => {
           />
         </Group>
 
-        {/* Локация + Статус */}
         <Group grow gap={10}>
           <Select
-            label="Локация"
-            placeholder="Где сейчас?"
+            label="Location"
+            placeholder="Where is it now?"
             data={locationOptions}
             value={locationId}
             onChange={setLocationId}
@@ -255,7 +266,7 @@ export const ThingEditor = () => {
             size="sm"
           />
           <Select
-            label="Статус"
+            label="Status"
             data={STATUS_OPTIONS}
             value={status}
             onChange={setStatus}
@@ -263,32 +274,45 @@ export const ThingEditor = () => {
           />
         </Group>
 
+        <Group grow gap={10}>
+          <Switch
+            label="Track location"
+            description="Show and manage this thing in Stuffer"
+            checked={trackLocation}
+            onChange={(event) => setTrackLocation(event.currentTarget.checked)}
+          />
+          <Switch
+            label="Track lifecycle"
+            description="Show this thing in Exploiter"
+            checked={trackLifecycle}
+            onChange={(event) => setTrackLifecycle(event.currentTarget.checked)}
+          />
+        </Group>
+
         <Divider />
 
-        {/* Asset-поля */}
         {entityType === 'asset' && (
           <TextInput
-            label="Серийный номер"
+            label="Serial number"
             placeholder="SN, IMEI, VIN..."
             value={serialNo}
-            onChange={(e) => setSerialNo(e.target.value)}
+            onChange={(event) => setSerialNo(event.target.value)}
             size="sm"
           />
         )}
 
-        {/* Item-поля */}
         {entityType === 'item' && (
           <Group grow gap={10}>
             <TextInput
-              label="Количество"
+              label="Quantity"
               placeholder="3"
               value={qty}
-              onChange={(e) => setQty(e.target.value)}
+              onChange={(event) => setQty(event.target.value)}
               size="sm"
               type="number"
             />
             <Select
-              label="Единица"
+              label="Unit"
               data={UNIT_OPTIONS}
               value={unit}
               onChange={setUnit}
@@ -297,44 +321,42 @@ export const ThingEditor = () => {
           </Group>
         )}
 
-        {/* Финансы */}
         <Group grow gap={10}>
           <TextInput
-            label="Цена покупки (₽)"
+            label="Purchase price"
             placeholder="2300"
             value={priceRaw}
-            onChange={(e) => setPriceRaw(e.target.value)}
+            onChange={(event) => setPriceRaw(event.target.value)}
             type="number"
             size="sm"
           />
           <DatePickerInput
-            label="Дата покупки"
-            placeholder="Выбрать..."
+            label="Purchase date"
+            placeholder="Select..."
             value={purchaseDate}
             onChange={setPurchaseDate}
             clearable
             size="sm"
-            valueFormat="DD.MM.YYYY"
+            valueFormat="YYYY-MM-DD"
           />
         </Group>
 
-        {/* Продавец + Ссылка */}
         <Group grow gap={10}>
           <TextInput
-            label="Продавец / Магазин"
-            placeholder="Ozon, DNS, ИП Сидоров..."
+            label="Vendor"
+            placeholder="Amazon, DNS, local store..."
             value={vendor}
-            onChange={(e) => setVendor(e.target.value)}
+            onChange={(event) => setVendor(event.target.value)}
             size="sm"
           />
           <TextInput
-            label="Ссылка на товар"
+            label="Product URL"
             placeholder="https://..."
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(event) => setUrl(event.target.value)}
             size="sm"
             rightSection={url ? (
-              <Tooltip label="Открыть" withArrow>
+              <Tooltip label="Open" withArrow>
                 <ActionIcon size="xs" variant="subtle" component="a" href={url} target="_blank">
                   <IconExternalLink size={13} />
                 </ActionIcon>
@@ -345,23 +367,24 @@ export const ThingEditor = () => {
 
         <Divider />
 
-        {/* Кнопки */}
         <Group justify="space-between">
           {isEdit ? (
             <Button
-              size="xs" variant="subtle" color="red"
+              size="xs"
+              variant="subtle"
+              color="red"
               leftSection={<IconTrash size={13} />}
               onClick={handleDelete}
               loading={deleteThing.isPending}
             >
-              Архивировать
+              Archive
             </Button>
           ) : (
             <Box />
           )}
           <Group gap={8}>
             <Button size="xs" variant="subtle" color="gray" onClick={closeEditor}>
-              Отмена
+              Cancel
             </Button>
             <Button
               size="xs"
@@ -369,11 +392,10 @@ export const ThingEditor = () => {
               onClick={handleSave}
               loading={saveThing.isPending}
             >
-              {isEdit ? 'Сохранить' : 'Добавить'}
+              {isEdit ? 'Save' : 'Add'}
             </Button>
           </Group>
         </Group>
-
       </Stack>
     </Modal>
   );
