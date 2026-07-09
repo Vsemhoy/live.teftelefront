@@ -56,6 +56,10 @@ import { EventEditor as ExploiterEventEditor } from '@/modules/exploiter/compone
 import { EventReadModal as ExploiterReadModal } from '@/modules/exploiter/components/EventReadModal/EventReadModal';
 import '@/modules/exploiter/exploiter.css';
 
+// Home
+import { HomeFeed } from '@/modules/home/views/HomeFeed/HomeFeed';
+import '@/modules/home/home.css';
+
 const ComingSoon = ({ name }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
     <Text c="dimmed" size="sm">{name} — coming soon</Text>
@@ -154,7 +158,7 @@ function AuthApp() {
   useEffect(() => { setMobileSidebarOpen(false); }, [location.pathname]);
 
   useEffect(() => {
-    if (location.pathname === '/' || location.pathname === '/eventor' || location.pathname === '/eventor/') {
+    if (location.pathname === '/eventor' || location.pathname === '/eventor/') {
       navigate('/eventor/flow', { replace: true });
     }
     if (location.pathname === '/ledger' || location.pathname === '/ledger/') {
@@ -184,6 +188,8 @@ function AuthApp() {
         )}
 
         <Routes>
+          <Route path="/" element={<div className="main-content"><HomeFeed /></div>} />
+
           <Route path="/eventor" element={
             <EventorLayout
               sidebarCollapsed={!isMobile && sidebarCollapsed}

@@ -123,7 +123,7 @@ export const useSaveEvent = () => {
     },
     onSuccess: (savedEvent) => {
       // Инвалидируем кэш событий за соответствующий месяц
-      const month = dayjs(savedEvent.setdate).format('YYYY-MM');
+      const month = dayjs(savedEvent.occurred_at).format('YYYY-MM');
       qc.invalidateQueries({
         predicate: (q) =>
           q.queryKey[0] === 'eventor' && q.queryKey[1] === 'events',

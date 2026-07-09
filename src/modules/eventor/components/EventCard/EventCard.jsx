@@ -36,7 +36,7 @@ export const EventCard = ({ event, isDraft = false }) => {
   const handleCreateChild = (e) => {
     e.stopPropagation();
     if (!event.id) return;
-    openEditor({ parent_id: event.id, date: event.setdate?.slice(0, 10), section_id: event.section_id });
+    openEditor({ parent_id: event.id, date: event.occurred_at?.slice(0, 10), section_id: event.section_id });
   };
 
   const handleDoubleClick = (e) => {

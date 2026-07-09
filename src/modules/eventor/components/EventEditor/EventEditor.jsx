@@ -139,7 +139,7 @@ export const EventEditor = () => {
 
   const [name, setName] = useState('');
   const [content, setContent] = useState(DEFAULT_CONTENT);
-  const [setdate, setSetdate] = useState(new Date());
+  const [occurredAt, setOccurredAt] = useState(new Date());
   const [setTime, setSetTime] = useState('09:00');
   const [sectionId, setSectionId] = useState(null);
   const [typeId, setTypeId] = useState(null);
@@ -169,8 +169,8 @@ export const EventEditor = () => {
     if (draftSrc) {
       setName(draftSrc.name || '');
       setContent(draftSrc.content || DEFAULT_CONTENT);
-      const srcDate = draftSrc.setdate ? new Date(draftSrc.setdate) : new Date();
-      setSetdate(srcDate);
+      const srcDate = draftSrc.occurred_at ? new Date(draftSrc.occurred_at) : new Date();
+      setOccurredAt(srcDate);
       setSetTime(toTimeString(srcDate));
       setSectionId(draftSrc.section_id || null);
       setTypeId(draftSrc.type_id || null);
@@ -187,8 +187,8 @@ export const EventEditor = () => {
       if (!existingEvent) return;
       setName(existingEvent.name || '');
       setContent(existingEvent.content || DEFAULT_CONTENT);
-      const srcDate = existingEvent.setdate ? new Date(existingEvent.setdate) : new Date();
-      setSetdate(srcDate);
+      const srcDate = existingEvent.occurred_at ? new Date(existingEvent.occurred_at) : new Date();
+      setOccurredAt(srcDate);
       setSetTime(toTimeString(srcDate));
       setSectionId(existingEvent.section_id || null);
       setTypeId(existingEvent.type_id || null);
@@ -205,7 +205,7 @@ export const EventEditor = () => {
       const initialDate = editorData?.date ? new Date(editorData.date) : new Date();
       setName('');
       setContent(DEFAULT_CONTENT);
-      setSetdate(initialDate);
+      setOccurredAt(initialDate);
       setSetTime(toTimeString(initialDate));
       setSectionId(
         editorData?.section_id && editorData.section_id !== 'ALL'
@@ -231,13 +231,13 @@ export const EventEditor = () => {
   }, [editorOpen, editorData?.id, editorData?.draftLocalId, editorData?._draftData, existingEvent]);
 
   const handleSave = async () => {
-    const dateWithTime = composeDateTime(setdate, setTime);
+    const dateWithTime = composeDateTime(occurredAt, setTime);
 
     const basePayload = {
       id: editorData?.id || null,
       name,
       content,
-      setdate: dateWithTime.format('YYYY-MM-DD HH:mm:ss'),
+      occurred_at: dateWithTime.format('YYYY-MM-DD HH:mm:ss'),
       section_id: sectionId,
       type_id: typeId,
     };
@@ -635,8 +635,8 @@ export const EventEditor = () => {
                 />
                 <DatePickerInput
                   label="Date"
-                  value={setdate}
-                  onChange={(value) => setSetdate(value || new Date())}
+                  value={occurredAt}
+                  onChange={(value) => setOccurredAt(value || new Date())}
                   valueFormat="DD MMM YYYY"
                   clearable={false}
                 />

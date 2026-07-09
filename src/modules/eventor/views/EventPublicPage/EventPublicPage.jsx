@@ -65,8 +65,8 @@ const SidebarContent = ({ event, navigate, openEditor, isOwner }) => (
               <Group gap={6} justify="space-between">
                 <Box style={{ minWidth: 0 }}>
                   <Text size="xs" fw={600} lineClamp={2}>{child.name || 'Untitled'}</Text>
-                  {child.setdate && (
-                    <Text size="xs" c="dimmed">{dayjs(child.setdate).format('D MMM YYYY')}</Text>
+                  {child.occurred_at && (
+                    <Text size="xs" c="dimmed">{dayjs(child.occurred_at).format('D MMM YYYY')}</Text>
                   )}
                 </Box>
                 <IconChevronDown size={12}
@@ -236,10 +236,10 @@ export const EventPublicPage = () => {
 
           {/* Мета */}
           <Group gap={12} mb={28} wrap="wrap">
-            {event.setdate && (
+            {event.occurred_at && (
               <Group gap={5}>
                 <IconCalendar size={13} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                <Text size="xs" c="dimmed">{dayjs(event.setdate).format('D MMMM YYYY')}</Text>
+                <Text size="xs" c="dimmed">{dayjs(event.occurred_at).format('D MMMM YYYY')}</Text>
               </Group>
             )}
             {event.section?.name && (

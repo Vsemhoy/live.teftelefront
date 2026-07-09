@@ -1,4 +1,10 @@
 export const MODULE_THEMES = {
+  home: {
+    gradient: 'linear-gradient(90deg, #f5f3ff 0%, #ede9fe 100%)',
+    accent: '#6d28d9',
+    textColor: '#3b1578',
+    label: 'Главная',
+  },
   eventor: {
     gradient: 'linear-gradient(90deg, #e7f0fd 0%, #d0e4fb 100%)',
     accent: '#2d6cdf',

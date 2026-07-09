@@ -35,7 +35,7 @@ const Snippet = ({ text, query }) => {
 
 const SearchResultCard = ({ event, query, onDoubleClick }) => {
   const typeColor = event.type_bgcolor ? event.type_bgcolor.substring(0, 7) : null;
-  const date = dayjs(event.setdate).format('D MMM YYYY');
+  const date = dayjs(event.occurred_at).format('D MMM YYYY');
   return (
     <Paper p={10} withBorder radius="sm"
       style={{ borderLeft: `3px solid ${typeColor || 'var(--mantine-color-gray-3)'}`, cursor: 'pointer', transition: 'box-shadow 0.1s', userSelect: 'none' }}

@@ -1,0 +1,183 @@
+/* ================================================================
+   HOME FEED — главная лента
+================================================================ */
+
+.home-feed {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ── Приветствие ── */
+.home-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.home-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Фильтры ── */
+.home-filters {
+  display: flex;
+  gap: 4px;
+}
+
+.home-filters button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.home-filters button.active {
+  background: var(--mantine-color-dark-6);
+  color: var(--mantine-color-white);
+  border-color: transparent;
+}
+
+/* ── Группа дня ── */
+.home-day-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mantine-color-gray-5);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.home-day-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.home-feed-state {
+  border: 1px dashed var(--mantine-color-gray-3);
+  border-radius: 8px;
+  color: var(--mantine-color-gray-6);
+  font-size: 13px;
+  margin-bottom: 20px;
+  padding: 18px;
+  text-align: center;
+}
+
+.home-feed-state.error {
+  border-color: var(--mantine-color-red-3);
+  color: var(--mantine-color-red-7);
+}
+
+/* ── Карточка ── */
+.home-card {
+  background: var(--mantine-color-white);
+  border-radius: 12px;
+  border: 0.5px solid var(--mantine-color-gray-2);
+  padding: 12px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.home-card:hover {
+  border-color: var(--mantine-color-gray-4);
+}
+
+.home-card.overdue {
+  border-left: 3px solid var(--mantine-color-red-5);
+}
+
+.home-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.home-card-icon.eventor   { background: var(--mantine-color-blue-0);   color: var(--mantine-color-blue-6); }
+.home-card-icon.exploiter { background: var(--mantine-color-orange-0); color: var(--mantine-color-orange-6); }
+.home-card-icon.ledger    { background: var(--mantine-color-green-0);  color: var(--mantine-color-green-6); }
+
+.home-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-card-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-card-meta {
+  font-size: 12px;
+  color: var(--mantine-color-gray-6);
+  line-height: 1.5;
+}
+
+.home-card-costs {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-card-right {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+/* ── Сводка недели ── */
+.home-week-summary {
+  background: var(--mantine-color-gray-0);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.home-week-summary .label {
+  color: var(--mantine-color-gray-5);
+}
+
+.home-week-summary .value {
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Загрузить ещё ── */
+.home-load-more {
+  border: 1px dashed var(--mantine-color-gray-4);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--mantine-color-gray-5);
+  cursor: pointer;
+}
+
+.home-load-more:hover {
+  border-color: var(--mantine-color-blue-4);
+  color: var(--mantine-color-blue-6);
+}

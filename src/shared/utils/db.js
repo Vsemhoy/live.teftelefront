@@ -22,7 +22,7 @@ export const createDraft = async (data) => {
     localId,
     name: data.name || '',
     content: data.content || '',
-    setdate: data.setdate || new Date().toISOString(),
+    occurred_at: data.occurred_at || new Date().toISOString(),
     section_id: data.section_id || null,
     type_id: data.type_id || null,
     created_at: new Date().toISOString(),

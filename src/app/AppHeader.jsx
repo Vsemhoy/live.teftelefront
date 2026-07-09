@@ -9,13 +9,14 @@ import {
   IconCalendarEvent, IconPackage, IconCurrencyDollar,
   IconChecklist, IconBriefcase, IconSettings,
   IconUser, IconLogout, IconLogin, IconSearch,
-  IconLayoutSidebar, IconX, IconApps, IconBooks, IconTimeline,
+  IconLayoutSidebar, IconX, IconApps, IconBooks, IconTimeline, IconHome,
 } from '@tabler/icons-react';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { getModuleTheme } from './moduleThemes';
 
 const MODULES = [
+  { id: 'home',      label: 'Главная',   icon: IconHome,           path: '/',                    desc: 'Feed & overview' },
   { id: 'eventor',   label: 'Eventor',   icon: IconCalendarEvent,  path: '/eventor/flow',        desc: 'Calendar & notes' },
   { id: 'exploiter', label: 'Exploiter', icon: IconTimeline,       path: '/exploiter/timeline',  desc: 'Lifecycle & costs' },
   { id: 'stuffer',   label: 'Stuffer',   icon: IconPackage,        path: '/stuffer/things',      desc: 'Stuff & locations' },

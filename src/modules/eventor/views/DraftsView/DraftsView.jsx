@@ -19,7 +19,7 @@ import Masonry from 'react-masonry-css';
 import { useMasonryColumns } from '@/shared/hooks/useMasonryColumns';
 
 const DraftCard = ({ draft, onSync, onView, onEdit, onDelete, isSyncing }) => {
-  const date = dayjs(draft.setdate).format('D MMM YYYY');
+  const date = dayjs(draft.occurred_at).format('D MMM YYYY');
   const createdAt = dayjs(draft.created_at).format('D MMM, HH:mm');
 
   return (
@@ -109,7 +109,7 @@ export const DraftsView = () => {
     if (!isOnline) { notifications.show({ title: 'No connection', message: 'Cannot sync now', color: 'red' }); return; }
     setSyncingId(draft.localId);
     try {
-      await saveEvent({ name: draft.name, content: draft.content, setdate: draft.setdate, section_id: draft.section_id, type_id: draft.type_id });
+      await saveEvent({ name: draft.name, content: draft.content, occurred_at: draft.occurred_at, section_id: draft.section_id, type_id: draft.type_id });
       await deleteDraft(draft.localId);
       notifications.show({ title: 'Synced', message: draft.name || 'Draft uploaded', color: 'green' });
     } catch (err) {

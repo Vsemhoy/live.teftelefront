@@ -44,7 +44,7 @@ export const ReadModal = () => {
 
   const handleCreateChild = () => {
     closeReader();
-    openEditor({ parent_id: event.id, date: event.setdate?.slice(0, 10), section_id: event.section_id });
+    openEditor({ parent_id: event.id, date: event.occurred_at?.slice(0, 10), section_id: event.section_id });
   };
 
   return (
@@ -91,10 +91,10 @@ export const ReadModal = () => {
         <>
           {/* Мета-строка */}
           <Group px={20} py={10} gap={12} wrap="wrap" style={{ background: 'var(--mantine-color-gray-0)', borderBottom: '1px solid var(--mantine-color-gray-1)' }}>
-            {event.setdate && (
+            {event.occurred_at && (
               <Group gap={6}>
                 <IconCalendar size={13} color="var(--mantine-color-gray-5)" />
-                <Text size="xs" c="dimmed">{dayjs(event.setdate).format('D MMMM YYYY')}</Text>
+                <Text size="xs" c="dimmed">{dayjs(event.occurred_at).format('D MMMM YYYY')}</Text>
               </Group>
             )}
             {event.section?.name && (
@@ -182,8 +182,8 @@ export const ReadModal = () => {
                       <Group justify="space-between">
                         <Box>
                           <Text size="sm" fw={600}>{child.name || 'Без названия'}</Text>
-                          {child.setdate && (
-                            <Text size="xs" c="dimmed">{dayjs(child.setdate).format('D MMMM YYYY')}</Text>
+                          {child.occurred_at && (
+                            <Text size="xs" c="dimmed">{dayjs(child.occurred_at).format('D MMMM YYYY')}</Text>
                           )}
                         </Box>
                         <IconChevronDown size={13} style={{ color: 'var(--mantine-color-gray-4)', transform: 'rotate(-90deg)' }} />

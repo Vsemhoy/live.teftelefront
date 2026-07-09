@@ -79,7 +79,7 @@ export const GridCalendar = () => {
   const eventsByDate = useMemo(() => {
     const map = {};
     (events || []).forEach((ev) => {
-      const key = dayjs(ev.setdate).format('YYYY-MM-DD');
+      const key = dayjs(ev.occurred_at).format('YYYY-MM-DD');
       if (!map[key]) map[key] = [];
       map[key].push(ev);
     });
