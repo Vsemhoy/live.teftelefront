@@ -26,6 +26,8 @@ export const useLedgerStore = create(
   activeCurrency: 'RUB',
 
   toggleAccount: (accountId, currency) => {
+    if (!accountId || !currency) return;
+
     const { activeAccounts, activeCurrency } = get();
     if (currency !== activeCurrency) {
       set({ activeAccounts: [accountId], activeCurrency: currency });
@@ -36,6 +38,22 @@ export const useLedgerStore = create(
       activeAccounts: already
         ? activeAccounts.filter((id) => id !== accountId)
         : [...activeAccounts, accountId],
+    });
+  },
+
+  pruneActiveAccounts: (accounts = []) => {
+    const validAccounts = (Array.isArray(accounts) ? accounts : [])
+      .filter((account) => account?.id && String(account.name || '').trim() && !Boolean(account.is_archived));
+    const validIds = new Set(validAccounts.map((account) => account.id));
+    const { activeAccounts, activeCurrency } = get();
+    const nextActive = activeAccounts.filter((id) => validIds.has(id));
+
+    if (nextActive.length === activeAccounts.length) return;
+
+    const firstAccount = validAccounts.find((account) => account.id === nextActive[0]);
+    set({
+      activeAccounts: nextActive,
+      activeCurrency: firstAccount?.currency || activeCurrency || 'RUB',
     });
   },
 

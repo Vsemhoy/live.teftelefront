@@ -5,7 +5,7 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
-import { AuthModal, AuthWall } from '@/modules/auth/AuthModal';
+import { AuthModal, AuthWall, DemoBanner } from '@/modules/auth/AuthModal';
 import { AppHeader } from './AppHeader';
 import { TefteleLogo } from './TefteleLogo';
 
@@ -177,6 +177,7 @@ function AuthApp() {
 
   return (
     <div className="app-shell">
+      <DemoBanner />
       <AppHeader onToggleSidebar={handleToggleSidebar} authModalOpen={openAuth} />
 
       <div className="app-body">

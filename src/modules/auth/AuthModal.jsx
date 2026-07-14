@@ -4,16 +4,17 @@ import {
   Text, Anchor, Alert, Group, Divider,
   Paper, Title,
 } from '@mantine/core';
-import { IconAlertCircle, IconBrandWindows } from '@tabler/icons-react';
+import { IconAlertCircle, IconBrandWindows, IconEye } from '@tabler/icons-react';
 import { useAuthStore } from './authStore';
 import { notifications } from '@mantine/notifications';
 
-// Форма логина — переиспользуется в модалке и в стене
 function LoginForm({ onSuccess }) {
   const login = useAuthStore((s) => s.login);
+  const demoLogin = useAuthStore((s) => s.demoLogin);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
@@ -36,6 +37,26 @@ function LoginForm({ onSuccess }) {
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDemo = async () => {
+    setDemoLoading(true);
+    setError(null);
+
+    try {
+      await demoLogin();
+      notifications.show({
+        title: 'Demo sandbox',
+        message: 'You can explore and create data. Demo changes expire automatically.',
+        color: 'orange',
+      });
+      onSuccess?.();
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Demo is unavailable';
+      setError(msg);
+    } finally {
+      setDemoLoading(false);
     }
   };
 
@@ -67,7 +88,7 @@ function LoginForm({ onSuccess }) {
 
         <PasswordInput
           label="Password"
-          placeholder="••••••••"
+          placeholder="********"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
@@ -78,7 +99,18 @@ function LoginForm({ onSuccess }) {
           Sign in
         </Button>
 
-        <Divider />
+        <Divider label="or" labelPosition="center" />
+
+        <Button
+          fullWidth
+          variant="light"
+          color="orange"
+          leftSection={<IconEye size={16} />}
+          loading={demoLoading}
+          onClick={handleDemo}
+        >
+          Try demo
+        </Button>
 
         <Text size="xs" c="dimmed" ta="center">
           No account yet?{' '}
@@ -91,9 +123,27 @@ function LoginForm({ onSuccess }) {
   );
 }
 
-/**
- * Обычная модалка — для "знакомого браузера" у которого слетела сессия
- */
+export const DemoBanner = () => {
+  const user = useAuthStore((s) => s.user);
+  if (!user?.is_demo) return null;
+
+  return (
+    <div style={{
+      background: 'var(--mantine-color-orange-1)',
+      borderBottom: '1px solid var(--mantine-color-orange-3)',
+      padding: '6px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      fontSize: 13,
+      color: 'var(--mantine-color-orange-9)',
+    }}>
+      <IconEye size={15} />
+      <span>Demo sandbox. Changes are temporary and may be cleaned up automatically.</span>
+    </div>
+  );
+};
+
 export const AuthModal = ({ opened, onClose }) => {
   return (
     <Modal
@@ -114,10 +164,6 @@ export const AuthModal = ({ opened, onClose }) => {
   );
 };
 
-/**
- * Жёсткая стена логина для совсем нового браузера.
- * Никакого сайта сзади — только форма.
- */
 export const AuthWall = () => {
   return (
     <div className="auth-wall">

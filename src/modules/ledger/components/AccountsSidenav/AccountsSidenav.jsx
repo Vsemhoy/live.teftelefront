@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Stack, NavLink, Text, Group, ActionIcon, Divider, Skeleton, Tooltip, Badge, Button, Select } from '@mantine/core';
 import {
   IconPlus, IconX, IconSettings,
@@ -23,7 +24,7 @@ const AccountTypeIcon = ({ type, size = 15 }) => {
 };
 
 export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobileClose }) => {
-  const { activeAccounts, activeCurrency, toggleAccount, managerOpen, openManager, closeManager, categoryFilter, setCategoryFilter } = useLedgerStore();
+  const { activeAccounts, activeCurrency, toggleAccount, pruneActiveAccounts, managerOpen, openManager, closeManager, categoryFilter, setCategoryFilter } = useLedgerStore();
   const navigate  = useNavigate();
   const location  = useLocation();
   const isStats      = location.pathname.includes('/stats');
@@ -31,8 +32,12 @@ export const AccountsSidenav = ({ collapsed = false, mobileOpen = false, onMobil
   const { data: accounts    = [], isLoading } = useAccounts();
   const { data: categories  = [] }            = useCategories();
 
+  useEffect(() => {
+    if (!isLoading) pruneActiveAccounts(accounts);
+  }, [accounts, isLoading, pruneActiveAccounts]);
+
   const grouped = (accounts || [])
-    .filter((a) => !Boolean(a.is_archived))
+    .filter((a) => a?.id && String(a.name || '').trim() && !Boolean(a.is_archived))
     .sort((a, b) => a.sort_order - b.sort_order)
     .reduce((acc, account) => {
       const cur = account.currency;

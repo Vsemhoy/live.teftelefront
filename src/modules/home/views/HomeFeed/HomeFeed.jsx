@@ -141,11 +141,17 @@ export const HomeFeed = () => {
   // Группировка по дням
   const dayGroups = useMemo(() => {
     const groups = {};
-    items.forEach((item) => {
+    [...items]
+      .sort((a, b) => {
+        const byDate = new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime();
+        if (byDate !== 0) return byDate;
+        return String(b.id).localeCompare(String(a.id));
+      })
+      .forEach((item) => {
       const dk = item.occurred_at.slice(0, 10);
       if (!groups[dk]) groups[dk] = [];
       groups[dk].push(item);
-    });
+      });
     return Object.entries(groups)
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([date, events]) => ({ date, events }));
