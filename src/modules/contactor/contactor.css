@@ -1,0 +1,71 @@
+.cnt-card {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.cnt-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--mantine-color-indigo-2);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.cnt-panel {
+  background: var(--mantine-color-white);
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.cnt-log-entry {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+
+.cnt-log-entry:last-child {
+  border-bottom: 0;
+}
+
+.cnt-log-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cnt-log-icon.grape { background: var(--mantine-color-grape-0); color: var(--mantine-color-grape-7); }
+.cnt-log-icon.indigo { background: var(--mantine-color-indigo-0); color: var(--mantine-color-indigo-7); }
+.cnt-log-icon.green { background: var(--mantine-color-green-0); color: var(--mantine-color-green-7); }
+.cnt-log-icon.gray { background: var(--mantine-color-gray-1); color: var(--mantine-color-gray-7); }
+
+.cnt-graph-shell {
+  width: 100%;
+  min-height: 420px;
+  background: var(--mantine-color-white);
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cnt-graph-shell svg {
+  display: block;
+  width: 100%;
+  height: min(64vh, 560px);
+}
+
+@media (max-width: 768px) {
+  .cnt-group-filter {
+    max-width: 48vw;
+    overflow-x: auto;
+  }
+
+  .cnt-graph-shell {
+    min-height: 320px;
+  }
+
+  .cnt-graph-shell svg {
+    height: 360px;
+  }
+}

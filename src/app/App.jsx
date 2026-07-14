@@ -56,6 +56,18 @@ import { EventEditor as ExploiterEventEditor } from '@/modules/exploiter/compone
 import { EventReadModal as ExploiterReadModal } from '@/modules/exploiter/components/EventReadModal/EventReadModal';
 import '@/modules/exploiter/exploiter.css';
 
+// Contactor
+import { ContactorSidenav } from '@/modules/contactor/components/ContactorSidenav/ContactorSidenav';
+import { ContactorToolbar } from '@/modules/contactor/components/Toolbar/ContactorToolbar';
+import { PeopleView as ContactorPeopleView } from '@/modules/contactor/views/PeopleView/PeopleView';
+import { FeedView as ContactorFeedView } from '@/modules/contactor/views/FeedView/FeedView';
+import { GraphView as ContactorGraphView } from '@/modules/contactor/views/GraphView/GraphView';
+import { ContactPageView } from '@/modules/contactor/views/ContactPage/ContactPage';
+import { ContactEditor } from '@/modules/contactor/components/ContactEditor/ContactEditor';
+import { LogEditor } from '@/modules/contactor/components/LogEditor/LogEditor';
+import { RelationEditor } from '@/modules/contactor/components/RelationEditor/RelationEditor';
+import '@/modules/contactor/contactor.css';
+
 // Home
 import { HomeFeed } from '@/modules/home/views/HomeFeed/HomeFeed';
 import '@/modules/home/home.css';
@@ -124,6 +136,19 @@ const ExploiterLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose })
   </>
 );
 
+const ContactorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
+  <>
+    <ContactorSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
+    <div className="main-content">
+      <ContactorToolbar />
+      <Outlet />
+    </div>
+    <ContactEditor />
+    <LogEditor />
+    <RelationEditor />
+  </>
+);
+
 // ══════════════════════════════════════════════════════════════════
 // PUBLIC SHELL — без авторизации, без хедера, чистая страница
 // Роуты: /e/:id, /b/:id, /s/:id, /p/:id
@@ -172,6 +197,9 @@ function AuthApp() {
     }
     if (location.pathname === '/exploiter' || location.pathname === '/exploiter/') {
       navigate('/exploiter/timeline', { replace: true });
+    }
+    if (location.pathname === '/contactor/') {
+      navigate('/contactor', { replace: true });
     }
   }, [location.pathname, navigate]);
 
@@ -253,6 +281,19 @@ function AuthApp() {
           }>
             <Route index element={<Navigate to="timeline" replace />} />
             <Route path="timeline" element={<ExploiterTimeline />} />
+          </Route>
+
+          <Route path="/contactor" element={
+            <ContactorLayout
+              sidebarCollapsed={!isMobile && sidebarCollapsed}
+              mobileSidebarOpen={isMobile && mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+            />
+          }>
+            <Route index element={<ContactorPeopleView />} />
+            <Route path="feed" element={<ContactorFeedView />} />
+            <Route path="graph" element={<ContactorGraphView />} />
+            <Route path=":id" element={<ContactPageView />} />
           </Route>
           <Route path="/tasker/*"    element={<div className="main-content"><ComingSoon name="Tasker" /></div>} />
           <Route path="/pm/*"        element={<div className="main-content"><ComingSoon name="Project Manager" /></div>} />

@@ -17,6 +17,13 @@ export const MODULE_THEMES = {
     textColor: '#4a2e06',
     label: 'Exploiter',
   },
+  contactor: {
+    gradient: 'linear-gradient(90deg, rgb(232 236 255) 0%, rgb(214 220 255) 100%)',
+    accent: '#4C5FD5',
+    light: '#EEF0FF',
+    textColor: '#26317a',
+    label: 'Contactor',
+  },
   stuffer: {
     gradient: 'linear-gradient(90deg, #fef3c7 0%, #fde8a8 100%)',
     accent: '#b45309',
