@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import { Text, Center, Loader, Menu, Button, ActionIcon } from '@mantine/core';
-import { IconPlus, IconDots, IconPencil, IconCopy, IconEyeOff, IconEye, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconDots, IconPencil, IconCopy, IconEyeOff, IconEye, IconTrash, IconLink } from '@tabler/icons-react';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
@@ -37,6 +37,8 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
   const isPending = transaction.status === 'pending';
   const kindColor = flowKindColor(transaction.flow_kind, disabled);
   const kindSign  = flowKindSign(transaction.flow_kind);
+  const linkedLabel = transaction.linked_entity?.label
+    || (transaction.linked_entity_type === 'stuffer.thing' ? 'Thing' : null);
 
   const notePreview = transaction.note
     ? transaction.note.split('\n')[0].slice(0, 60) +
@@ -118,6 +120,27 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
           wordBreak: 'break-all',
         }}>
           {notePreview}
+        </div>
+      )}
+      {linkedLabel && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          maxWidth: '100%',
+          marginTop: 6,
+          padding: '2px 5px',
+          borderRadius: 4,
+          background: 'var(--mantine-color-blue-0)',
+          color: 'var(--mantine-color-blue-7)',
+          fontSize: 10,
+          fontWeight: 600,
+          lineHeight: 1.3,
+        }}>
+          <IconLink size={10} style={{ flexShrink: 0 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {linkedLabel}
+          </span>
         </div>
       )}
       {transaction.category && (
