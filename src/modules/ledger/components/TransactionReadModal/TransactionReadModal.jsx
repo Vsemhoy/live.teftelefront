@@ -1,5 +1,5 @@
 import { Modal, Stack, Group, Text, Badge, Box, ActionIcon, Divider } from '@mantine/core';
-import { IconPencil, IconTrash } from '@tabler/icons-react';
+import { IconLink, IconPencil, IconTrash } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useLedgerStore } from '../../store/ledgerStore';
 import { useTransaction, useDeleteTransaction } from '../../api/ledgerApi';
@@ -18,6 +18,11 @@ export const TransactionReadModal = () => {
   const isPending = tx.status === 'pending';
   const kindColor = flowKindColor(tx.flow_kind, disabled);
   const kindSign  = flowKindSign(tx.flow_kind);
+  const linkedEntity = tx.linked_entity;
+  const linkedLabel = linkedEntity?.label
+    || (tx.linked_entity_type && tx.linked_entity_id
+      ? `${tx.linked_entity_type}: ${tx.linked_entity_id}`
+      : null);
 
   const handleDelete = () => {
     if (!confirm('Delete this transaction?')) return;
@@ -40,6 +45,22 @@ export const TransactionReadModal = () => {
     >
       <Stack gap={12}>
         {tx.title && <Text size="sm" fw={500}>{tx.title}</Text>}
+
+        {linkedLabel && (
+          <Box p={10} style={{
+            background: 'var(--mantine-color-blue-0)',
+            borderRadius: 6,
+            border: '1px solid var(--mantine-color-blue-2)',
+          }}>
+            <Group gap={8} wrap="nowrap">
+              <IconLink size={15} color="var(--mantine-color-blue-6)" />
+              <Stack gap={0} style={{ minWidth: 0 }}>
+                <Text size="xs" c="dimmed">Linked to</Text>
+                <Text size="sm" fw={500} lineClamp={1}>{linkedLabel}</Text>
+              </Stack>
+            </Group>
+          </Box>
+        )}
 
         <Group gap={8}>
           <Badge size="sm" variant="light" color="gray">

@@ -18,6 +18,7 @@ import {
   useTransaction, useSaveTransaction, useDeleteTransaction,
   useAccounts, useTransactionGroups,
 } from '../../api/ledgerApi';
+import { useThings } from '@/modules/stuffer/api/stufferApi';
 import { toMinor, toMajor } from '../../utils/ledgerUtils';
 import { CategorySelect } from '../CategorySelect/CategorySelect';
 
@@ -175,10 +176,17 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
   const [groupId,   setGroupId]   = useState(initial?.group_id       || null);
   const [categoryId, setCategoryId] = useState(initial?.category_id   || null);
   const [status,    setStatus]    = useState(initial?.status         || 'cleared');
+  const [linkedEntityType, setLinkedEntityType] = useState(
+    initial?.linked_entity_type || (initial?.exploiter_event_id ? 'exploiter.event' : '')
+  );
+  const [linkedEntityId, setLinkedEntityId] = useState(
+    initial?.linked_entity_id || initial?.exploiter_event_id || null
+  );
   const [activeTab, setActiveTab] = useState('main');
 
   const { data: accounts = [] } = useAccounts();
   const { data: groups   = [] } = useTransactionGroups();
+  const { data: things = [] } = useThings();
 
   useEffect(() => {
     if (initial?.account_id && !accountId) setAccountId(initial.account_id);
@@ -197,6 +205,13 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
 
   const isTransfer = flowKind === 'transfer_out';
   const currentAccount = accounts.find((a) => a.id === accountId);
+  const thingOptions = [
+    { value: '', label: 'No linked thing' },
+    ...things.map((thing) => ({
+      value: thing.id,
+      label: thing.name || thing.title || thing.id,
+    })),
+  ];
 
   const handleSubmit = () => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : Number(amount);
@@ -227,6 +242,8 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
       target_account_id: isTransfer ? targetId : null,
       group_id:          groupId || null,
       category_id:       categoryId || null,
+      linked_entity_type: linkedEntityId ? (linkedEntityType || 'stuffer.thing') : null,
+      linked_entity_id:   linkedEntityId || null,
       status,
     });
   };
@@ -344,6 +361,20 @@ const TransactionForm = ({ initial, onSave, onDelete, onCancel, isSaving }) => {
             <CategorySelect
               value={categoryId}
               onChange={setCategoryId}
+            />
+
+            <Select
+              label="Linked thing"
+              placeholder="Attach this transaction to a thing"
+              value={linkedEntityType === 'stuffer.thing' ? (linkedEntityId || '') : ''}
+              onChange={(value) => {
+                setLinkedEntityId(value || null);
+                setLinkedEntityType(value ? 'stuffer.thing' : '');
+              }}
+              data={thingOptions}
+              searchable
+              clearable
+              size="sm"
             />
           </Stack>
         </Tabs.Panel>
