@@ -12,6 +12,16 @@ export const formatLastContact = (value) => {
   return date.format('MMM D, YYYY');
 };
 
+export const formatPartialDate = (value, precision = 'day') => {
+  if (!value) return '';
+
+  const date = dayjs(value);
+  if (!date.isValid()) return '';
+  if (precision === 'year') return date.format('YYYY');
+  if (precision === 'month') return date.format('MMM YYYY');
+  return date.format('MMM D, YYYY');
+};
+
 export const normalizeDetails = (details) => {
   if (Array.isArray(details)) {
     return details

@@ -1,7 +1,6 @@
 import { Box, Center, Loader, Text } from '@mantine/core';
 import { useParams } from 'react-router-dom';
-import { useContact, useContactLogs, useContactRelations } from '../../api/contactorApi';
-import { useContactorStore } from '../../store/contactorStore';
+import { useContact, useContactLogs, useContactRelations, useContacts } from '../../api/contactorApi';
 import { ContactPage as ContactPageComponent } from '../../components/ContactPage/ContactPage';
 
 export const ContactPageView = () => {
@@ -9,7 +8,7 @@ export const ContactPageView = () => {
   const { data: contact, isLoading } = useContact(id);
   const { data: logs = [] } = useContactLogs(id);
   const { data: relations = [] } = useContactRelations(id);
-  const contacts = useContactorStore((state) => state.contacts);
+  const { data: contacts = [] } = useContacts({ group: 'all', q: '', sort: 'name', dir: 'asc' });
 
   if (isLoading) return <Center h={300}><Loader size="sm" /></Center>;
 

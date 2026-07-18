@@ -1,12 +1,12 @@
 import { Box, Button, Group, Stack, Text } from '@mantine/core';
 import { IconMessagePlus } from '@tabler/icons-react';
-import { useContactLogs } from '../../api/contactorApi';
+import { useContactLogs, useContacts } from '../../api/contactorApi';
 import { LogEntry } from '../../components/LogEntry/LogEntry';
 import { useContactorStore } from '../../store/contactorStore';
 
 export const FeedView = () => {
   const { data: logs = [] } = useContactLogs();
-  const contacts = useContactorStore((state) => state.contacts);
+  const { data: contacts = [] } = useContacts({ group: 'all', q: '', sort: 'name', dir: 'asc' });
   const openLogEditor = useContactorStore((state) => state.openLogEditor);
 
   return (
@@ -22,7 +22,7 @@ export const FeedView = () => {
           <LogEntry
             key={log.id}
             log={log}
-            contact={contacts.find((contact) => contact.id === log.contact_id)}
+            contact={log.contact || contacts.find((contact) => contact.id === log.contact_id)}
           />
         ))}
       </Stack>

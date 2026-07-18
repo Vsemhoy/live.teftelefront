@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActionIcon, Button, Group, Modal, Select, SimpleGrid,
-  Stack, Text, TextInput,
+  Stack, Text, TextInput, NumberInput,
 } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { CONTACT_GROUPS } from '../../api/contactorMocks';
+import { useContacts, useSaveContact } from '../../api/contactorApi';
 import { useContactorStore } from '../../store/contactorStore';
 import { normalizeDetails } from '../../utils/contactorUtils';
 
@@ -24,17 +26,50 @@ const emptyForm = {
   role: '',
   company: '',
   met_at: '',
+  met_precision: null,
   met_context: '',
   details: [],
 };
 
-const emptyDetail = () => ({ kind: 'phone', label: '', value: '', sort_order: Date.now() });
+const emptyDetail = () => ({ kind: 'phone', label: '', value: '', sort_order: 0 });
+
+const getErrorMessage = (error) =>
+  error?.response?.data?.message ||
+  Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
+  error?.message ||
+  'Failed to save contact';
+
+const splitPartialDate = (value, precision) => {
+  if (!value) return { year: '', month: '', day: '' };
+
+  const [year, month, day] = String(value).slice(0, 10).split('-');
+  return {
+    year: year || '',
+    month: precision === 'year' ? '' : (month || ''),
+    day: precision === 'day' ? (day || '') : '',
+  };
+};
+
+const buildPartialDate = ({ year, month, day }) => {
+  if (!year) return { met_at: null, met_precision: null };
+
+  const safeYear = String(year).padStart(4, '0');
+  if (!month) return { met_at: `${safeYear}-01-01`, met_precision: 'year' };
+
+  const safeMonth = String(month).padStart(2, '0');
+  if (!day) return { met_at: `${safeYear}-${safeMonth}-01`, met_precision: 'month' };
+
+  return { met_at: `${safeYear}-${safeMonth}-${String(day).padStart(2, '0')}`, met_precision: 'day' };
+};
 
 export const ContactEditor = () => {
   const {
-    contactEditorOpen, contactEditorParams, closeContactEditor, contacts, saveContact,
+    contactEditorOpen, contactEditorParams, closeContactEditor,
   } = useContactorStore();
+  const { data: contacts = [] } = useContacts({ group: 'all', q: '', sort: 'name', dir: 'asc' });
+  const saveContact = useSaveContact();
   const [form, setForm] = useState(emptyForm);
+  const [metParts, setMetParts] = useState({ year: '', month: '', day: '' });
 
   const editing = useMemo(
     () => contacts.find((contact) => contact.id === contactEditorParams?.id),
@@ -48,12 +83,20 @@ export const ContactEditor = () => {
       ...editing,
       details: normalizeDetails(editing.details),
       met_at: editing.met_at || '',
+      met_precision: editing.met_precision || null,
       met_context: editing.met_context || '',
       nickname: editing.nickname || '',
     } : emptyForm);
+    setMetParts(editing ? splitPartialDate(editing.met_at, editing.met_precision) : { year: '', month: '', day: '' });
   }, [contactEditorOpen, editing]);
 
   const patch = (key, value) => setForm((state) => ({ ...state, [key]: value }));
+  const patchMet = (key, value) => setMetParts((state) => {
+    const next = { ...state, [key]: value || '' };
+    if (key === 'year' && !value) return { year: '', month: '', day: '' };
+    if (key === 'month' && !value) return { ...next, day: '' };
+    return next;
+  });
 
   const patchDetail = (idx, key, value) => setForm((state) => ({
     ...state,
@@ -74,12 +117,25 @@ export const ContactEditor = () => {
     const name = form.name.trim();
     if (!name) return;
 
-    saveContact({
+    const details = normalizeDetails(form.details)
+      .filter((detail) => detail.value?.trim())
+      .map((detail, index) => ({
+        ...detail,
+        label: detail.label?.trim() || detail.kind,
+        value: detail.value.trim(),
+        sort_order: index + 1,
+      }));
+
+    saveContact.mutate({
       ...form,
       id: editing?.id,
       name,
       nickname: form.nickname.trim(),
-      met_at: form.met_at || null,
+      ...buildPartialDate(metParts),
+      details,
+    }, {
+      onSuccess: closeContactEditor,
+      onError: (error) => notifications.show({ message: getErrorMessage(error), color: 'red' }),
     });
   };
 
@@ -107,12 +163,37 @@ export const ContactEditor = () => {
           />
           <TextInput label="Role" value={form.role} onChange={(event) => patch('role', event.currentTarget.value)} />
           <TextInput label="Company" value={form.company} onChange={(event) => patch('company', event.currentTarget.value)} />
-          <TextInput
-            label="Met at"
-            type="date"
-            value={form.met_at}
-            onChange={(event) => patch('met_at', event.currentTarget.value)}
-          />
+          <Group grow align="flex-start">
+            <NumberInput
+              label="Met year"
+              placeholder="2021"
+              min={1900}
+              max={2200}
+              value={metParts.year}
+              onChange={(value) => patchMet('year', value)}
+              hideControls
+            />
+            <NumberInput
+              label="Month"
+              placeholder="Optional"
+              min={1}
+              max={12}
+              value={metParts.month}
+              onChange={(value) => patchMet('month', value)}
+              disabled={!metParts.year}
+              hideControls
+            />
+            <NumberInput
+              label="Day"
+              placeholder="Optional"
+              min={1}
+              max={31}
+              value={metParts.day}
+              onChange={(value) => patchMet('day', value)}
+              disabled={!metParts.year || !metParts.month}
+              hideControls
+            />
+          </Group>
         </SimpleGrid>
         <TextInput
           label="Met context"
@@ -165,7 +246,7 @@ export const ContactEditor = () => {
 
         <Group justify="flex-end" mt={4}>
           <Button variant="subtle" color="gray" onClick={closeContactEditor}>Cancel</Button>
-          <Button color="indigo" onClick={handleSave}>Save</Button>
+          <Button color="indigo" onClick={handleSave} loading={saveContact.isPending}>Save</Button>
         </Group>
       </Stack>
     </Modal>

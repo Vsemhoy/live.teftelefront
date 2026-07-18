@@ -9,7 +9,7 @@ export const GraphView = () => {
     <Box className="content-scroll" p={16}>
       <Group justify="space-between" mb="sm">
         <Text size="sm" fw={700}>Relation graph</Text>
-        <Text size="xs" c="dimmed">{contacts.length} nodes · {relations.length} links</Text>
+        <Text size="xs" c="dimmed">{contacts.length} nodes / {relations.length} links</Text>
       </Group>
       <GraphViewComponent contacts={contacts} relations={relations} />
     </Box>

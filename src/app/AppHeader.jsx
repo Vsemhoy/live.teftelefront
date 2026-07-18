@@ -9,10 +9,11 @@ import {
   IconCalendarEvent, IconPackage, IconCurrencyDollar,
   IconChecklist, IconBriefcase, IconSettings,
   IconUser, IconLogout, IconLogin, IconSearch,
-  IconLayoutSidebar, IconX, IconApps, IconBooks, IconTimeline, IconHome, IconAddressBook,
+  IconLayoutSidebar, IconX, IconApps, IconBooks, IconTimeline, IconHome, IconAddressBook, IconEye,
 } from '@tabler/icons-react';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
+import { useExpertStore } from '@/shared/expertStore';
 import { getModuleTheme } from './moduleThemes';
 
 const MODULES = [
@@ -60,6 +61,9 @@ export const AppHeader = ({ onToggleSidebar, authModalOpen }) => {
   const logout = useAuthStore((state) => state.logout);
   const isOnline = useOnlineStatus();
 
+  const expertMode = useExpertStore((s) => s.expertMode);
+  const toggleExpertMode = useExpertStore((s) => s.toggleExpertMode);
+
   const [appsOpened, { open: openApps, close: closeApps }] = useDisclosure(false);
   const [headerSearch, setHeaderSearch] = useState('');
   const searchRef = useRef(null);
@@ -101,7 +105,11 @@ export const AppHeader = ({ onToggleSidebar, authModalOpen }) => {
           )}
 
           {!isMobile && activeModule && (
-            <Group gap={6} style={{ cursor: 'default' }}>
+            <Group
+              gap={6}
+              style={{ cursor: 'default', userSelect: 'none' }}
+              onDoubleClick={toggleExpertMode}
+            >
               <activeModule.icon size={15} style={{ color: theme.textColor, opacity: 0.75 }} />
               <Text
                 size="sm"
@@ -110,6 +118,9 @@ export const AppHeader = ({ onToggleSidebar, authModalOpen }) => {
               >
                 {theme.label}
               </Text>
+              {expertMode && (
+                <IconEye size={12} style={{ color: theme.textColor, opacity: 0.45 }} />
+              )}
             </Group>
           )}
         </div>
@@ -172,6 +183,13 @@ export const AppHeader = ({ onToggleSidebar, authModalOpen }) => {
               <Menu.Dropdown>
                 <Menu.Label>{user.name || user.email}</Menu.Label>
                 <Menu.Item leftSection={<IconUser size={14} />}>Profile</Menu.Item>
+                <Menu.Item
+                  leftSection={<IconEye size={14} />}
+                  color={expertMode ? 'indigo' : undefined}
+                  onClick={toggleExpertMode}
+                >
+                  Expert mode: {expertMode ? 'On' : 'Off'}
+                </Menu.Item>
                 <Menu.Divider />
                 <Menu.Item leftSection={<IconLogout size={14} />} color="red" onClick={logout}>
                   Sign out

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Button, Group, Modal, Select, Stack, Textarea, TextInput } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { RELATION_KINDS } from '../../api/contactorMocks';
+import { useContacts, useSaveRelation } from '../../api/contactorApi';
 import { useContactorStore } from '../../store/contactorStore';
 
 const emptyForm = {
@@ -13,10 +15,18 @@ const emptyForm = {
   note: '',
 };
 
+const getErrorMessage = (error) =>
+  error?.response?.data?.message ||
+  Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
+  error?.message ||
+  'Failed to save relation';
+
 export const RelationEditor = () => {
   const {
-    relationEditorOpen, relationEditorParams, closeRelationEditor, contacts, saveRelation,
+    relationEditorOpen, relationEditorParams, closeRelationEditor,
   } = useContactorStore();
+  const { data: contacts = [] } = useContacts({ group: 'all', q: '', sort: 'name', dir: 'asc' });
+  const saveRelation = useSaveRelation();
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -36,10 +46,13 @@ export const RelationEditor = () => {
   const handleSave = () => {
     if (!form.contact_a_id || !form.contact_b_id || form.contact_a_id === form.contact_b_id) return;
 
-    saveRelation({
+    saveRelation.mutate({
       ...form,
       valid_from: form.valid_from || null,
       valid_to: form.valid_to || null,
+    }, {
+      onSuccess: closeRelationEditor,
+      onError: (error) => notifications.show({ message: getErrorMessage(error), color: 'red' }),
     });
   };
 
@@ -83,7 +96,7 @@ export const RelationEditor = () => {
         />
         <Group justify="flex-end">
           <Button variant="subtle" color="gray" onClick={closeRelationEditor}>Cancel</Button>
-          <Button color="indigo" onClick={handleSave}>Save</Button>
+          <Button color="indigo" onClick={handleSave} loading={saveRelation.isPending}>Save</Button>
         </Group>
       </Stack>
     </Modal>
