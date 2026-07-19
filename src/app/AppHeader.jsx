@@ -17,7 +17,7 @@ import { useExpertStore } from '@/shared/expertStore';
 import { getModuleTheme } from './moduleThemes';
 
 const MODULES = [
-  { id: 'home', label: 'Home', icon: IconHome, path: '/', desc: 'Feed & overview' },
+  { id: 'home', label: 'Home', icon: IconHome, path: '/', desc: 'Apps & feed' },
   { id: 'eventor', label: 'Eventor', icon: IconCalendarEvent, path: '/eventor/flow', desc: 'Calendar & notes' },
   { id: 'ledger', label: 'Ledger', icon: IconCurrencyDollar, path: '/ledger', desc: 'Budget & expenses' },
   { id: 'stuffer', label: 'Stuffer', icon: IconPackage, path: '/stuffer/things', desc: 'Stuff & locations' },
@@ -30,7 +30,7 @@ const MODULES = [
 ];
 
 const getActiveModuleId = (pathname) => {
-  if (pathname === '/' || pathname === '') return 'home';
+  if (pathname === '/' || pathname === '' || pathname.startsWith('/home')) return 'home';
 
   return MODULES.find((module) => (
     module.id !== 'home' && pathname.startsWith(`/${module.id}`)

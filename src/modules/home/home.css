@@ -2,6 +2,93 @@
    HOME FEED — главная лента
 ================================================================ */
 
+.home-hub {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.home-hub-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.home-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.home-hub-card {
+  width: 100%;
+  min-height: 112px;
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: 8px;
+  background: var(--mantine-color-white);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.home-hub-card:hover {
+  border-color: var(--mantine-color-gray-4);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.home-hub-card-icon {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.home-hub-card-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-hub-card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .home-hub {
+    padding: 14px 12px;
+  }
+
+  .home-hub-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .home-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .home-feed {
   max-width: 600px;
   margin: 0 auto;

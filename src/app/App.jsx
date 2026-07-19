@@ -77,6 +77,7 @@ import { FactsView } from '@/modules/factor/views/FactsView/FactsView';
 import '@/modules/factor/factor.css';
 
 // Home
+import { HomeHub } from '@/modules/home/views/HomeHub/HomeHub';
 import { HomeFeed } from '@/modules/home/views/HomeFeed/HomeFeed';
 import '@/modules/home/home.css';
 
@@ -240,7 +241,8 @@ function AuthApp() {
         )}
 
         <Routes>
-          <Route path="/" element={<div className="main-content"><HomeFeed /></div>} />
+          <Route path="/" element={<div className="main-content"><HomeHub /></div>} />
+          <Route path="/home" element={<div className="main-content"><HomeFeed /></div>} />
 
           <Route path="/eventor" element={
             <EventorLayout
