@@ -1,5 +1,5 @@
 import { Modal, Text, Group, Badge, Box, Divider, ActionIcon, Tooltip, Loader, Center, Stack, Paper, Anchor } from '@mantine/core';
-import { IconEdit, IconCalendar, IconFolder, IconChevronUp, IconChevronDown, IconLink, IconGitFork } from '@tabler/icons-react';
+import { IconEdit, IconCalendar, IconFolder, IconChevronUp, IconChevronDown, IconLink, IconGitFork, IconPackage } from '@tabler/icons-react';
 import { MdFull } from '@/shared/components/MdRenderer';
 import { useState } from 'react';
 import { useMediaQuery } from '@mantine/hooks';
@@ -108,6 +108,12 @@ export const ReadModal = () => {
                 style={typeColor ? { '--badge-dot-size': '7px', '--badge-color': typeColor } : {}}>
                 {event.evt_type.name}
               </Badge>
+            )}
+            {event.thing?.name && (
+              <Group gap={6}>
+                <IconPackage size={13} color="var(--mantine-color-gray-5)" />
+                <Text size="xs" c="dimmed">{event.thing.name}</Text>
+              </Group>
             )}
             <Box style={{ flex: 1 }} />
 

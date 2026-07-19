@@ -24,6 +24,13 @@ export const MODULE_THEMES = {
     textColor: '#26317a',
     label: 'Contactor',
   },
+  factor: {
+    gradient: 'linear-gradient(90deg, rgb(235 245 255) 0%, rgb(214 234 255) 100%)',
+    accent: '#2B6CB0',
+    light: '#EBF4FF',
+    textColor: '#163c63',
+    label: 'Factor',
+  },
   stuffer: {
     gradient: 'linear-gradient(90deg, #fef3c7 0%, #fde8a8 100%)',
     accent: '#b45309',

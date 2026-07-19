@@ -69,6 +69,7 @@ import dayjs from 'dayjs';
 import { useEventorStore } from '../../store/eventorStore';
 import {
   useSections,
+  useEventCategories,
   useEventTypes,
   useSaveEvent,
   useEvent,
@@ -76,6 +77,7 @@ import {
   useTags,
 } from '../../api/eventorApi';
 import { TagSelect } from '../TagSelect/TagSelect';
+import { useThings } from '@/modules/stuffer/api/stufferApi';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { createDraft, updateDraft, deleteDraft } from '@/shared/utils/db';
@@ -132,6 +134,8 @@ export const EventEditor = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   const { data: sections } = useSections();
+  const { data: categories } = useEventCategories();
+  const { data: things = [] } = useThings();
   const { data: types } = useEventTypes();
   const { mutateAsync: saveEvent, isPending: isSaving } = useSaveEvent();
   const { mutateAsync: deleteEvent, isPending: isDeleting } = useDeleteEvent();
@@ -142,6 +146,8 @@ export const EventEditor = () => {
   const [occurredAt, setOccurredAt] = useState(new Date());
   const [setTime, setSetTime] = useState('09:00');
   const [sectionId, setSectionId] = useState(null);
+  const [categoryId, setCategoryId] = useState(null);
+  const [thingId, setThingId] = useState(null);
   const [typeId, setTypeId] = useState(null);
 
   const [tab, setTab] = useState('editor');
@@ -173,6 +179,8 @@ export const EventEditor = () => {
       setOccurredAt(srcDate);
       setSetTime(toTimeString(srcDate));
       setSectionId(draftSrc.section_id || null);
+      setCategoryId(draftSrc.category_id || null);
+      setThingId(draftSrc.thing_id || null);
       setTypeId(draftSrc.type_id || null);
       setTagIds(Array.isArray(draftSrc.tag_ids) ? draftSrc.tag_ids : []);
       setProject(draftSrc.project || '');
@@ -191,6 +199,8 @@ export const EventEditor = () => {
       setOccurredAt(srcDate);
       setSetTime(toTimeString(srcDate));
       setSectionId(existingEvent.section_id || null);
+      setCategoryId(existingEvent.category_id || null);
+      setThingId(existingEvent.thing_id || null);
       setTypeId(existingEvent.type_id || null);
       setTagIds((existingEvent.tags || []).map((t) => t.id));
       setProject(existingEvent.project || '');
@@ -212,6 +222,8 @@ export const EventEditor = () => {
           ? editorData.section_id
           : null
       );
+      setCategoryId(editorData?.category_id || null);
+      setThingId(editorData?.thing_id || null);
       setTypeId(null);
       setTagIds([]);
       setProject('');
@@ -230,6 +242,14 @@ export const EventEditor = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorOpen, editorData?.id, editorData?.draftLocalId, editorData?._draftData, existingEvent]);
 
+  useEffect(() => {
+    if (!editorOpen || !thingId || categoryId) return;
+    const thing = things.find((item) => item.id === thingId);
+    if (thing?.last_category_id) {
+      setCategoryId(thing.last_category_id);
+    }
+  }, [editorOpen, thingId, categoryId, things]);
+
   const handleSave = async () => {
     const dateWithTime = composeDateTime(occurredAt, setTime);
 
@@ -239,6 +259,8 @@ export const EventEditor = () => {
       content,
       occurred_at: dateWithTime.format('YYYY-MM-DD HH:mm:ss'),
       section_id: sectionId,
+      category_id: categoryId,
+      thing_id: thingId,
       type_id: typeId,
     };
 
@@ -320,6 +342,19 @@ export const EventEditor = () => {
   const sectionOptions = [
     { value: '', label: 'No section' },
     ...(sections?.map((s) => ({ value: s.id, label: s.name })) || []),
+  ];
+
+  const categoryOptions = [
+    { value: '', label: 'No category' },
+    ...(categories?.map((category) => ({ value: category.id, label: category.name })) || []),
+  ];
+
+  const thingOptions = [
+    { value: '', label: 'No linked thing' },
+    ...things.map((thing) => ({
+      value: thing.id,
+      label: thing.name,
+    })),
   ];
 
   const typeOptions =
@@ -486,6 +521,7 @@ export const EventEditor = () => {
                   <MDXEditor
                     key={editorKey}
                     ref={editorRef}
+                    overlayContainer={typeof document !== 'undefined' ? document.body : undefined}
                     markdown={content}
                     onChange={setContent}
                     placeholder="Write your content..."
@@ -632,6 +668,31 @@ export const EventEditor = () => {
                   onChange={(value) => setSectionId(value || null)}
                   clearable
                   placeholder="No section"
+                />
+                <Select
+                  label="Thing"
+                  data={thingOptions}
+                  value={thingId || ''}
+                  onChange={(value) => {
+                    const nextThingId = value || null;
+                    setThingId(nextThingId);
+                    const thing = things.find((item) => item.id === nextThingId);
+                    if (thing?.last_category_id) {
+                      setCategoryId(thing.last_category_id);
+                    }
+                  }}
+                  searchable
+                  clearable
+                  placeholder="No linked thing"
+                />
+                <Select
+                  label="Category"
+                  data={categoryOptions}
+                  value={categoryId || ''}
+                  onChange={(value) => setCategoryId(value || null)}
+                  searchable
+                  clearable
+                  placeholder="No category"
                 />
                 <DatePickerInput
                   label="Date"

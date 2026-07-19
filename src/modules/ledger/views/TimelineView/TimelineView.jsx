@@ -17,6 +17,18 @@ import { notifications } from '@mantine/notifications';
 import { DuplicateModal } from '../../components/DuplicateModal/DuplicateModal';
 import { LedgerToolbar } from '../../components/Toolbar/LedgerToolbar';
 
+const linkedEntityLabel = (transaction) => {
+  const entity = transaction?.linked_entity || {};
+  if (entity.label) return entity.label;
+  if (entity.name) return entity.name;
+  if (entity.title) return entity.title;
+  if (entity.thing?.name) return entity.thing.name;
+  if (transaction?.linked_entity_type === 'stuffer.thing') return 'Thing';
+  if (transaction?.linked_entity_type === 'exploiter.event' || transaction?.exploiter_event_id) return 'Exploit';
+  if (transaction?.linked_entity_type && transaction?.linked_entity_id) return transaction.linked_entity_type;
+  return null;
+};
+
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
@@ -37,8 +49,7 @@ const DraggableCard = ({ transaction, onDoubleClick }) => {
   const isPending = transaction.status === 'pending';
   const kindColor = flowKindColor(transaction.flow_kind, disabled);
   const kindSign  = flowKindSign(transaction.flow_kind);
-  const linkedLabel = transaction.linked_entity?.label
-    || (transaction.linked_entity_type === 'stuffer.thing' ? 'Thing' : null);
+  const linkedLabel = linkedEntityLabel(transaction);
 
   const notePreview = transaction.note
     ? transaction.note.split('\n')[0].slice(0, 60) +

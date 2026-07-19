@@ -9,6 +9,7 @@ export const eventorKeys = {
   events: (params) => ['eventor', 'events', params],
   event: (id) => ['eventor', 'event', id],
   sections: () => ['eventor', 'sections'],
+  categories: () => ['eventor', 'categories'],
   types: () => ['eventor', 'types'],
   tags: () => ['eventor', 'tags'],
   search: (params) => ['eventor', 'search', params],
@@ -63,6 +64,19 @@ export const useSections = () => {
       return res.data.content;
     },
     enabled: Boolean(user),
+  });
+};
+
+export const useEventCategories = () => {
+  const user = useAuthStore((s) => s.user);
+  return useQuery({
+    queryKey: eventorKeys.categories(),
+    queryFn: async () => {
+      const res = await api.post('/eventor/getmycategories', {});
+      return res.data.content;
+    },
+    enabled: Boolean(user),
+    staleTime: 10 * 60 * 1000,
   });
 };
 

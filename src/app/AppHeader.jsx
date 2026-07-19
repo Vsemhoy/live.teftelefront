@@ -9,7 +9,7 @@ import {
   IconCalendarEvent, IconPackage, IconCurrencyDollar,
   IconChecklist, IconBriefcase, IconSettings,
   IconUser, IconLogout, IconLogin, IconSearch,
-  IconLayoutSidebar, IconX, IconApps, IconBooks, IconTimeline, IconHome, IconAddressBook, IconEye,
+  IconLayoutSidebar, IconX, IconApps, IconBooks, IconTimeline, IconHome, IconAddressBook, IconEye, IconDatabase,
 } from '@tabler/icons-react';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
@@ -23,6 +23,7 @@ const MODULES = [
   { id: 'stuffer', label: 'Stuffer', icon: IconPackage, path: '/stuffer/things', desc: 'Stuff & locations' },
   { id: 'exploiter', label: 'Exploiter', icon: IconTimeline, path: '/exploiter/timeline', desc: 'Lifecycle & costs' },
   { id: 'contactor', label: 'Contactor', icon: IconAddressBook, path: '/contactor', desc: 'People & relations' },
+  { id: 'factor', label: 'Factor', icon: IconDatabase, path: '/factor', desc: 'Atomic facts' },
   { id: 'booker', label: 'Booker', icon: IconBooks, path: '/booker', desc: 'Books & knowledge' },
   { id: 'tasker', label: 'Tasker', icon: IconChecklist, path: '/tasker', desc: 'Tasks & kanban' },
   { id: 'pm', label: 'PM', icon: IconBriefcase, path: '/pm', desc: 'Project management' },

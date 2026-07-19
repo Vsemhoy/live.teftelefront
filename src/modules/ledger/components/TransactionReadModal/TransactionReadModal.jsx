@@ -6,6 +6,24 @@ import { useTransaction, useDeleteTransaction } from '../../api/ledgerApi';
 import { formatMoney, flowKindColor, flowKindSign } from '../../utils/ledgerUtils';
 import { notifications } from '@mantine/notifications';
 
+const linkedEntityLabel = (tx) => {
+  const entity = tx?.linked_entity || {};
+  if (entity.label) return entity.label;
+  if (entity.name) return entity.name;
+  if (entity.title) return entity.title;
+  if (entity.thing?.name) return entity.thing.name;
+  if (tx?.linked_entity_type === 'stuffer.thing') return 'Thing';
+  if (tx?.linked_entity_type === 'exploiter.event' || tx?.exploiter_event_id) return 'Exploit';
+  if (tx?.linked_entity_type && tx?.linked_entity_id) return tx.linked_entity_type;
+  return null;
+};
+
+const linkedEntityTypeLabel = (tx) => {
+  if (tx?.linked_entity_type === 'stuffer.thing') return 'Staffer thing';
+  if (tx?.linked_entity_type === 'exploiter.event' || tx?.exploiter_event_id) return 'Exploiter event';
+  return 'Linked entity';
+};
+
 export const TransactionReadModal = () => {
   const { readerOpen, readerParams, closeReader, openEditor } = useLedgerStore();
   const id = readerParams?.id;
@@ -18,11 +36,8 @@ export const TransactionReadModal = () => {
   const isPending = tx.status === 'pending';
   const kindColor = flowKindColor(tx.flow_kind, disabled);
   const kindSign  = flowKindSign(tx.flow_kind);
-  const linkedEntity = tx.linked_entity;
-  const linkedLabel = linkedEntity?.label
-    || (tx.linked_entity_type && tx.linked_entity_id
-      ? `${tx.linked_entity_type}: ${tx.linked_entity_id}`
-      : null);
+  const linkedLabel = linkedEntityLabel(tx);
+  const linkedTypeLabel = linkedEntityTypeLabel(tx);
 
   const handleDelete = () => {
     if (!confirm('Delete this transaction?')) return;
@@ -55,7 +70,7 @@ export const TransactionReadModal = () => {
             <Group gap={8} wrap="nowrap">
               <IconLink size={15} color="var(--mantine-color-blue-6)" />
               <Stack gap={0} style={{ minWidth: 0 }}>
-                <Text size="xs" c="dimmed">Linked to</Text>
+                <Text size="xs" c="dimmed">{linkedTypeLabel}</Text>
                 <Text size="sm" fw={500} lineClamp={1}>{linkedLabel}</Text>
               </Stack>
             </Group>

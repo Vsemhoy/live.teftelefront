@@ -2,7 +2,7 @@ import { Paper, Text, Group, Box, Tooltip, Menu, ActionIcon } from '@mantine/cor
 import {
   IconLock, IconDotsVertical, IconEdit, IconTrash,
   IconCircleDashed, IconPin, IconPinnedOff,
-  IconLink, IconGitFork,
+  IconLink, IconGitFork, IconPackage,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useNavigate } from 'react-router-dom';
@@ -153,6 +153,29 @@ export const EventCard = ({ event, isDraft = false }) => {
           </Menu.Dropdown>
         </Menu>
       </Group>
+
+      {event.thing?.name && (
+        <Group gap={4} mb={event.content ? 4 : 0} wrap="nowrap" style={{ minWidth: 0 }}>
+          <Box style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            maxWidth: '100%',
+            padding: '1px 6px',
+            borderRadius: 4,
+            background: 'var(--mantine-color-orange-0)',
+            color: 'var(--mantine-color-orange-8)',
+            fontSize: 11,
+            fontWeight: 600,
+            lineHeight: '18px',
+          }}>
+            <IconPackage size={11} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {event.thing.name}
+            </span>
+          </Box>
+        </Group>
+      )}
 
       <MdPreview content={event.content} blurred={isBlurred} />
 

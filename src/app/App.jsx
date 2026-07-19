@@ -68,6 +68,14 @@ import { LogEditor } from '@/modules/contactor/components/LogEditor/LogEditor';
 import { RelationEditor } from '@/modules/contactor/components/RelationEditor/RelationEditor';
 import '@/modules/contactor/contactor.css';
 
+// Factor
+import { FactorSidenav } from '@/modules/factor/components/FactorSidenav/FactorSidenav';
+import { FactorToolbar } from '@/modules/factor/components/Toolbar/FactorToolbar';
+import { FactEditor } from '@/modules/factor/components/FactEditor/FactEditor';
+import { FactViewer } from '@/modules/factor/components/FactViewer/FactViewer';
+import { FactsView } from '@/modules/factor/views/FactsView/FactsView';
+import '@/modules/factor/factor.css';
+
 // Home
 import { HomeFeed } from '@/modules/home/views/HomeFeed/HomeFeed';
 import '@/modules/home/home.css';
@@ -149,6 +157,18 @@ const ContactorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose })
   </>
 );
 
+const FactorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
+  <>
+    <FactorSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
+    <div className="main-content">
+      <FactorToolbar />
+      <Outlet />
+    </div>
+    <FactEditor />
+    <FactViewer />
+  </>
+);
+
 // ══════════════════════════════════════════════════════════════════
 // PUBLIC SHELL — без авторизации, без хедера, чистая страница
 // Роуты: /e/:id, /b/:id, /s/:id, /p/:id
@@ -200,6 +220,9 @@ function AuthApp() {
     }
     if (location.pathname === '/contactor/') {
       navigate('/contactor', { replace: true });
+    }
+    if (location.pathname === '/factor/') {
+      navigate('/factor', { replace: true });
     }
   }, [location.pathname, navigate]);
 
@@ -294,6 +317,16 @@ function AuthApp() {
             <Route path="feed" element={<ContactorFeedView />} />
             <Route path="graph" element={<ContactorGraphView />} />
             <Route path=":id" element={<ContactPageView />} />
+          </Route>
+          <Route path="/factor" element={
+            <FactorLayout
+              sidebarCollapsed={!isMobile && sidebarCollapsed}
+              mobileSidebarOpen={isMobile && mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+            />
+          }>
+            <Route index element={<FactsView />} />
+            <Route path="pinned" element={<FactsView pinnedOnly />} />
           </Route>
           <Route path="/tasker/*"    element={<div className="main-content"><ComingSoon name="Tasker" /></div>} />
           <Route path="/pm/*"        element={<div className="main-content"><ComingSoon name="Project Manager" /></div>} />
