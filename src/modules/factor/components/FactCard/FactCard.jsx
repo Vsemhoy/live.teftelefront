@@ -34,17 +34,14 @@ export const FactCard = ({ fact }) => {
 
   return (
     <article className={`fact-card ${isExpired ? 'expired' : ''}`} onDoubleClick={() => openFactViewer(fact)}>
-      <Stack gap={8}>
-        <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Stack gap={2} style={{ minWidth: 0 }}>
-            <Group gap={6} wrap="nowrap">
-              <Text size="sm" fw={700} truncate>{fact.label}</Text>
-              {fact.is_pinned && <IconPinFilled size={13} color="var(--mantine-color-blue-6)" />}
-            </Group>
-            <Text className="fact-value" size="md" fw={650}>{value}</Text>
-          </Stack>
+      <Stack gap={8} className="fact-card-layout">
+        <div className="fact-card-header">
+          <Group gap={6} wrap="nowrap" className="fact-card-title">
+            <Text size="sm" fw={700} truncate>{fact.label}</Text>
+            {fact.is_pinned && <IconPinFilled size={13} color="var(--mantine-color-blue-6)" />}
+          </Group>
 
-          <Group gap={4} wrap="nowrap">
+          <Group gap={4} wrap="nowrap" className="fact-card-actions">
             <Tooltip label={fact.is_pinned ? 'Unpin' : 'Pin'} withArrow>
               <ActionIcon size="sm" variant="subtle" color="blue" onClick={handlePin} loading={toggleFactPin.isPending}>
                 {fact.is_pinned ? <IconPinFilled size={14} /> : <IconPin size={14} />}
@@ -61,11 +58,14 @@ export const FactCard = ({ fact }) => {
               </ActionIcon>
             </Tooltip>
           </Group>
-        </Group>
+        </div>
 
-        {fact.context && <Text size="xs" c="dimmed">{fact.context}</Text>}
+        <div className="fact-card-body">
+          <Text className="fact-value" size="md">{value}</Text>
+          {fact.context && <Text size="xs" c="dimmed">{fact.context}</Text>}
+        </div>
 
-        <Group gap={6}>
+        <Group gap={6} className="fact-card-footer">
           <Badge size="xs" variant="light" color={kindColor[fact.kind] || 'gray'}>{fact.kind || 'other'}</Badge>
           {searchKeywords.slice(0, 4).map((keyword) => (
             <Badge key={keyword} size="xs" variant="outline" color="gray">{keyword}</Badge>

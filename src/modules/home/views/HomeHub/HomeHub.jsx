@@ -80,20 +80,20 @@ const MODULES = [
     status: 'Draft',
   },
   {
+    id: 'projector',
+    label: 'Projector',
+    path: '/projector',
+    icon: IconBriefcase,
+    desc: 'Projects, milestones, decisions, and delivery context.',
+    status: 'Ready',
+  },
+  {
     id: 'tasker',
     label: 'Tasker',
     path: '/tasker',
     icon: IconChecklist,
-    desc: 'Tasks, reminders, workflows, and execution boards.',
-    status: 'Next',
-  },
-  {
-    id: 'pm',
-    label: 'PM',
-    path: '/pm',
-    icon: IconBriefcase,
-    desc: 'Projects, milestones, decisions, and delivery context.',
-    status: 'Next',
+    desc: 'Tasks, reports, blockers, and time tracking.',
+    status: 'Ready',
   },
 ];
 

@@ -1,0 +1,169 @@
+.tasker-shell,
+.projector-shell {
+  padding: 12px;
+}
+
+.task-list,
+.project-list,
+.task-log-list {
+  display: grid;
+  gap: 8px;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.task-card,
+.project-card,
+.task-log-entry,
+.task-time-entry,
+.project-page-head,
+.tasker-side-panel {
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: 8px;
+  background: var(--mantine-color-white);
+}
+
+.task-card,
+.project-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 12px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.task-card {
+  cursor: default;
+}
+
+.tasker-project-mark {
+  --avatar-color: var(--mantine-color-white) !important;
+  color: var(--mantine-color-white) !important;
+}
+
+.task-card:hover,
+.project-card:hover {
+  border-color: var(--mantine-color-blue-4);
+  box-shadow: 0 4px 16px rgba(30, 64, 175, 0.1);
+}
+
+.project-card:hover {
+  border-color: var(--mantine-color-pink-4);
+  box-shadow: 0 4px 16px rgba(190, 24, 93, 0.1);
+}
+
+.task-card.is-hidden,
+.project-card.is-hidden {
+  background: var(--mantine-color-gray-0);
+}
+
+.task-card.is-expert,
+.project-card.is-expert {
+  border-left: 3px solid var(--mantine-color-indigo-5);
+}
+
+.task-card-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.task-card-actions {
+  align-self: start;
+}
+
+.task-log-entry,
+.task-time-entry,
+.project-page-head,
+.tasker-side-panel {
+  padding: 12px;
+}
+
+.task-log-content {
+  white-space: pre-wrap;
+  margin-top: 8px;
+}
+
+.task-editor-tabs {
+  min-height: 360px;
+}
+
+.task-checklist-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.task-checklist-item {
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: 6px;
+  background: var(--mantine-color-gray-0);
+}
+
+.task-checklist-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.task-checklist-item.is-done .task-checklist-title {
+  color: var(--mantine-color-gray-6);
+  text-decoration: line-through;
+}
+
+.tasker-two-col {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 12px;
+}
+
+.timer-dock-button {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 190;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 14px;
+  background: var(--mantine-color-blue-6);
+  color: white;
+  box-shadow: 0 10px 26px rgba(30, 64, 175, 0.25);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.timer-dock-button:hover {
+  background: var(--mantine-color-blue-7);
+}
+
+@media (max-width: 900px) {
+  .tasker-shell,
+  .projector-shell {
+    padding: 8px;
+  }
+
+  .task-card,
+  .project-card {
+    grid-template-columns: 1fr;
+  }
+
+  .task-card-actions {
+    justify-self: end;
+  }
+
+  .tasker-toolbar,
+  .projector-toolbar {
+    overflow-x: auto;
+  }
+
+  .tasker-two-col {
+    grid-template-columns: 1fr;
+  }
+}

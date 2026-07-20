@@ -191,13 +191,24 @@ const FactRenderer = ({ fact, mode, revealed }) => {
   }
 
   if (renderMode === 'snippet' || renderMode === 'terminal' || renderMode === 'source') {
+    const isSource = renderMode === 'source';
+
     return (
-      <div className={renderMode === 'terminal' ? 'fact-viewer-terminal' : 'fact-viewer-code'}>
+      <div className={renderMode === 'terminal' ? 'fact-viewer-terminal' : `fact-viewer-code ${isSource ? 'is-source' : ''}`}>
         <SyntaxHighlighter
           style={oneLight}
           language={fact.language || (fact.format === 'command' ? 'bash' : 'text')}
           PreTag="div"
-          customStyle={{ margin: 0, borderRadius: 8, fontSize: 15, minHeight: renderMode === 'source' ? 360 : undefined }}
+          wrapLongLines={isSource}
+          codeTagProps={isSource ? { style: { whiteSpace: 'pre-wrap', wordBreak: 'break-word' } } : undefined}
+          customStyle={{
+            margin: 0,
+            borderRadius: 8,
+            fontSize: 15,
+            minHeight: isSource ? 360 : undefined,
+            overflowX: isSource ? 'hidden' : 'auto',
+            padding: isSource ? 16 : undefined,
+          }}
         >
           {visibleValue}
         </SyntaxHighlighter>
@@ -284,9 +295,8 @@ export const FactViewer = () => {
           </Group>
         </header>
 
-        {fact.context && <Text className="fact-viewer-context" size="sm" c="dimmed">{fact.context}</Text>}
-
         <main className="fact-viewer-content">
+          {fact.context && <Text className="fact-viewer-context" size="sm" c="dimmed">{fact.context}</Text>}
           <FactRenderer fact={fact} mode={mode} revealed={revealed} />
         </main>
 

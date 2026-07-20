@@ -25,8 +25,8 @@ const MODULES = [
   { id: 'contactor', label: 'Contactor', icon: IconAddressBook, path: '/contactor', desc: 'People & relations' },
   { id: 'factor', label: 'Factor', icon: IconDatabase, path: '/factor', desc: 'Atomic facts' },
   { id: 'booker', label: 'Booker', icon: IconBooks, path: '/booker', desc: 'Books & knowledge' },
-  { id: 'tasker', label: 'Tasker', icon: IconChecklist, path: '/tasker', desc: 'Tasks & kanban' },
-  { id: 'pm', label: 'PM', icon: IconBriefcase, path: '/pm', desc: 'Project management' },
+  { id: 'projector', label: 'Projector', icon: IconBriefcase, path: '/projector', desc: 'Projects & scope' },
+  { id: 'tasker', label: 'Tasker', icon: IconChecklist, path: '/tasker', desc: 'Tasks & time' },
 ];
 
 const getActiveModuleId = (pathname) => {
@@ -55,7 +55,7 @@ const ConnectDot = ({ isOnline }) => (
   </Tooltip>
 );
 
-export const AppHeader = ({ onToggleSidebar, authModalOpen }) => {
+export const AppHeader = ({ onToggleSidebar, authModalOpen, blockingOverlayOpen = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
@@ -321,6 +321,15 @@ export const AppHeader = ({ onToggleSidebar, authModalOpen }) => {
           </UnstyledButton>
         </Box>
       </Drawer>
+
+      {!appsOpened && !isPublicEventPage && !blockingOverlayOpen && (
+        <button
+          type="button"
+          className="app-menu-rail"
+          aria-label="Open applications menu"
+          onClick={openApps}
+        />
+      )}
     </>
   );
 };

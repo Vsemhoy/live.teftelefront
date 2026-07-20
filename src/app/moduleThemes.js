@@ -55,11 +55,17 @@ export const MODULE_THEMES = {
     textColor: '#1e3a6e',
     label: 'Tasker',
   },
+  projector: {
+    gradient: 'linear-gradient(90deg, #fce7f3 0%, #fbcfe8 100%)',
+    accent: '#be185d',
+    textColor: '#5a1030',
+    label: 'Projector',
+  },
   pm: {
     gradient: 'linear-gradient(90deg, #fce7f3 0%, #fbcfe8 100%)',
     accent: '#be185d',
     textColor: '#5a1030',
-    label: 'Project Manager',
+    label: 'Projector',
   },
 };
 

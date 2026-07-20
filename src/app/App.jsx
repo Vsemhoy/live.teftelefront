@@ -5,6 +5,7 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
+import { useBlockingOverlay } from '@/shared/hooks/useBlockingOverlay';
 import { AuthModal, AuthWall, DemoBanner } from '@/modules/auth/AuthModal';
 import { AppHeader } from './AppHeader';
 import { TefteleLogo } from './TefteleLogo';
@@ -75,6 +76,26 @@ import { FactEditor } from '@/modules/factor/components/FactEditor/FactEditor';
 import { FactViewer } from '@/modules/factor/components/FactViewer/FactViewer';
 import { FactsView } from '@/modules/factor/views/FactsView/FactsView';
 import '@/modules/factor/factor.css';
+
+// Projector
+import { ProjectorSidenav } from '@/modules/projector/components/ProjectorSidenav/ProjectorSidenav';
+import { ProjectorToolbar } from '@/modules/projector/components/Toolbar/ProjectorToolbar';
+import { ProjectEditor } from '@/modules/projector/components/ProjectEditor/ProjectEditor';
+import { ProjectsView } from '@/modules/projector/views/ProjectsView/ProjectsView';
+import { ProjectPage } from '@/modules/projector/views/ProjectPage/ProjectPage';
+import '@/modules/projector/projector.css';
+
+// Tasker
+import { TaskerSidenav } from '@/modules/tasker/components/TaskerSidenav/TaskerSidenav';
+import { TaskerToolbar } from '@/modules/tasker/components/Toolbar/TaskerToolbar';
+import { TasksView } from '@/modules/tasker/views/TasksView/TasksView';
+import { LogView as TaskLogView } from '@/modules/tasker/views/LogView/LogView';
+import { TimeView as TaskTimeView } from '@/modules/tasker/views/TimeView/TimeView';
+import { BlockersView } from '@/modules/tasker/views/BlockersView/BlockersView';
+import { TaskEditor } from '@/modules/tasker/components/TaskEditor/TaskEditor';
+import { TaskLogEditor } from '@/modules/tasker/components/LogEditor/TaskLogEditor';
+import { TimeEditor } from '@/modules/tasker/components/TimeEditor/TimeEditor';
+import { TimerDock } from '@/modules/tasker/components/TimerDock/TimerDock';
 
 // Home
 import { HomeHub } from '@/modules/home/views/HomeHub/HomeHub';
@@ -170,6 +191,30 @@ const FactorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) =>
   </>
 );
 
+const ProjectorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
+  <>
+    <ProjectorSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
+    <div className="main-content">
+      <ProjectorToolbar />
+      <Outlet />
+    </div>
+    <ProjectEditor />
+  </>
+);
+
+const TaskerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
+  <>
+    <TaskerSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
+    <div className="main-content">
+      <TaskerToolbar />
+      <Outlet />
+    </div>
+    <TaskEditor />
+    <TaskLogEditor />
+    <TimeEditor />
+  </>
+);
+
 // ══════════════════════════════════════════════════════════════════
 // PUBLIC SHELL — без авторизации, без хедера, чистая страница
 // Роуты: /e/:id, /b/:id, /s/:id, /p/:id
@@ -192,6 +237,7 @@ function AuthApp() {
   const location = useLocation();
   const [authOpened, { open: openAuth, close: closeAuth }] = useDisclosure(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const blockingOverlayOpen = useBlockingOverlay();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -225,18 +271,27 @@ function AuthApp() {
     if (location.pathname === '/factor/') {
       navigate('/factor', { replace: true });
     }
+    if (location.pathname === '/pm' || location.pathname === '/pm/') {
+      navigate('/projector', { replace: true });
+    }
+    if (location.pathname === '/projector/') {
+      navigate('/projector', { replace: true });
+    }
+    if (location.pathname === '/tasker/') {
+      navigate('/tasker', { replace: true });
+    }
   }, [location.pathname, navigate]);
 
   return (
     <div className="app-shell">
       <DemoBanner />
-      <AppHeader onToggleSidebar={handleToggleSidebar} authModalOpen={openAuth} />
+      <AppHeader onToggleSidebar={handleToggleSidebar} authModalOpen={openAuth} blockingOverlayOpen={blockingOverlayOpen} />
 
       <div className="app-body">
         {isMobile && mobileSidebarOpen && (
           <div className="sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} />
         )}
-        {isMobile && !mobileSidebarOpen && (
+        {isMobile && !mobileSidebarOpen && !blockingOverlayOpen && (
           <div className="sidebar-rail" onClick={() => setMobileSidebarOpen(true)} />
         )}
 
@@ -330,8 +385,33 @@ function AuthApp() {
             <Route index element={<FactsView />} />
             <Route path="pinned" element={<FactsView pinnedOnly />} />
           </Route>
-          <Route path="/tasker/*"    element={<div className="main-content"><ComingSoon name="Tasker" /></div>} />
-          <Route path="/pm/*"        element={<div className="main-content"><ComingSoon name="Project Manager" /></div>} />
+
+          <Route path="/projector" element={
+            <ProjectorLayout
+              sidebarCollapsed={!isMobile && sidebarCollapsed}
+              mobileSidebarOpen={isMobile && mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+            />
+          }>
+            <Route index element={<ProjectsView />} />
+            <Route path="tasks" element={<TasksView />} />
+            <Route path="hidden" element={<ProjectsView hiddenOnly />} />
+            <Route path=":id" element={<ProjectPage />} />
+          </Route>
+
+          <Route path="/tasker" element={
+            <TaskerLayout
+              sidebarCollapsed={!isMobile && sidebarCollapsed}
+              mobileSidebarOpen={isMobile && mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+            />
+          }>
+            <Route index element={<TasksView />} />
+            <Route path="log" element={<TaskLogView />} />
+            <Route path="time" element={<TaskTimeView />} />
+            <Route path="blockers" element={<BlockersView />} />
+          </Route>
+          <Route path="/pm/*" element={<Navigate to="/projector" replace />} />
         </Routes>
       </div>
 
@@ -343,6 +423,7 @@ function AuthApp() {
       <TransactionEditor />
       <TransactionReadModal />
       <PinboardButton />
+      <TimerDock blockingOverlayOpen={blockingOverlayOpen} />
     </div>
   );
 }
