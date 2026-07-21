@@ -1,17 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActionIcon, Button, Group, Popover, Stack, Text, Textarea, Tooltip } from '@mantine/core';
-import { IconPlayerPlayFilled, IconPlayerStopFilled } from '@tabler/icons-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActionIcon, Box, Button, Group, Popover, Stack, Text, Textarea, Tooltip } from '@mantine/core';
+import { IconClockPlay, IconPlayerStopFilled } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useActiveTimer, useStopTimer } from '../../api/timerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import { formatDuration } from '../../utils/taskerUtils';
 
+// Keep the report draft alive across component remounts.
+const reportDraftRef = { value: '' };
+
 export const TimerDock = ({ blockingOverlayOpen = false }) => {
   const { data: activeTimer } = useActiveTimer();
   const stopTimer = useStopTimer();
   const { timerPanelOpen, setTimerPanelOpen } = useTaskerStore();
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState(reportDraftRef.value);
   const [now, setNow] = useState(Date.now());
+  const prevTimerIdRef = useRef(null);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -19,8 +23,23 @@ export const TimerDock = ({ blockingOverlayOpen = false }) => {
   }, []);
 
   useEffect(() => {
-    if (!activeTimer) setContent('');
-  }, [activeTimer]);
+    if (!activeTimer) {
+      reportDraftRef.value = '';
+      setContent('');
+      prevTimerIdRef.current = null;
+      return;
+    }
+    if (activeTimer.id !== prevTimerIdRef.current) {
+      reportDraftRef.value = '';
+      setContent('');
+      prevTimerIdRef.current = activeTimer.id;
+    }
+  }, [activeTimer?.id]);
+
+  const handleContentChange = (val) => {
+    reportDraftRef.value = val;
+    setContent(val);
+  };
 
   const elapsedSeconds = useMemo(() => {
     if (!activeTimer?.started_at) return 0;
@@ -43,37 +62,47 @@ export const TimerDock = ({ blockingOverlayOpen = false }) => {
     });
   };
 
+  const taskTitle = activeTimer.source?.title || 'Active timer';
+
   return (
-    <Popover opened={timerPanelOpen} onChange={setTimerPanelOpen} position="top-end" width={330} shadow="md" withArrow>
+    <Popover opened={timerPanelOpen} onChange={setTimerPanelOpen} position="top-end" width={360} shadow="md" withArrow>
       <Popover.Target>
-        <Tooltip label="Active timer" withArrow>
+        <Tooltip label={taskTitle} withArrow position="top-end" disabled={timerPanelOpen}>
           <button type="button" className="timer-dock-button" onClick={() => setTimerPanelOpen(!timerPanelOpen)}>
-            <IconPlayerPlayFilled size={18} />
-            <span>{formatDuration(elapsedSeconds)}</span>
+            <IconClockPlay size={18} />
+            <Box className="timer-dock-info">
+              <span className="timer-dock-task">{taskTitle}</span>
+              <span className="timer-dock-time">{formatDuration(elapsedSeconds)}</span>
+            </Box>
           </button>
         </Tooltip>
       </Popover.Target>
       <Popover.Dropdown>
         <Stack gap="sm">
           <Stack gap={2}>
-            <Text size="xs" c="dimmed" fw={700} tt="uppercase">{activeTimer.source_module}</Text>
-            <Text size="sm" fw={650}>{activeTimer.source?.title || 'Active timer'}</Text>
-            <Text size="xs" c="dimmed">{formatDuration(elapsedSeconds)}</Text>
+            <Text size="xs" c="dimmed" fw={700} tt="uppercase">Active session</Text>
+            <Text size="sm" fw={650}>{taskTitle}</Text>
+            <Text size="xs" c="teal.6" fw={600}>{formatDuration(elapsedSeconds)}</Text>
           </Stack>
           <Textarea
-            label="Session report"
-            placeholder="What was done in this session"
+            label="What are you doing right now?"
+            description="Saved as session report when you stop"
+            placeholder="Fixing the legacy migration script..."
             value={content}
-            onChange={(event) => setContent(event.currentTarget.value)}
+            onChange={(event) => handleContentChange(event.currentTarget.value)}
             minRows={4}
+            autosize
           />
           <Group justify="space-between">
-            <ActionIcon variant="light" color="red" size="lg" onClick={handleStop} loading={stopTimer.isPending}>
-              <IconPlayerStopFilled size={17} />
-            </ActionIcon>
-            <Button color="red" variant="light" size="xs" onClick={handleStop} loading={stopTimer.isPending}>
-              Stop
-            </Button>
+            <Text size="xs" c="dimmed">Text is preserved while timer runs</Text>
+            <Group gap={8}>
+              <ActionIcon variant="light" color="red" size="lg" onClick={handleStop} loading={stopTimer.isPending}>
+                <IconPlayerStopFilled size={17} />
+              </ActionIcon>
+              <Button color="red" variant="light" size="xs" onClick={handleStop} loading={stopTimer.isPending}>
+                Stop & save
+              </Button>
+            </Group>
           </Group>
         </Stack>
       </Popover.Dropdown>

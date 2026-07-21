@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Button, Group, Modal, Select, Stack, TextInput, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { useSaveTimerEntry } from '../../api/timerApi';
+import { IconTrash } from '@tabler/icons-react';
+import { useDeleteTimerEntry, useSaveTimerEntry } from '../../api/timerApi';
 import { useTasks } from '../../api/taskerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import { toInputDateTime } from '../../utils/taskerUtils';
@@ -12,12 +13,12 @@ export const TimeEditor = () => {
   const { timeEditorOpen, timeEditorParams, closeTimeEditor } = useTaskerStore();
   const { data: tasks = [] } = useTasks({ filter: 'all', include_hidden: true });
   const saveEntry = useSaveTimerEntry();
+  const deleteEntry = useDeleteTimerEntry();
   const [form, setForm] = useState({
     task_id: '',
     started_at: '',
     ended_at: '',
     time_type: 'self',
-    note: '',
     content: '',
   });
 
@@ -31,7 +32,6 @@ export const TimeEditor = () => {
       started_at: toInputDateTime(timeEditorParams?.started_at) || toInputDateTime(start.toISOString()),
       ended_at: toInputDateTime(timeEditorParams?.ended_at) || nowInput(),
       time_type: timeEditorParams?.time_type || 'self',
-      note: timeEditorParams?.note || '',
       content: timeEditorParams?.content || '',
     });
   }, [timeEditorOpen, timeEditorParams]);
@@ -52,7 +52,6 @@ export const TimeEditor = () => {
       ended_at: form.ended_at,
       entry_type: 'manual',
       time_type: form.time_type,
-      note: form.note,
       content: form.content,
     }, {
       onSuccess: () => {
@@ -66,8 +65,18 @@ export const TimeEditor = () => {
     });
   };
 
+  const handleDelete = () => {
+    if (!form.id || !window.confirm('Delete this time entry?')) return;
+    deleteEntry.mutate(form, {
+      onSuccess: () => {
+        notifications.show({ message: 'Time entry deleted', color: 'red' });
+        closeTimeEditor();
+      },
+    });
+  };
+
   return (
-    <Modal opened={timeEditorOpen} onClose={closeTimeEditor} title={form.id ? 'Edit time' : 'Add time'} size="lg">
+    <Modal opened={timeEditorOpen} onClose={closeTimeEditor} title={form.id ? 'Edit time session' : 'Add time session'} size="lg">
       <Stack>
         <Select
           label="Task"
@@ -91,11 +100,24 @@ export const TimeEditor = () => {
           onChange={(value) => patch('time_type', value || 'self')}
           allowDeselect={false}
         />
-        <Textarea label="Note" value={form.note} onChange={(event) => patch('note', event.currentTarget.value)} minRows={2} />
-        <Textarea label="Session report" value={form.content} onChange={(event) => patch('content', event.currentTarget.value)} minRows={4} />
-        <Group justify="flex-end">
-          <Button variant="default" onClick={closeTimeEditor}>Cancel</Button>
-          <Button color="blue" onClick={handleSave} loading={saveEntry.isPending}>Save</Button>
+        <Textarea
+          label="What was done in this session"
+          description="Saved as a report entry in the task's log"
+          value={form.content}
+          onChange={(event) => patch('content', event.currentTarget.value)}
+          minRows={4}
+          autosize
+        />
+        <Group justify="space-between">
+          {form.id ? (
+            <Button variant="subtle" color="red" leftSection={<IconTrash size={14} />} onClick={handleDelete} loading={deleteEntry.isPending}>
+              Delete
+            </Button>
+          ) : <div />}
+          <Group>
+            <Button variant="default" onClick={closeTimeEditor}>Cancel</Button>
+            <Button color="blue" onClick={handleSave} loading={saveEntry.isPending}>Save</Button>
+          </Group>
         </Group>
       </Stack>
     </Modal>

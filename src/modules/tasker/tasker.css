@@ -33,7 +33,7 @@
 }
 
 .task-card {
-  cursor: default;
+  cursor: pointer;
 }
 
 .tasker-project-mark {
@@ -88,6 +88,91 @@
   min-height: 360px;
 }
 
+.task-editor-modal {
+  overflow: visible;
+}
+
+.task-md-panel {
+  min-height: 420px;
+}
+
+.task-md-editor {
+  height: 420px;
+  min-height: 0;
+  min-width: 0;
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: 8px;
+  background: var(--mantine-color-white);
+  overflow: hidden;
+}
+
+.task-md-editor .mdxeditor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.task-md-editor .mdxeditor-diff-source-wrapper,
+.task-md-editor .mdxeditor-rich-text-editor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.task-md-toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items: center;
+  margin: 8px 8px 0;
+  padding: 8px;
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: 8px;
+  background: var(--mantine-color-gray-0);
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: calc(100% - 16px);
+}
+
+.task-md-editor .mdxeditor-root-contenteditable {
+  display: block;
+  flex: 1 1 auto;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
+.task-md-contenteditable {
+  min-height: 100%;
+  min-width: 0;
+  padding: 14px 16px;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.task-md-editor [contenteditable="true"] {
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.task-md-contenteditable > * {
+  max-width: 100%;
+}
+
+.task-md-contenteditable pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .task-checklist-input {
   flex: 1 1 auto;
   min-width: 0;
@@ -107,10 +192,55 @@
   overflow-wrap: anywhere;
 }
 
+.task-checklist-title-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .task-checklist-item.is-done .task-checklist-title {
   color: var(--mantine-color-gray-6);
   text-decoration: line-through;
 }
+
+.task-read-head {
+  background: var(--mantine-color-gray-0);
+}
+
+.task-read-description,
+.task-read-result {
+  white-space: normal;
+}
+
+.task-read-result {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--mantine-color-blue-0);
+}
+
+.task-timeline-entry {
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.task-timeline-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--mantine-color-gray-1);
+  color: var(--mantine-color-gray-6);
+}
+
+.task-timeline-icon.blue { background: var(--mantine-color-blue-1); color: var(--mantine-color-blue-7); }
+.task-timeline-icon.orange { background: var(--mantine-color-orange-1); color: var(--mantine-color-orange-7); }
+.task-timeline-icon.indigo { background: var(--mantine-color-indigo-1); color: var(--mantine-color-indigo-7); }
+.task-timeline-icon.grape { background: var(--mantine-color-grape-1); color: var(--mantine-color-grape-7); }
+.task-timeline-icon.teal { background: var(--mantine-color-teal-1); color: var(--mantine-color-teal-7); }
+.task-timeline-icon.gray { background: var(--mantine-color-gray-1); color: var(--mantine-color-gray-6); }
 
 .tasker-two-col {
   max-width: 1040px;
@@ -166,4 +296,295 @@
   .tasker-two-col {
     grid-template-columns: 1fr;
   }
+}
+
+/* Active card while the timer is running. */
+.task-card.is-active-timer {
+  border-color: var(--mantine-color-teal-4);
+  box-shadow: 0 0 0 2px var(--mantine-color-teal-2);
+}
+
+/* Expanded TimerDock with task name and elapsed time. */
+.timer-dock-button {
+  max-width: 280px;
+}
+
+.timer-dock-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.timer-dock-task {
+  font-size: 11px;
+  font-weight: 500;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.timer-dock-time {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* MD editor inside a modal with bounded internal scrolling. */
+/* The modal keeps overflow visible for dropdowns, while the body owns vertical scroll. */
+.task-editor-modal {
+  overflow: visible; /* Keep Select dropdowns visible. */
+}
+
+.task-editor-modal .mantine-Modal-body {
+  max-height: min(80vh, 700px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ContentEditable scrolls inside the fixed editor container. */
+.task-md-editor {
+  height: 360px; /* Toolbar takes part of the available height. */
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   CALENDAR VIEW
+   ════════════════════════════════════════════════════════════════ */
+
+.tasker-calendar { padding: 0 12px 40px; }
+
+.tvc-wrap {
+  border: 0.5px solid var(--mantine-color-gray-3);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--mantine-color-gray-0);
+}
+
+.tvc-layout { display: flex; }
+
+/* Fixed left column. */
+.tvc-left {
+  width: 160px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--mantine-color-gray-4);
+}
+
+.tvc-left-head {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-bottom: 0.5px solid var(--mantine-color-gray-3);
+  background: var(--mantine-color-gray-1);
+}
+
+.tvc-day-label-cell {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+  cursor: default;
+  box-sizing: border-box;
+}
+.tvc-day-label-cell.is-today {
+  background: color-mix(in srgb, var(--mantine-color-blue-1) 50%, transparent);
+}
+.tvc-day-label-cell.is-future { opacity: 0.6; }
+.tvc-day-label-cell:hover { background: var(--mantine-color-gray-1); }
+
+.tvc-day-group,
+.tvc-day-group-right {
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+  background: var(--mantine-color-white);
+}
+
+.tvc-day-group.is-today,
+.tvc-day-group-right.is-today {
+  background: color-mix(in srgb, var(--mantine-color-blue-0) 60%, white);
+}
+
+.tvc-day-group.is-future,
+.tvc-day-group-right.is-future {
+  opacity: 0.68;
+}
+
+.tvc-day-header-left,
+.tvc-day-header-right {
+  position: relative;
+  height: 40px;
+  box-sizing: border-box;
+  border-bottom: 0.5px solid var(--mantine-color-gray-2);
+}
+
+.tvc-day-header-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.tvc-day-header-left:hover {
+  background: var(--mantine-color-gray-1);
+}
+
+.tvc-row-label,
+.tvc-task-row-right {
+  height: 40px;
+  box-sizing: border-box;
+  border-bottom: 0.5px solid var(--mantine-color-gray-2);
+}
+
+.tvc-row-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.tvc-row-label:hover,
+.tvc-row-label.is-selected {
+  background: var(--mantine-color-blue-0);
+}
+
+.tvc-task-row-right {
+  position: relative;
+  min-width: 0;
+}
+
+.tvc-task-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.tvc-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--mantine-color-teal-5);
+  box-shadow: 0 0 0 2px var(--mantine-color-teal-1);
+  flex-shrink: 0;
+}
+
+.tvc-row-actions {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  transform: translateY(-50%);
+}
+
+/* Right side with horizontal scroll. */
+.tvc-right { flex: 1; overflow-x: auto; min-width: 0; }
+.tvc-chart-inner { min-width: 640px; }
+
+/* Hour scale. */
+.tvc-hours-row {
+  height: 28px;
+  display: flex;
+  border-bottom: 0.5px solid var(--mantine-color-gray-3);
+  background: var(--mantine-color-gray-1);
+}
+.tvc-hour-cell {
+  flex: 1;
+  border-left: 0.5px solid var(--mantine-color-gray-3);
+  padding-left: 3px;
+  display: flex;
+  align-items: center;
+}
+
+/* Right day row. */
+.tvc-day-row-right {
+  position: relative;
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+  background: white;
+  box-sizing: border-box;
+}
+.tvc-day-row-right.is-today {
+  background: color-mix(in srgb, var(--mantine-color-blue-0) 60%, white);
+}
+.tvc-day-row-right.is-future { opacity: 0.6; }
+
+/* Background hour grid. */
+.tvc-hour-grid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+}
+.tvc-hour-line {
+  flex: 1;
+  border-left: 0.5px solid var(--mantine-color-gray-2);
+}
+
+/* Spans. */
+.tvc-span {
+  position: absolute;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: opacity 0.1s, outline 0.1s;
+  box-sizing: border-box;
+}
+.tvc-span:hover { opacity: 0.82; }
+.tvc-span-selected { outline: 2px solid var(--mantine-color-blue-4); outline-offset: 1px; }
+
+.tvc-span-plan {
+  top: 7px;
+  height: 9px;
+  border: 1.5px dashed;
+  background: transparent;
+}
+.tvc-span-fact {
+  top: 21px;
+  height: 12px;
+  border-left-width: 2px;
+  border-left-style: solid;
+}
+
+.tvc-span-label {
+  font-size: 9px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+}
+
+.tvc-empty-hint {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Detail panel. */
+.tvc-detail-panel {
+  border-top: 1px solid var(--mantine-color-gray-3);
+  padding: 14px 16px;
+  background: var(--mantine-color-gray-0);
+}
+.tvc-detail-chunks { display: flex; flex-direction: column; gap: 6px; }
+.tvc-detail-chunk {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  background: white;
+  border: 0.5px solid var(--mantine-color-gray-2);
+  border-radius: 6px;
 }

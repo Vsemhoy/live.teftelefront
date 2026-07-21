@@ -93,9 +93,12 @@ import { LogView as TaskLogView } from '@/modules/tasker/views/LogView/LogView';
 import { TimeView as TaskTimeView } from '@/modules/tasker/views/TimeView/TimeView';
 import { BlockersView } from '@/modules/tasker/views/BlockersView/BlockersView';
 import { TaskEditor } from '@/modules/tasker/components/TaskEditor/TaskEditor';
+import { TaskReadModal } from '@/modules/tasker/components/TaskReadModal/TaskReadModal';
 import { TaskLogEditor } from '@/modules/tasker/components/LogEditor/TaskLogEditor';
-import { TimeEditor } from '@/modules/tasker/components/TimeEditor/TimeEditor';
+import { SpanEditor } from '@/modules/tasker/components/SpanEditor/SpanEditor';
 import { TimerDock } from '@/modules/tasker/components/TimerDock/TimerDock';
+import { useCloseOverdueTaskSpans } from '@/modules/tasker/api/taskerApi';
+import { CalendarView } from '@/modules/tasker/views/CalendarView/CalendarView';
 
 // Home
 import { HomeHub } from '@/modules/home/views/HomeHub/HomeHub';
@@ -104,11 +107,10 @@ import '@/modules/home/home.css';
 
 const ComingSoon = ({ name }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-    <Text c="dimmed" size="sm">{name} — coming soon</Text>
+    <Text c="dimmed" size="sm">{name} - coming soon</Text>
   </div>
 );
 
-// ── Лэйауты модулей ───────────────────────────────────────────────
 
 const EventorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => {
   const isOnline = useOnlineStatus();
@@ -118,8 +120,8 @@ const EventorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) =
       <div className="main-content">
         {!isOnline && (
           <div className="offline-banner">
-            <span>●</span>
-            No internet connection — events will be saved as local drafts
+            <span>*</span>
+            No internet connection - events will be saved as local drafts
           </div>
         )}
         <EventorToolbar />
@@ -202,36 +204,33 @@ const ProjectorLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose })
   </>
 );
 
-const TaskerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => (
-  <>
-    <TaskerSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
-    <div className="main-content">
-      <TaskerToolbar />
-      <Outlet />
-    </div>
-    <TaskEditor />
-    <TaskLogEditor />
-    <TimeEditor />
-  </>
-);
+const TaskerLayout = ({ sidebarCollapsed, mobileSidebarOpen, onMobileClose }) => {
+  useCloseOverdueTaskSpans();
 
-// ══════════════════════════════════════════════════════════════════
-// PUBLIC SHELL — без авторизации, без хедера, чистая страница
-// Роуты: /e/:id, /b/:id, /s/:id, /p/:id
-// ══════════════════════════════════════════════════════════════════
+  return (
+    <>
+      <TaskerSidenav collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onMobileClose={onMobileClose} />
+      <div className="main-content">
+        <TaskerToolbar />
+        <Outlet />
+      </div>
+      <TaskReadModal />
+      <TaskEditor />
+      <TaskLogEditor />
+      <SpanEditor />
+    </>
+  );
+};
+
 function PublicApp() {
   return (
     <Routes>
       <Route path="/e/:id" element={<EventPublicPage />} />
-      {/* /b/:id, /s/:id, /p/:id — добавим когда будут готовы */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
-// ══════════════════════════════════════════════════════════════════
-// AUTH SHELL — авторизованная часть приложения
-// ══════════════════════════════════════════════════════════════════
 function AuthApp() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -407,6 +406,7 @@ function AuthApp() {
             />
           }>
             <Route index element={<TasksView />} />
+            <Route path="calendar" element={<CalendarView />} />
             <Route path="log" element={<TaskLogView />} />
             <Route path="time" element={<TaskTimeView />} />
             <Route path="blockers" element={<BlockersView />} />
@@ -414,8 +414,6 @@ function AuthApp() {
           <Route path="/pm/*" element={<Navigate to="/projector" replace />} />
         </Routes>
       </div>
-
-      {/* Глобальные оверлеи */}
       <AuthModal opened={authOpened} onClose={closeAuth} />
       <ReadModal />
       <EventEditor />
@@ -428,10 +426,6 @@ function AuthApp() {
   );
 }
 
-// ══════════════════════════════════════════════════════════════════
-// ROOT — роутер верхнего уровня
-// Решает: публичный shell или авторизованный
-// ══════════════════════════════════════════════════════════════════
 const PUBLIC_PREFIXES = ['/e/', '/b/', '/s/', '/p/'];
 
 export default function App() {
@@ -443,16 +437,13 @@ export default function App() {
 
   useEffect(() => { checkAuth(); }, [checkAuth]);
 
-  // Определяем тип роута до любых проверок авторизации
-  const isPublicRoute = PUBLIC_PREFIXES.some((p) => location.pathname.startsWith(p));
+    const isPublicRoute = PUBLIC_PREFIXES.some((p) => location.pathname.startsWith(p));
 
-  // Публичный shell — рендерим сразу, не ждём checkAuth
-  if (isPublicRoute) {
+    if (isPublicRoute) {
     return <PublicApp />;
   }
 
-  // Ждём проверки авторизации
-  if (!isChecked) {
+    if (!isChecked) {
     return (
       <Center style={{ width: '100vw', height: '100vh' }}>
         <Loader size="lg" />
@@ -460,11 +451,9 @@ export default function App() {
     );
   }
 
-  // Незнакомый браузер — AuthWall
-  if (!user && !isKnownBrowser) {
+    if (!user && !isKnownBrowser) {
     return <AuthWall />;
   }
 
-  // Авторизованный shell
-  return <AuthApp />;
+    return <AuthApp />;
 }

@@ -94,9 +94,9 @@ const FULL_COMPONENTS = {
   h1: ({ children }) => <Text component="h1" fw={700} mt="md" mb={6} style={{ fontSize: 22, lineHeight: 1.3 }}>{children}</Text>,
   h2: ({ children }) => <Text component="h2" fw={600} mt="md" mb={4} style={{ fontSize: 18, lineHeight: 1.3 }}>{children}</Text>,
   h3: ({ children }) => <Text component="h3" fw={600} mt={8} mb={2} style={{ fontSize: 16, lineHeight: 1.3 }}>{children}</Text>,
-  p:  ({ children }) => <Text size="sm" style={{ lineHeight: 1.75, marginBottom: 10 }} c="gray.8">{children}</Text>,
-  ul: ({ children }) => <Box component="ul" style={{ paddingLeft: 22, marginBottom: 10 }}>{children}</Box>,
-  ol: ({ children }) => <Box component="ol" style={{ paddingLeft: 22, marginBottom: 10 }}>{children}</Box>,
+  p:  ({ children }) => <Text size="sm" style={{ lineHeight: 1.6, margin: '0 0 8px' }} c="gray.8">{children}</Text>,
+  ul: ({ children }) => <Box component="ul" style={{ paddingLeft: 22, margin: '0 0 8px' }}>{children}</Box>,
+  ol: ({ children }) => <Box component="ol" style={{ paddingLeft: 22, margin: '0 0 8px' }}>{children}</Box>,
   li: ({ children }) => <Text component="li" size="sm" style={{ lineHeight: 1.7, marginBottom: 2 }} c="gray.8">{children}</Text>,
   blockquote: ({ children }) => (
     <Box style={{ borderLeft: '3px solid var(--mantine-color-blue-3)', margin: '10px 0', background: 'var(--mantine-color-blue-0)', borderRadius: '0 4px 4px 0', padding: '8px 14px' }}>{children}</Box>
@@ -180,8 +180,10 @@ export const MdPreview = ({ content, blurred = false }) => {
 export const MdFull = ({ content }) => {
   if (!content) return null;
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={FULL_COMPONENTS}>
-      {content}
-    </ReactMarkdown>
+    <Box className="md-full">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={FULL_COMPONENTS}>
+        {content}
+      </ReactMarkdown>
+    </Box>
   );
 };

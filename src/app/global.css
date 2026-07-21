@@ -314,6 +314,19 @@ body {
 .md-preview pre { margin: 4px 0; }
 .md-preview ul, .md-preview ol { margin: 2px 0; padding-left: 18px; font-size: 13px; }
 
+.md-full {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.md-full > :first-child {
+  margin-top: 0 !important;
+}
+
+.md-full > :last-child {
+  margin-bottom: 0 !important;
+}
+
 /* ================================================================
    MOBILE — модалки без боковых паддингов (bottom-sheet)
 ================================================================ */

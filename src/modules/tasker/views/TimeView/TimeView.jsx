@@ -36,7 +36,8 @@ export const TimeView = () => {
                   <Text size="xs" c="dimmed">{formatDateTime(entry.started_at)} - {formatDateTime(entry.ended_at)}</Text>
                 </Group>
                 <Text size="sm" fw={600}>{entry.source?.title || 'Task time'}</Text>
-                {entry.note && <Text size="xs" c="dimmed">{entry.note}</Text>}
+                {entry.content && <Text size="sm" c="gray.7" lineClamp={2}>{entry.content}</Text>}
+                {entry.note && <Text size="xs" c="dimmed" fs="italic">{entry.note}</Text>}
               </Stack>
               <Group gap={8}>
                 <Text size="sm" fw={700}>{formatDuration(entry.elapsed_seconds || entry.duration_min * 60)}</Text>

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useExpertStore } from '@/shared/expertStore';
@@ -35,12 +36,29 @@ const logPayload = (log) => ({
   meta: log.meta || null,
 });
 
+const spanPayload = (span) => ({
+  task_id: span.task_id,
+  kind: span.kind || 'fact',
+  title: span.title || null,
+  content: span.content || null,
+  planned_start_at: span.planned_start_at || null,
+  planned_end_at: span.planned_end_at || null,
+  started_at: span.started_at || null,
+  ended_at: span.ended_at || null,
+  auto_stop_at: span.auto_stop_at || null,
+  auto_stopped_at: span.auto_stopped_at || null,
+  auto_stop_reason: span.auto_stop_reason || null,
+  sort_order: Number(span.sort_order || 0),
+});
+
 export const useTasks = (params = {}) => {
   const user = useAuthStore((state) => state.user);
   const expertMode = useExpertStore((state) => state.expertMode);
   const taskFilter = useTaskerStore((state) => state.taskFilter);
   const searchQuery = useTaskerStore((state) => state.searchQuery);
   const projectFilter = useTaskerStore((state) => state.projectFilter);
+  const assigneeFilter = useTaskerStore((state) => state.assigneeFilter);
+  const onlyBlocked = useTaskerStore((state) => state.onlyBlocked);
   const showHidden = useTaskerStore((state) => state.showHidden);
 
   const queryParams = {
@@ -53,6 +71,12 @@ export const useTasks = (params = {}) => {
 
   const projectId = params.project_id ?? projectFilter;
   if (projectId && projectId !== 'all') queryParams.project_id = projectId;
+
+  const assigneeId = params.assignee_contact_id ?? assigneeFilter;
+  if (assigneeId && assigneeId !== 'all') queryParams.assignee_contact_id = assigneeId;
+
+  const blockedOnly = params.only_blocked ?? onlyBlocked;
+  if (blockedOnly) queryParams.status_id = 23;
 
   return useQuery({
     queryKey: ['tsk_tasks', queryParams, expertMode],
@@ -85,6 +109,72 @@ export const useTaskLogs = (params = {}) => {
     enabled: Boolean(user),
     staleTime: 20 * 1000,
   });
+};
+
+export const useTaskSpans = (params = {}) => {
+  const user = useAuthStore((state) => state.user);
+
+  return useQuery({
+    queryKey: ['tsk_spans', params],
+    queryFn: () => api.get('/tasker/spans', { params }).then(unwrap),
+    enabled: Boolean(user),
+    staleTime: 20 * 1000,
+  });
+};
+
+export const useSaveTaskSpan = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (span) => {
+      const payload = spanPayload(span);
+      if (span.id) return api.put(`/tasker/spans/${span.id}`, payload).then(unwrap);
+      return api.post('/tasker/spans', payload).then(unwrap);
+    },
+    onSuccess: (saved) => {
+      queryClient.invalidateQueries({ queryKey: ['tsk_spans'] });
+      queryClient.invalidateQueries({ queryKey: ['tsk_tasks'] });
+      if (saved?.task_id) queryClient.invalidateQueries({ queryKey: ['tsk_task', saved.task_id] });
+    },
+  });
+};
+
+export const useDeleteTaskSpan = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (span) => api.delete(`/tasker/spans/${span.id}`).then(unwrap),
+    onSuccess: (_deleted, span) => {
+      queryClient.invalidateQueries({ queryKey: ['tsk_spans'] });
+      queryClient.invalidateQueries({ queryKey: ['tsk_tasks'] });
+      if (span?.task_id) queryClient.invalidateQueries({ queryKey: ['tsk_task', span.task_id] });
+    },
+  });
+};
+
+export const useCloseOverdueTaskSpans = () => {
+  const user = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
+  const checkedUserIdRef = useRef(null);
+
+  const mutation = useMutation({
+    mutationFn: () => api.post('/tasker/spans/close-overdue').then(unwrap),
+    onSuccess: (payload) => {
+      if (!payload?.closed_count) return;
+      queryClient.invalidateQueries({ queryKey: ['tsk_tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tsk_task'] });
+      queryClient.invalidateQueries({ queryKey: ['tsk_spans'] });
+      queryClient.invalidateQueries({ queryKey: ['timer_active'] });
+    },
+  });
+
+  useEffect(() => {
+    if (!user?.id || checkedUserIdRef.current === user.id) return;
+    checkedUserIdRef.current = user.id;
+    mutation.mutate();
+  }, [mutation, user?.id]);
+
+  return mutation;
 };
 
 export const useBlockers = () => {
@@ -141,6 +231,18 @@ export const useSaveTaskLog = () => {
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ['tsk_logs'] });
       if (saved?.task_id) queryClient.invalidateQueries({ queryKey: ['tsk_task', saved.task_id] });
+    },
+  });
+};
+
+export const useDeleteTaskLog = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (log) => api.delete(`/tasker/logs/${log.id}`).then(unwrap),
+    onSuccess: (_deleted, log) => {
+      queryClient.invalidateQueries({ queryKey: ['tsk_logs'] });
+      if (log?.task_id) queryClient.invalidateQueries({ queryKey: ['tsk_task', log.task_id] });
     },
   });
 };
