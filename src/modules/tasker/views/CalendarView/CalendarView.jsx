@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ActionIcon, Badge, Box, Button, Group, Loader, Select, Text, Tooltip } from '@mantine/core';
 import { IconClock, IconPlus, IconResize } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
@@ -20,6 +20,42 @@ const HOUR_OPTIONS = [
 
 const DAYS_BACK = 7;
 const DAYS_FORWARD = 14;
+const RESIZE_STEP_MINUTES = 5;
+const MIN_SPAN_MINUTES = 15;
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const snapToStep = (minutes) => Math.round(minutes / RESIZE_STEP_MINUTES) * RESIZE_STEP_MINUTES;
+const minutesOfDay = (value) => {
+  const date = new Date(value);
+  return date.getHours() * 60 + date.getMinutes();
+};
+const dateWithMinutes = (base, minutes) => {
+  const date = new Date(base);
+  date.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+  return date;
+};
+const formatLocalDateTime = (date) => {
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+};
+const secondsBetween = (start, end) => Math.max(0, Math.floor((new Date(end) - new Date(start)) / 1000));
+const getResizeFields = (span) => {
+  if (span.kind === 'plan') {
+    return {
+      startField: 'planned_start_at',
+      endField: 'planned_end_at',
+      startValue: span.planned_start_at,
+      endValue: span.planned_end_at,
+    };
+  }
+
+  return {
+    startField: 'started_at',
+    endField: 'ended_at',
+    startValue: span.started_at,
+    endValue: span.ended_at,
+  };
+};
 
 export const CalendarView = () => {
   const [hourRange, setHourRange] = useState('9-20');
@@ -37,6 +73,8 @@ export const CalendarView = () => {
   const toDate = showFuture ? dateOffsetStr(DAYS_FORWARD) : today;
 
   const [selectedSpanId, setSelectedSpanId] = useState(null); 
+  const [resizeDraft, setResizeDraft] = useState(null);
+  const resizeDraftRef = useRef(null);
 
   const { data: allSpans = [], isLoading: spansLoading } = useTaskSpans({
     from_date: fromDate,
@@ -116,6 +154,137 @@ export const CalendarView = () => {
 
   const handleSpanDblClick = (span) => {
     openSpanEditor({ ...span, task_id: span.task_id });
+  };
+
+  const handleResizeStart = (event, span, edge) => {
+    const fields = getResizeFields(span);
+    if (!fields.startValue || !fields.endValue || saveSpan.isPending) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedSpanId(span.id);
+
+    const row = event.currentTarget.closest('.tvc-right--task');
+    if (!row) return;
+    const rect = row.getBoundingClientRect();
+    const originalStart = new Date(fields.startValue);
+    const originalEnd = new Date(fields.endValue);
+
+    const initialDraft = {
+      spanId: span.id,
+      span,
+      edge,
+      startField: fields.startField,
+      endField: fields.endField,
+      rowLeft: rect.left,
+      rowWidth: rect.width,
+      originalStart,
+      originalEnd,
+      nextStart: originalStart,
+      nextEnd: originalEnd,
+    };
+    resizeDraftRef.current = initialDraft;
+    setResizeDraft(initialDraft);
+    document.body.classList.add('tvc-resize-active');
+
+    const getNextDraft = (draft, clientX) => {
+      const rowStartMinutes = startHour * 60;
+      const rowEndMinutes = endHour * 60;
+      const originalStartMinutes = minutesOfDay(draft.originalStart);
+      const originalEndMinutes = minutesOfDay(draft.originalEnd);
+      const fraction = clamp((clientX - draft.rowLeft) / draft.rowWidth, 0, 1);
+      const pointerMinutes = snapToStep(rowStartMinutes + fraction * (rowEndMinutes - rowStartMinutes));
+
+      if (draft.edge === 'start') {
+        const maxStartMinutes = Math.max(
+          rowStartMinutes,
+          Math.min(rowEndMinutes - MIN_SPAN_MINUTES, originalEndMinutes - MIN_SPAN_MINUTES),
+        );
+        const nextStartMinutes = clamp(
+          pointerMinutes,
+          rowStartMinutes,
+          maxStartMinutes,
+        );
+
+        return {
+          ...draft,
+          nextStart: dateWithMinutes(draft.originalStart, nextStartMinutes),
+          nextEnd: draft.originalEnd,
+        };
+      }
+
+      const minEndMinutes = Math.min(
+        rowEndMinutes,
+        Math.max(rowStartMinutes + MIN_SPAN_MINUTES, originalStartMinutes + MIN_SPAN_MINUTES),
+      );
+      const nextEndMinutes = clamp(
+        pointerMinutes,
+        minEndMinutes,
+        rowEndMinutes,
+      );
+
+      return {
+        ...draft,
+        nextStart: draft.originalStart,
+        nextEnd: dateWithMinutes(draft.originalEnd, nextEndMinutes),
+      };
+    };
+
+    const handlePointerMove = (event) => {
+      if (!resizeDraftRef.current) return;
+      const nextDraft = getNextDraft(resizeDraftRef.current, event.clientX);
+      resizeDraftRef.current = nextDraft;
+      setResizeDraft(nextDraft);
+    };
+
+    const cleanup = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.classList.remove('tvc-resize-active');
+    };
+
+    const cancelResize = () => {
+      resizeDraftRef.current = null;
+      setResizeDraft(null);
+      cleanup();
+    };
+
+    const handlePointerUp = (pointerEvent) => {
+      if (!resizeDraftRef.current) return;
+      const finalDraft = getNextDraft(resizeDraftRef.current, pointerEvent.clientX);
+      resizeDraftRef.current = null;
+      setResizeDraft(null);
+      cleanup();
+
+      const nextStartedAt = finalDraft.nextStart.toISOString();
+      const nextEndedAt = finalDraft.nextEnd.toISOString();
+      const oldStartedAt = finalDraft.originalStart.toISOString();
+      const oldEndedAt = finalDraft.originalEnd.toISOString();
+
+      if (nextStartedAt === oldStartedAt && nextEndedAt === oldEndedAt) return;
+
+      saveSpan.mutate({
+        ...finalDraft.span,
+        [finalDraft.startField]: nextStartedAt,
+        [finalDraft.endField]: nextEndedAt,
+      }, {
+        onSuccess: () => notifications.show({
+          message: `Span updated: ${formatTime(nextStartedAt)}-${formatTime(nextEndedAt)}`,
+          color: 'blue',
+        }),
+        onError: () => notifications.show({ message: 'Could not update span time', color: 'red' }),
+      });
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      cancelResize();
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('keydown', handleKeyDown);
   };
 
   const stateClass = (date) =>
@@ -241,37 +410,70 @@ export const CalendarView = () => {
                           <HourGrid hourLabels={hourLabels} />
 
                           {planSpans.map((span) => {
-                            const left = timeToFraction(span.planned_start_at, startHour, endHour);
-                            const right = timeToFraction(span.planned_end_at, startHour, endHour);
+                            const draft = resizeDraft?.spanId === span.id ? resizeDraft : null;
+                            const plannedStartAt = draft ? formatLocalDateTime(draft.nextStart) : span.planned_start_at;
+                            const plannedEndAt = draft ? formatLocalDateTime(draft.nextEnd) : span.planned_end_at;
+                            const left = timeToFraction(plannedStartAt, startHour, endHour);
+                            const right = timeToFraction(plannedEndAt, startHour, endHour);
                             if (left === null || right === null) return null;
+                            const isResizable = selectedSpanId === span.id;
                             return (
                               <div
                                 key={span.id}
-                                className={`tvc-span tvc-span-plan ${selectedSpanId === span.id ? 'span-selected' : null} ${selectedSpanId === span.id ? 'span-selected' : null}  ${selectedSpanId === span.id ? 'span-selected' : null}`}
+                                className={`tvc-span tvc-span-plan ${isResizable ? 'span-selected' : ''} ${draft ? 'is-resizing' : ''}`}
                                 style={{
                                   left: `${left * 100}%`,
-                                  width: `${(right - left) * 100}%`,
+                                  width: `${Math.max((right - left) * 100, 0.5)}%`,
                                   borderColor: colors.planBorder,
                                   background: colors.plan,
                                 }}
                                 onClick={()=> setSelectedSpanId(span.id)}
                                 onDoubleClick={() => handleSpanDblClick(span)}
-                                title={`Plan: ${formatTime(span.planned_start_at)}-${formatTime(span.planned_end_at)} | double-click to edit`}
-                              />
+                                title={`Plan: ${formatTime(plannedStartAt)}-${formatTime(plannedEndAt)} | double-click to edit`}
+                              >
+                                {isResizable && (
+                                  <Tooltip
+                                    label={formatTime(plannedStartAt)}
+                                    opened={draft?.edge === 'start' || undefined}
+                                    withArrow
+                                  >
+                                    <div
+                                      className='tvc-span-handle-left'
+                                      onPointerDown={(event) => handleResizeStart(event, span, 'start')}
+                                    ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div>
+                                  </Tooltip>
+                                )}
+                                {isResizable && (
+                                  <Tooltip
+                                    label={formatTime(plannedEndAt)}
+                                    opened={draft?.edge === 'end' || undefined}
+                                    withArrow
+                                  >
+                                    <div
+                                      className='tvc-span-handle-right'
+                                      onPointerDown={(event) => handleResizeStart(event, span, 'end')}
+                                    ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div>
+                                  </Tooltip>
+                                )}
+                              </div>
                             );
                           })}
 
                           {factSpans.map((span) => {
                             const isLive = !span.ended_at && span.started_at;
-                            const left = timeToFraction(span.started_at, startHour, endHour);
-                            const right = isLive ? 1 : timeToFraction(span.ended_at, startHour, endHour);
+                            const draft = resizeDraft?.spanId === span.id ? resizeDraft : null;
+                            const startedAt = draft ? formatLocalDateTime(draft.nextStart) : span.started_at;
+                            const endedAt = draft ? formatLocalDateTime(draft.nextEnd) : span.ended_at;
+                            const left = timeToFraction(startedAt, startHour, endHour);
+                            const right = isLive ? 1 : timeToFraction(endedAt, startHour, endHour);
                             if (left === null) return null;
-                            const secs = calcSpanSeconds(span);
+                            const secs = draft ? secondsBetween(startedAt, endedAt) : calcSpanSeconds(span);
+                            const isResizable = selectedSpanId === span.id && !isLive;
 
                             return (
                               <div
                                 key={span.id}
-                                className={`tvc-span tvc-span-fact ${isLive ? 'tvc-span-live' : ''} ${activeSpanId === span.id ? 'is-active' : ''}  ${selectedSpanId === span.id ? 'span-selected' : null}`}
+                                className={`tvc-span tvc-span-fact ${isLive ? 'tvc-span-live' : ''} ${activeSpanId === span.id ? 'is-active' : ''} ${selectedSpanId === span.id ? 'span-selected' : ''} ${draft ? 'is-resizing' : ''}`}
                                 style={{
                                   left: `${left * 100}%`,
                                   width: `${Math.max((right - left) * 100, 0.5)}%`,
@@ -283,26 +485,32 @@ export const CalendarView = () => {
                                 onClick={()=> setSelectedSpanId(span.id)}
                                 // onClick={() => setActiveSpanId(activeSpanId === span.id ? null : span.id)}
                                 onDoubleClick={() => handleSpanDblClick(span)}
-                                title={`${formatTime(span.started_at)}-${isLive ? '...' : formatTime(span.ended_at)} | ${span.title || ''} | ${formatDuration(secs)}`}
+                                title={`${formatTime(startedAt)}-${isLive ? '...' : formatTime(endedAt)} | ${span.title || ''} | ${formatDuration(secs)}`}
                               >
-                                {selectedSpanId === span.id && (
+                                {isResizable && (
                                   <Tooltip
-                                    label={formatTime(span.started_at)}
+                                    label={formatTime(startedAt)}
+                                    opened={draft?.edge === 'start' || undefined}
+                                    withArrow
                                   >
                                   <div
                                     className='tvc-span-handle-left'
+                                    onPointerDown={(event) => handleResizeStart(event, span, 'start')}
                                   ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div>
                                   </Tooltip>
                                 )}
                                 <span className="tvc-span-label" style={{ color: colors.text, width: '100%' }}>
-                                  {formatTime(span.started_at)}{span.title ? ` ${span.title}` : ''}
+                                  {formatTime(startedAt)}{span.title ? ` ${span.title}` : ''}
                                 </span>
-                                {selectedSpanId === span.id && (
+                                {isResizable && (
                                 <Tooltip
-                                    label={formatTime(span.ended_at)}
+                                    label={formatTime(endedAt)}
+                                    opened={draft?.edge === 'end' || undefined}
+                                    withArrow
                                   >
                                 <div
                                     className='tvc-span-handle-right'
+                                    onPointerDown={(event) => handleResizeStart(event, span, 'end')}
                                   ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div></Tooltip>
                                 )}
                               </div>

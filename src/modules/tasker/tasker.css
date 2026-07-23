@@ -786,6 +786,7 @@
   transition: opacity 0.1s, outline 0.1s;
   box-sizing: border-box;
   min-height: 26px;
+  box-shadow: 4px -2px 4px 0px #0000004d;
 }
 .tvc-span:hover { opacity: 0.82; }
 .tvc-span-selected { outline: 2px solid var(--mantine-color-blue-4); outline-offset: 1px; }
@@ -817,6 +818,17 @@
   z-index: 2;
 }
 
+.tvc-span.is-resizing {
+  opacity: 0.95;
+  z-index: 5;
+}
+
+.tvc-resize-active,
+.tvc-resize-active * {
+  cursor: ew-resize !important;
+  user-select: none;
+}
+
 .tvc-span-handle-left {
     background: #0090ff70;
     position: absolute;
@@ -832,9 +844,12 @@
     font-size: 6px;
     transition: all 0.3s;
     height: 100%;
+    cursor: ew-resize;
+    user-select: none;
+    touch-action: none;
   }
   .tvc-span-handle-left:active {
-    cursor: grab;
+    cursor: ew-resize;
   }
   
   .tvc-span-handle-right {
@@ -853,13 +868,16 @@
     font-size: 6px;
     transition: all 0.3s;
     height: 100%;
+    cursor: ew-resize;
+    user-select: none;
+    touch-action: none;
   }
   .tvc-span-handle-right:hover, .tvc-span-handle-left:hover {
     background: #0091ffd5;
     font-size: 20px;
   }
   .tvc-span-handle-right:active {
-    cursor: grab;
+    cursor: ew-resize;
   }
 
 .tvc-empty-hint {
