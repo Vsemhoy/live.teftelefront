@@ -22,11 +22,11 @@ export const TimeView = () => {
   return (
     <div className="tasker-shell">
       <Stack gap={8}>
-        <Group justify="flex-end">
+        {/* <Group justify="flex-end">
           <Button size="xs" variant="light" leftSection={<IconPlus size={14} />} onClick={() => openTimeEditor()}>
             Time
           </Button>
-        </Group>
+        </Group> */}
         {entries.length ? entries.map((entry) => (
           <article key={entry.id} className="task-time-entry" onDoubleClick={() => openTimeEditor(entry)}>
             <Group justify="space-between" gap={8} align="flex-start">

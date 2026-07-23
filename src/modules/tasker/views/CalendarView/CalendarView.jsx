@@ -364,7 +364,7 @@ export const CalendarView = () => {
                         {isToday(date) && <Badge size="xs" color="blue" variant="dot">today</Badge>}
                       </div>
                       {factSeconds > 0 && (
-                        <Text size="10" c="dimmed">{formatDuration(factSeconds)}</Text>
+                        <Text className="tvc-day-title-time" size="10" c="dimmed">{formatDuration(factSeconds)}</Text>
                       )}
                     </div>
                     <div className="tvc-right tvc-right--day">
