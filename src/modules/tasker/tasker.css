@@ -776,7 +776,15 @@
 .tvc-hour-line {
   flex: 1;
   border-left: 0.5px solid var(--mantine-color-gray-2);
+  transition: all 0.2s;
 }
+/* .tvc-hour-grid > .tvc-hour-line {
+  background-color:#0090ff;
+
+}
+.tvc-hour-grid > .tvc-hour-line:hover {
+  background-color: red !important;
+} */
 
 /* Spans. */
 .tvc-span {
