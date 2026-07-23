@@ -30,7 +30,7 @@ export const EventCard = ({ event, isDraft = false }) => {
     if (!event.id) return;
     const url = `${window.location.origin}/e/${event.id}`;
     navigator.clipboard.writeText(url);
-    notifications.show({ message: 'Ссылка скопирована', color: 'teal', autoClose: 2000 });
+    notifications.show({ message: 'Link copied', color: 'teal', autoClose: 2000 });
   };
 
   const handleCreateChild = (e) => {
@@ -174,6 +174,47 @@ export const EventCard = ({ event, isDraft = false }) => {
               {event.thing.name}
             </span>
           </Box>
+        </Group>
+      )}
+
+      {(event.project?.name || event.event_contacts?.length > 0 || event.eventContacts?.length > 0) && (
+        <Group gap={4} mb={event.content ? 4 : 0} wrap="wrap" style={{ minWidth: 0 }}>
+          {event.project?.name && (
+            <Box style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              maxWidth: '100%',
+              padding: '1px 6px',
+              borderRadius: 4,
+              background: 'var(--mantine-color-blue-0)',
+              color: 'var(--mantine-color-blue-8)',
+              fontSize: 11,
+              fontWeight: 600,
+              lineHeight: '18px',
+            }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {event.project.name}
+              </span>
+            </Box>
+          )}
+          {(event.event_contacts || event.eventContacts || []).slice(0, 3).map((link) => (
+            <Box key={link.id || link.contact_id} style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              maxWidth: '100%',
+              padding: '1px 6px',
+              borderRadius: 4,
+              background: 'var(--mantine-color-indigo-0)',
+              color: 'var(--mantine-color-indigo-8)',
+              fontSize: 11,
+              fontWeight: 600,
+              lineHeight: '18px',
+            }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {link.contact?.name || link.name || link.contact_name || 'Contact'}
+              </span>
+            </Box>
+          ))}
         </Group>
       )}
 

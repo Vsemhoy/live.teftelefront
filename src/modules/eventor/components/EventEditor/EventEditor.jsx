@@ -15,6 +15,7 @@ import {
   Menu,
   Textarea,
   Switch,
+  MultiSelect,
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { DatePickerInput } from '@mantine/dates';
@@ -78,6 +79,8 @@ import {
 } from '../../api/eventorApi';
 import { TagSelect } from '../TagSelect/TagSelect';
 import { useThings } from '@/modules/stuffer/api/stufferApi';
+import { useContacts } from '@/modules/contactor/api/contactorApi';
+import { useProjects } from '@/modules/projector/api/projectorApi';
 import { useAuthStore } from '@/modules/auth/authStore';
 import { useOnlineStatus } from '@/shared/hooks/useOnlineStatus';
 import { createDraft, updateDraft, deleteDraft } from '@/shared/utils/db';
@@ -136,6 +139,8 @@ export const EventEditor = () => {
   const { data: sections } = useSections();
   const { data: categories } = useEventCategories();
   const { data: things = [] } = useThings();
+  const { data: contacts = [] } = useContacts({ group: 'all', q: '', sort: 'name', dir: 'asc' });
+  const { data: projects = [] } = useProjects({ filter: 'all', include_hidden: true, limit: 500 });
   const { data: types } = useEventTypes();
   const { mutateAsync: saveEvent, isPending: isSaving } = useSaveEvent();
   const { mutateAsync: deleteEvent, isPending: isDeleting } = useDeleteEvent();
@@ -155,7 +160,8 @@ export const EventEditor = () => {
   const [editorKey, setEditorKey] = useState(0);
 
   const [tagIds, setTagIds] = useState([]);
-  const [project, setProject] = useState('');
+  const [projectId, setProjectId] = useState(null);
+  const [contactIds, setContactIds] = useState([]);
   const [access, setAccess] = useState(1);
   const [comments, setComments] = useState('');
   const [isLocked, setIsLocked] = useState(false);
@@ -183,7 +189,8 @@ export const EventEditor = () => {
       setThingId(draftSrc.thing_id || null);
       setTypeId(draftSrc.type_id || null);
       setTagIds(Array.isArray(draftSrc.tag_ids) ? draftSrc.tag_ids : []);
-      setProject(draftSrc.project || '');
+      setProjectId(draftSrc.project_id || null);
+      setContactIds(Array.isArray(draftSrc.contact_ids) ? draftSrc.contact_ids : []);
       setAccess(draftSrc.access || 1);
       setComments(draftSrc.comments || '');
       setIsLocked(Boolean(draftSrc.is_locked));
@@ -203,7 +210,14 @@ export const EventEditor = () => {
       setThingId(existingEvent.thing_id || null);
       setTypeId(existingEvent.type_id || null);
       setTagIds((existingEvent.tags || []).map((t) => t.id));
-      setProject(existingEvent.project || '');
+      setProjectId(existingEvent.project_id || null);
+      setContactIds(
+        Array.isArray(existingEvent.event_contacts)
+          ? existingEvent.event_contacts.map((link) => link.contact_id).filter(Boolean)
+          : Array.isArray(existingEvent.eventContacts)
+            ? existingEvent.eventContacts.map((link) => link.contact_id).filter(Boolean)
+            : []
+      );
       setAccess(existingEvent.access || 1);
       setComments(existingEvent.comments || '');
       setIsLocked(Boolean(existingEvent.is_locked));
@@ -226,7 +240,8 @@ export const EventEditor = () => {
       setThingId(editorData?.thing_id || null);
       setTypeId(null);
       setTagIds([]);
-      setProject('');
+      setProjectId(editorData?.project_id || null);
+      setContactIds(Array.isArray(editorData?.contact_ids) ? editorData.contact_ids : []);
       setAccess(1);
       setComments('');
       setIsLocked(false);
@@ -262,11 +277,12 @@ export const EventEditor = () => {
       category_id: categoryId,
       thing_id: thingId,
       type_id: typeId,
+      project_id: projectId,
+      contact_ids: contactIds,
     };
 
     const localMeta = {
       tag_ids: tagIds,
-      project,
       access,
       comments,
       is_locked: isLocked,
@@ -356,6 +372,21 @@ export const EventEditor = () => {
       label: thing.name,
     })),
   ];
+
+  const projectOptions = [
+    { value: '', label: 'No project' },
+    ...projects.map((project) => ({
+      value: project.id,
+      label: [project.code, project.title].filter(Boolean).join(' · '),
+    })),
+  ];
+
+  const contactOptions = contacts
+    .filter((contact) => !contact.is_archived)
+    .map((contact) => ({
+      value: contact.id,
+      label: [contact.name, contact.company].filter(Boolean).join(' · '),
+    }));
 
   const typeOptions =
     types?.map((t) => ({
@@ -452,7 +483,7 @@ export const EventEditor = () => {
                 <Menu.Item onClick={() => setTypeId(null)} leftSection={!typeId ? <IconCheck size={14} /> : null}>
                   <Group gap={8} wrap="nowrap">
                     <IconCircleDashed size={14} />
-                    <span>Без типа</span>
+                    <span>No type</span>
                   </Group>
                 </Menu.Item>
                 {typeOptions.map((option) => (
@@ -622,11 +653,23 @@ export const EventEditor = () => {
                   value={tagIds}
                   onChange={setTagIds}
                 />
-                <TextInput
+                <Select
                   label="Project"
-                  value={project}
-                  onChange={(e) => setProject(e.target.value)}
-                  placeholder="Project name"
+                  data={projectOptions}
+                  value={projectId || ''}
+                  onChange={(value) => setProjectId(value || null)}
+                  searchable
+                  clearable
+                  placeholder="No project"
+                />
+                <MultiSelect
+                  label="Contacts"
+                  data={contactOptions}
+                  value={contactIds}
+                  onChange={setContactIds}
+                  searchable
+                  clearable
+                  placeholder="Mention or attach people"
                 />
                 <Select
                   label="Access"

@@ -1,5 +1,5 @@
 import { Modal, Text, Group, Badge, Box, Divider, ActionIcon, Tooltip, Loader, Center, Stack, Paper, Anchor } from '@mantine/core';
-import { IconEdit, IconCalendar, IconFolder, IconChevronUp, IconChevronDown, IconLink, IconGitFork, IconPackage } from '@tabler/icons-react';
+import { IconEdit, IconCalendar, IconFolder, IconChevronUp, IconChevronDown, IconLink, IconGitFork, IconPackage, IconUsers } from '@tabler/icons-react';
 import { MdFull } from '@/shared/components/MdRenderer';
 import { useState } from 'react';
 import { useMediaQuery } from '@mantine/hooks';
@@ -22,6 +22,7 @@ export const ReadModal = () => {
 
   const typeColor = event?.evt_type?.color || null;
   const typeBgcolor = event?.evt_type?.bgcolor || null;
+  const linkedContacts = event?.event_contacts || event?.eventContacts || [];
 
   const handleEdit = () => {
     if (isDraft) {
@@ -34,7 +35,7 @@ export const ReadModal = () => {
   const handleCopyLink = () => {
     const url = `${window.location.origin}/e/${event.id}`;
     navigator.clipboard.writeText(url);
-    notifications.show({ message: 'Ссылка скопирована', color: 'teal', autoClose: 2000 });
+    notifications.show({ message: 'Link copied', color: 'teal', autoClose: 2000 });
   };
 
   const handleOpenPublic = () => {
@@ -115,11 +116,26 @@ export const ReadModal = () => {
                 <Text size="xs" c="dimmed">{event.thing.name}</Text>
               </Group>
             )}
+            {event.project?.name && (
+              <Badge size="xs" variant="light" color="blue">
+                {event.project.name}
+              </Badge>
+            )}
+            {linkedContacts.length > 0 && (
+              <Group gap={5}>
+                <IconUsers size={13} color="var(--mantine-color-gray-5)" />
+                {linkedContacts.slice(0, 4).map((link) => (
+                  <Badge key={link.id || link.contact_id} size="xs" variant="outline" color="indigo">
+                    {link.contact?.name || link.name || link.contact_name || 'Contact'}
+                  </Badge>
+                ))}
+                {linkedContacts.length > 4 && <Text size="xs" c="dimmed">+{linkedContacts.length - 4}</Text>}
+              </Group>
+            )}
             <Box style={{ flex: 1 }} />
 
-            {/* Родитель */}
             {event.parent && (
-              <Tooltip label={`Родитель: ${event.parent.name}`} withArrow>
+              <Tooltip label={`Parent: ${event.parent.name}`} withArrow>
                 <ActionIcon variant="light" color="gray" size="sm"
                   onClick={() => openReader({ id: event.parent.id })}>
                   <IconChevronUp size={13} />
@@ -127,9 +143,8 @@ export const ReadModal = () => {
               </Tooltip>
             )}
 
-            {/* Дочерние */}
             {event.children?.length > 0 && (
-              <Tooltip label={`${event.children.length} дочерних`} withArrow>
+              <Tooltip label={`${event.children.length} child events`} withArrow>
                 <Badge size="sm" variant="light" color="blue" style={{ cursor: 'pointer' }}
                   leftSection={<IconChevronDown size={11} />}
                   onClick={() => document.getElementById('read-modal-children')?.scrollIntoView({ behavior: 'smooth' })}>
@@ -138,7 +153,6 @@ export const ReadModal = () => {
               </Tooltip>
             )}
 
-            {/* Создать дочернюю */}
             {!isDraft && (
               <Tooltip label="Make child" withArrow>
                 <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleCreateChild}>
@@ -147,7 +161,6 @@ export const ReadModal = () => {
               </Tooltip>
             )}
 
-            {/* Ссылка */}
             {!isDraft && (
               <Tooltip label="Copy link" withArrow>
                 <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleCopyLink}>
@@ -176,10 +189,9 @@ export const ReadModal = () => {
               <Center h={100}><Text size="sm" c="dimmed">No content</Text></Center>
             )}
 
-            {/* Дочерние записи */}
             {event.children?.length > 0 && (
               <Box id="read-modal-children" mt={32}>
-                <Divider mb={16} label="Дочерние записи" labelPosition="left" />
+                <Divider mb={16} label="Child events" labelPosition="left" />
                 <Stack gap={8}>
                   {event.children.map((child) => (
                     <Paper key={child.id} withBorder p="sm"
@@ -187,7 +199,7 @@ export const ReadModal = () => {
                       onClick={() => openReader({ id: child.id })}>
                       <Group justify="space-between">
                         <Box>
-                          <Text size="sm" fw={600}>{child.name || 'Без названия'}</Text>
+                          <Text size="sm" fw={600}>{child.name || 'Untitled'}</Text>
                           {child.occurred_at && (
                             <Text size="xs" c="dimmed">{dayjs(child.occurred_at).format('D MMMM YYYY')}</Text>
                           )}

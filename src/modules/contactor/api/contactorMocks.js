@@ -5,12 +5,23 @@ export const CONTACT_GROUPS = [
   { value: 'work', label: 'Work' },
   { value: 'service', label: 'Service' },
   { value: 'acquaintance', label: 'Acquaintance' },
+  { value: 'neighbor', label: 'Neighbor' },
+  { value: 'expert', label: 'Expert' },
+  { value: 'vendor', label: 'Vendor' },
+  { value: 'client', label: 'Client' },
+  { value: 'other', label: 'Other' },
 ];
 
 export const LOG_KINDS = [
   { value: 'fact', label: 'Fact' },
   { value: 'meeting', label: 'Meeting' },
   { value: 'call', label: 'Call' },
+  { value: 'message', label: 'Message' },
+  { value: 'incident', label: 'Incident' },
+  { value: 'rumor', label: 'Rumor' },
+  { value: 'family', label: 'Family' },
+  { value: 'work', label: 'Work' },
+  { value: 'service', label: 'Service' },
   { value: 'note', label: 'Note' },
   { value: 'reminder_done', label: 'Reminder done' },
 ];

@@ -28,6 +28,8 @@ const emptyForm = {
   met_at: '',
   met_precision: null,
   met_context: '',
+  birthday_on: '',
+  birthday_precision: null,
   details: [],
 };
 
@@ -50,16 +52,16 @@ const splitPartialDate = (value, precision) => {
   };
 };
 
-const buildPartialDate = ({ year, month, day }) => {
-  if (!year) return { met_at: null, met_precision: null };
+const buildPartialDate = ({ year, month, day }, valueKey = 'met_at', precisionKey = 'met_precision') => {
+  if (!year) return { [valueKey]: null, [precisionKey]: null };
 
   const safeYear = String(year).padStart(4, '0');
-  if (!month) return { met_at: `${safeYear}-01-01`, met_precision: 'year' };
+  if (!month) return { [valueKey]: `${safeYear}-01-01`, [precisionKey]: 'year' };
 
   const safeMonth = String(month).padStart(2, '0');
-  if (!day) return { met_at: `${safeYear}-${safeMonth}-01`, met_precision: 'month' };
+  if (!day) return { [valueKey]: `${safeYear}-${safeMonth}-01`, [precisionKey]: 'month' };
 
-  return { met_at: `${safeYear}-${safeMonth}-${String(day).padStart(2, '0')}`, met_precision: 'day' };
+  return { [valueKey]: `${safeYear}-${safeMonth}-${String(day).padStart(2, '0')}`, [precisionKey]: 'day' };
 };
 
 export const ContactEditor = () => {
@@ -70,6 +72,7 @@ export const ContactEditor = () => {
   const saveContact = useSaveContact();
   const [form, setForm] = useState(emptyForm);
   const [metParts, setMetParts] = useState({ year: '', month: '', day: '' });
+  const [birthdayParts, setBirthdayParts] = useState({ year: '', month: '', day: '' });
 
   const editing = useMemo(
     () => contacts.find((contact) => contact.id === contactEditorParams?.id),
@@ -85,13 +88,22 @@ export const ContactEditor = () => {
       met_at: editing.met_at || '',
       met_precision: editing.met_precision || null,
       met_context: editing.met_context || '',
+      birthday_on: editing.birthday_on || '',
+      birthday_precision: editing.birthday_precision || null,
       nickname: editing.nickname || '',
     } : emptyForm);
     setMetParts(editing ? splitPartialDate(editing.met_at, editing.met_precision) : { year: '', month: '', day: '' });
+    setBirthdayParts(editing ? splitPartialDate(editing.birthday_on, editing.birthday_precision) : { year: '', month: '', day: '' });
   }, [contactEditorOpen, editing]);
 
   const patch = (key, value) => setForm((state) => ({ ...state, [key]: value }));
   const patchMet = (key, value) => setMetParts((state) => {
+    const next = { ...state, [key]: value || '' };
+    if (key === 'year' && !value) return { year: '', month: '', day: '' };
+    if (key === 'month' && !value) return { ...next, day: '' };
+    return next;
+  });
+  const patchBirthday = (key, value) => setBirthdayParts((state) => {
     const next = { ...state, [key]: value || '' };
     if (key === 'year' && !value) return { year: '', month: '', day: '' };
     if (key === 'month' && !value) return { ...next, day: '' };
@@ -132,6 +144,7 @@ export const ContactEditor = () => {
       name,
       nickname: form.nickname.trim(),
       ...buildPartialDate(metParts),
+      ...buildPartialDate(birthdayParts, 'birthday_on', 'birthday_precision'),
       details,
     }, {
       onSuccess: closeContactEditor,
@@ -191,6 +204,37 @@ export const ContactEditor = () => {
               value={metParts.day}
               onChange={(value) => patchMet('day', value)}
               disabled={!metParts.year || !metParts.month}
+              hideControls
+            />
+          </Group>
+          <Group grow align="flex-start">
+            <NumberInput
+              label="Birth year"
+              placeholder="1988"
+              min={1900}
+              max={2200}
+              value={birthdayParts.year}
+              onChange={(value) => patchBirthday('year', value)}
+              hideControls
+            />
+            <NumberInput
+              label="Month"
+              placeholder="Optional"
+              min={1}
+              max={12}
+              value={birthdayParts.month}
+              onChange={(value) => patchBirthday('month', value)}
+              disabled={!birthdayParts.year}
+              hideControls
+            />
+            <NumberInput
+              label="Day"
+              placeholder="Optional"
+              min={1}
+              max={31}
+              value={birthdayParts.day}
+              onChange={(value) => patchBirthday('day', value)}
+              disabled={!birthdayParts.year || !birthdayParts.month}
               hideControls
             />
           </Group>

@@ -79,6 +79,16 @@
   padding: 12px;
 }
 
+.task-log-toolbar,
+.task-log-pagination {
+  max-width: 1040px;
+  margin: 0 auto 10px;
+}
+
+.task-log-pagination {
+  margin-top: 12px;
+}
+
 .task-log-content {
   white-space: pre-wrap;
   margin-top: 8px;
@@ -94,6 +104,173 @@
 
 .task-md-panel {
   min-height: 420px;
+}
+
+.task-editor-modal .task-editor-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: linear-gradient(180deg, #fafbfd 0%, #f7f9fc 100%);
+}
+
+.task-editor-modal .task-editor-header {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(2px);
+  flex-shrink: 0;
+}
+
+.task-editor-modal .task-editor-title {
+  min-width: 0;
+}
+
+.task-editor-modal .task-editor-title input {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  font-size: 15px;
+  padding-left: 4px;
+}
+
+.task-editor-modal .task-editor-view-tabs {
+  flex-shrink: 0;
+}
+
+.task-editor-modal .task-editor-status-trigger {
+  min-width: 44px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding-inline: 8px;
+}
+
+.task-editor-modal .task-editor-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.task-editor-modal .task-editor-surface {
+  height: 100%;
+  min-height: 0;
+  background: #fff;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.task-editor-modal .task-editor-surface .mdxeditor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  background: #fff;
+  overflow: hidden;
+}
+
+.task-editor-modal .task-editor-surface .mdxeditor-diff-source-wrapper,
+.task-editor-modal .task-editor-surface .mdxeditor-rich-text-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.task-editor-modal .task-editor-surface .mdxeditor-root-contenteditable {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  padding: 0;
+  border: none;
+  width: 100%;
+}
+
+.task-editor-modal .task-md-contenteditable {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 18px;
+}
+
+.task-editor-modal .task-md-contenteditable > * {
+  max-width: 100%;
+}
+
+.task-editor-modal .task-md-contenteditable pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.task-editor-modal .task-md-toolbar {
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  background: #f0f0f3;
+}
+
+.task-editor-modal .task-editor-raw {
+  height: 100%;
+}
+
+.task-editor-modal .task-editor-settings-grid {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-content: start;
+}
+
+.task-editor-modal .task-editor-flags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding-top: 4px;
+}
+
+.task-editor-modal .task-editor-checklist {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+  background: #fff;
+}
+
+.task-editor-modal .task-editor-footer {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--mantine-color-gray-2);
+  background: rgba(255, 255, 255, 0.94);
+  flex-shrink: 0;
+}
+
+.task-editor-modal .task-editor-mode-switch {
+  justify-self: center;
+}
+
+.task-editor-modal .task-editor-footer-actions {
+  justify-self: end;
 }
 
 .task-md-editor {
@@ -199,6 +376,9 @@
 
 .task-checklist-item.is-done .task-checklist-title {
   color: var(--mantine-color-gray-6);
+}
+
+.task-checklist-item.is-done .task-checklist-title-text {
   text-decoration: line-through;
 }
 
@@ -339,14 +519,60 @@
 }
 
 .task-editor-modal .mantine-Modal-body {
-  max-height: min(80vh, 700px);
-  overflow-y: auto;
-  overflow-x: hidden;
+  max-height: none;
+  overflow: hidden;
 }
 
 /* ContentEditable scrolls inside the fixed editor container. */
 .task-md-editor {
   height: 360px; /* Toolbar takes part of the available height. */
+}
+
+@media (max-width: 900px) {
+  .task-editor-modal .task-editor-header {
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas:
+      'title code close'
+      'tabs tabs tabs';
+  }
+
+  .task-editor-modal .task-editor-title { grid-area: title; }
+  .task-editor-modal .task-editor-view-tabs { grid-area: tabs; width: 100%; }
+  .task-editor-modal .task-editor-status-trigger { grid-area: code; }
+}
+
+@media (max-width: 768px) {
+  .task-editor-modal .mantine-Modal-inner {
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .task-editor-modal .mantine-Modal-content {
+    border-radius: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+  }
+
+  .task-editor-modal .task-editor-header,
+  .task-editor-modal .task-editor-footer {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .task-editor-modal .task-editor-footer {
+    grid-template-columns: auto 1fr auto;
+    row-gap: 0;
+    padding-top: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .task-editor-modal .task-editor-footer-actions {
+    gap: 6px;
+  }
 }
 
 
@@ -363,101 +589,146 @@
   background: var(--mantine-color-gray-0);
 }
 
-.tvc-layout { display: flex; }
-
-/* Fixed left column. */
-.tvc-left {
-  width: 160px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--mantine-color-gray-4);
+/* The ONE element that owns horizontal scrolling. Everything inside shares the
+   same width, so the pinned left column and the hour chart scroll as a unit. */
+.tvc-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
-.tvc-left-head {
-  height: 28px;
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  border-bottom: 0.5px solid var(--mantine-color-gray-3);
-  background: var(--mantine-color-gray-1);
-}
-
-.tvc-day-label-cell {
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--mantine-color-gray-3);
+.tvc-grid {
+  min-width: 800px;      /* left column (160) + chart minimum (640) */
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 2px;
-  cursor: default;
-  box-sizing: border-box;
 }
-.tvc-day-label-cell.is-today {
-  background: color-mix(in srgb, var(--mantine-color-blue-1) 50%, transparent);
-}
-.tvc-day-label-cell.is-future { opacity: 0.6; }
-.tvc-day-label-cell:hover { background: var(--mantine-color-gray-1); }
 
-.tvc-day-group,
-.tvc-day-group-right {
-  border-bottom: 1px solid var(--mantine-color-gray-3);
+/* ── Row model ─────────────────────────────────────────────────────
+   Every row is a single flex row: [ sticky left cell | right chart cell ].
+   Because the label and its chart live in the SAME row, they can never
+   drift out of vertical alignment. */
+.tvc-row {
+  display: flex;
+  align-items: stretch;
+}
+
+/* Left cell — pinned during horizontal scroll. */
+.tvc-left {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  width: 160px;
+  flex: 0 0 160px;
+  box-sizing: border-box;
+  border-right: 1px solid var(--mantine-color-gray-4);
+  border-bottom: 0.5px solid var(--mantine-color-gray-2);
   background: var(--mantine-color-white);
 }
 
-.tvc-day-group.is-today,
-.tvc-day-group-right.is-today {
-  background: color-mix(in srgb, var(--mantine-color-blue-0) 60%, white);
-}
-
-.tvc-day-group.is-future,
-.tvc-day-group-right.is-future {
-  opacity: 0.68;
-}
-
-.tvc-day-header-left,
-.tvc-day-header-right {
+/* Right cell — the hour chart. min-width drives the scroll. */
+.tvc-right {
   position: relative;
-  height: 40px;
+  flex: 1 1 auto;
+  min-width: 640px;
   box-sizing: border-box;
   border-bottom: 0.5px solid var(--mantine-color-gray-2);
+  background: var(--mantine-color-white);
 }
 
-.tvc-day-header-left {
+/* ── Header row ─────────────────────────────────────────────────── */
+.tvc-row--head .tvc-left,
+.tvc-row--head .tvc-right {
+  height: 28px;
+  background: var(--mantine-color-gray-1);
+  border-bottom: 0.5px solid var(--mantine-color-gray-3);
+}
+.tvc-left--head {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  z-index: 4;
+}
+.tvc-right--head { display: flex; }
+
+.tvc-hour-cell {
+  flex: 1;
+  border-left: 0.5px solid var(--mantine-color-gray-3);
+  padding-left: 3px;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Day-state tinting (applied to the group wrapper) ───────────── */
+.tvc-daygroup.is-today .tvc-left,
+.tvc-daygroup.is-today .tvc-right {
+  background: color-mix(in srgb, var(--mantine-color-blue-0) 60%, white);
+}
+.tvc-daygroup.is-future { opacity: 0.68; }
+
+/* ── Day header row ─────────────────────────────────────────────── */
+.tvc-row--day .tvc-left,
+.tvc-row--day .tvc-right {
+  height: 40px;
+}
+.tvc-left--day {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
-  padding: 5px 10px;
+  padding: 4px 10px;
   cursor: pointer;
+  overflow: hidden;
+}
+.tvc-left--day:hover { background: var(--mantine-color-gray-1); }
+
+.tvc-day-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.tvc-day-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.tvc-day-header-left:hover {
-  background: var(--mantine-color-gray-1);
-}
-
-.tvc-row-label,
-.tvc-task-row-right {
+/* ── Task rows ──────────────────────────────────────────────────── */
+.tvc-row--task .tvc-left,
+.tvc-row--task .tvc-right {
   height: 40px;
-  box-sizing: border-box;
-  border-bottom: 0.5px solid var(--mantine-color-gray-2);
 }
-
-.tvc-row-label {
+.tvc-left--task {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
   padding: 5px 8px;
   cursor: pointer;
+  overflow: hidden;
 }
-
-.tvc-row-label:hover,
-.tvc-row-label.is-selected {
+.tvc-row--task:hover .tvc-left,
+.tvc-row--task.is-selected .tvc-left {
   background: var(--mantine-color-blue-0);
 }
 
-.tvc-task-row-right {
-  position: relative;
+.tvc-task-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   min-width: 0;
+}
+.tvc-task-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tvc-task-meta {
+  padding-left: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tvc-task-dot {
@@ -486,38 +757,13 @@
   transform: translateY(-50%);
 }
 
-/* Right side with horizontal scroll. */
-.tvc-right { flex: 1; overflow-x: auto; min-width: 0; }
-.tvc-chart-inner { min-width: 640px; }
-
-/* Hour scale. */
-.tvc-hours-row {
-  height: 28px;
+.tvc-loading {
   display: flex;
-  border-bottom: 0.5px solid var(--mantine-color-gray-3);
-  background: var(--mantine-color-gray-1);
-}
-.tvc-hour-cell {
-  flex: 1;
-  border-left: 0.5px solid var(--mantine-color-gray-3);
-  padding-left: 3px;
-  display: flex;
-  align-items: center;
+  justify-content: center;
+  padding: 24px;
 }
 
-/* Right day row. */
-.tvc-day-row-right {
-  position: relative;
-  border-bottom: 1px solid var(--mantine-color-gray-3);
-  background: white;
-  box-sizing: border-box;
-}
-.tvc-day-row-right.is-today {
-  background: color-mix(in srgb, var(--mantine-color-blue-0) 60%, white);
-}
-.tvc-day-row-right.is-future { opacity: 0.6; }
-
-/* Background hour grid. */
+/* Background hour grid — decorative, never intercepts clicks. */
 .tvc-hour-grid {
   position: absolute;
   inset: 0;
@@ -533,24 +779,25 @@
 .tvc-span {
   position: absolute;
   border-radius: 3px;
-  overflow: hidden;
+  /* overflow: hidden; */
   display: flex;
   align-items: center;
   cursor: pointer;
   transition: opacity 0.1s, outline 0.1s;
   box-sizing: border-box;
+  min-height: 26px;
 }
 .tvc-span:hover { opacity: 0.82; }
 .tvc-span-selected { outline: 2px solid var(--mantine-color-blue-4); outline-offset: 1px; }
 
 .tvc-span-plan {
-  top: 7px;
+  top: 2px;
   height: 9px;
   border: 1.5px dashed;
   background: transparent;
 }
 .tvc-span-fact {
-  top: 21px;
+  top: 12px;
   height: 12px;
   border-left-width: 2px;
   border-left-style: solid;
@@ -564,6 +811,56 @@
   text-overflow: ellipsis;
   padding: 0 4px;
 }
+
+.span-selected {
+  outline: 2px solid rgba(0, 0, 255, 0.64);
+  z-index: 2;
+}
+
+.tvc-span-handle-left {
+    background: #0090ff70;
+    position: absolute;
+    margin-left: -22px;
+    z-index: 22;
+    min-width: 18px;
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 3px;
+    color: white;
+    font-size: 6px;
+    transition: all 0.3s;
+    height: 100%;
+  }
+  .tvc-span-handle-left:active {
+    cursor: grab;
+  }
+  
+  .tvc-span-handle-right {
+    background: #0090ff70;
+    text-align: center;
+    position: absolute;
+    right: -20px;
+    z-index: 22;
+    min-width: 18px;
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 3px;
+    color: white;
+    font-size: 6px;
+    transition: all 0.3s;
+    height: 100%;
+  }
+  .tvc-span-handle-right:hover, .tvc-span-handle-left:hover {
+    background: #0091ffd5;
+    font-size: 20px;
+  }
+  .tvc-span-handle-right:active {
+    cursor: grab;
+  }
 
 .tvc-empty-hint {
   position: absolute;

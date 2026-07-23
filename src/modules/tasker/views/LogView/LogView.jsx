@@ -1,8 +1,12 @@
-import { Badge, Box, Center, Group, Loader, Stack, Text } from '@mantine/core';
+import { useEffect, useMemo, useState } from 'react';
+import { notifications } from '@mantine/notifications';
 import {
-  IconAlertTriangle, IconArrowsExchange, IconFileText, IconMessageCircle, IconNote,
+  Badge, Box, Button, Center, Checkbox, Group, Loader, Pagination, Select, Stack, Text,
+} from '@mantine/core';
+import {
+  IconAlertTriangle, IconArrowsExchange, IconFileText, IconMessageCircle, IconNote, IconTrash,
 } from '@tabler/icons-react';
-import { useTaskLogs } from '../../api/taskerApi';
+import { useBulkDeleteTaskLogs, useTaskLogs } from '../../api/taskerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import { describeStatusChange, formatDateTime } from '../../utils/taskerUtils';
 
@@ -15,13 +19,131 @@ const KIND_META = {
 };
 
 export const LogView = () => {
-  const { data: logs = [], isLoading } = useTaskLogs({ limit: 300 });
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState('50');
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const params = useMemo(() => ({ page, per_page: Number(perPage) }), [page, perPage]);
+  const { data: payload, isLoading } = useTaskLogs(params);
+  const bulkDeleteLogs = useBulkDeleteTaskLogs();
   const openLogEditor = useTaskerStore((state) => state.openLogEditor);
+  const logs = Array.isArray(payload) ? payload : payload?.data || [];
+  const meta = Array.isArray(payload)
+    ? { current_page: 1, last_page: 1, per_page: logs.length, total: logs.length }
+    : payload?.meta || { current_page: page, last_page: 1, per_page: Number(perPage), total: logs.length };
+  const visibleIds = logs.map((log) => log.id);
+  const selectedOnPageCount = visibleIds.filter((id) => selectedIds.has(id)).length;
+  const allPageSelected = visibleIds.length > 0 && selectedOnPageCount === visibleIds.length;
+  const somePageSelected = selectedOnPageCount > 0 && !allPageSelected;
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [page, perPage]);
+
+  const toggleLog = (id, checked) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const togglePage = (checked) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      visibleIds.forEach((id) => {
+        if (checked) {
+          next.add(id);
+        } else {
+          next.delete(id);
+        }
+      });
+      return next;
+    });
+  };
+
+  const deleteSelected = () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length || !window.confirm(`Delete ${ids.length} selected log entries?`)) return;
+
+    bulkDeleteLogs.mutate({ ids }, {
+      onSuccess: (result) => {
+        setSelectedIds(new Set());
+        notifications.show({ message: `Deleted ${result?.deleted_count ?? ids.length} log entries`, color: 'red' });
+      },
+      onError: () => notifications.show({ message: 'Failed to delete log entries', color: 'red' }),
+    });
+  };
+
+  const deleteAll = () => {
+    if (!meta.total || !window.confirm(`Delete all ${meta.total} log entries? This action cannot be undone.`)) return;
+
+    bulkDeleteLogs.mutate({ delete_all: true }, {
+      onSuccess: (result) => {
+        setSelectedIds(new Set());
+        setPage(1);
+        notifications.show({ message: `Deleted ${result?.deleted_count ?? meta.total} log entries`, color: 'red' });
+      },
+      onError: () => notifications.show({ message: 'Failed to delete log entries', color: 'red' }),
+    });
+  };
 
   if (isLoading) return <Center h={300}><Loader /></Center>;
 
   return (
     <div className="tasker-shell">
+      <Group className="task-log-toolbar" justify="space-between" gap={8}>
+        <Group gap={10}>
+          <Checkbox
+            label="Select page"
+            checked={allPageSelected}
+            indeterminate={somePageSelected}
+            disabled={!visibleIds.length || bulkDeleteLogs.isPending}
+            onChange={(event) => togglePage(event.currentTarget.checked)}
+          />
+          <Text size="sm" c="dimmed">
+            {selectedIds.size ? `${selectedIds.size} selected` : `${meta.total || 0} entries`}
+          </Text>
+        </Group>
+        <Group gap={8}>
+          <Select
+            size="xs"
+            w={92}
+            value={perPage}
+            data={['25', '50', '100']}
+            allowDeselect={false}
+            onChange={(value) => {
+              setPerPage(value || '50');
+              setPage(1);
+            }}
+          />
+          <Button
+            size="xs"
+            variant="light"
+            color="red"
+            leftSection={<IconTrash size={14} />}
+            disabled={!selectedIds.size}
+            loading={bulkDeleteLogs.isPending}
+            onClick={deleteSelected}
+          >
+            Delete selected
+          </Button>
+          <Button
+            size="xs"
+            variant="subtle"
+            color="red"
+            leftSection={<IconTrash size={14} />}
+            disabled={!meta.total}
+            loading={bulkDeleteLogs.isPending}
+            onClick={deleteAll}
+          >
+            Delete all
+          </Button>
+        </Group>
+      </Group>
       <Stack gap={8} className="task-log-list">
         {logs.length ? logs.map((log) => {
           const meta = KIND_META[log.kind] || KIND_META.note;
@@ -35,6 +157,12 @@ export const LogView = () => {
               onClick={() => !isStatusChange && openLogEditor({ ...log, lockTask: true })}
             >
               <Group justify="space-between" align="flex-start" gap={8} wrap="nowrap">
+                <Checkbox
+                  checked={selectedIds.has(log.id)}
+                  disabled={bulkDeleteLogs.isPending}
+                  onClick={(event) => event.stopPropagation()}
+                  onChange={(event) => toggleLog(log.id, event.currentTarget.checked)}
+                />
                 <Box className={`task-timeline-icon ${meta.color}`}><Icon size={13} /></Box>
                 <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
                   <Group gap={6} justify="space-between" wrap="nowrap">
@@ -62,6 +190,16 @@ export const LogView = () => {
           <Center h={220}><Text size="sm" c="dimmed">No log entries found</Text></Center>
         )}
       </Stack>
+      {meta.last_page > 1 && (
+        <Group className="task-log-pagination" justify="center">
+          <Pagination
+            size="sm"
+            value={meta.current_page}
+            total={meta.last_page}
+            onChange={setPage}
+          />
+        </Group>
+      )}
     </div>
   );
 };

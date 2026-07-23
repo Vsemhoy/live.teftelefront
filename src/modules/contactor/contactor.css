@@ -68,6 +68,43 @@
 .cnt-log-icon.green { background: var(--mantine-color-green-0); color: var(--mantine-color-green-7); }
 .cnt-log-icon.gray { background: var(--mantine-color-gray-1); color: var(--mantine-color-gray-7); }
 .cnt-log-icon.orange { background: var(--mantine-color-orange-0); color: var(--mantine-color-orange-7); }
+.cnt-log-icon.cyan { background: var(--mantine-color-cyan-0); color: var(--mantine-color-cyan-7); }
+.cnt-log-icon.red { background: var(--mantine-color-red-0); color: var(--mantine-color-red-7); }
+.cnt-log-icon.violet { background: var(--mantine-color-violet-0); color: var(--mantine-color-violet-7); }
+.cnt-log-icon.pink { background: var(--mantine-color-pink-0); color: var(--mantine-color-pink-7); }
+.cnt-log-icon.blue { background: var(--mantine-color-blue-0); color: var(--mantine-color-blue-7); }
+.cnt-log-icon.teal { background: var(--mantine-color-teal-0); color: var(--mantine-color-teal-7); }
+
+.cnt-log-md .md-preview p:last-child {
+  margin-bottom: 0;
+}
+
+.cnt-md-editor {
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--mantine-color-white);
+}
+
+.cnt-md-editor .mdxeditor {
+  min-height: 220px;
+}
+
+.cnt-md-editor .mdxeditor-diff-source-wrapper,
+.cnt-md-editor .mdxeditor-rich-text-editor {
+  min-height: 220px;
+}
+
+.cnt-md-contenteditable {
+  min-height: 180px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 10px 12px;
+}
+
+.cnt-md-toolbar {
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+}
 
 .cnt-graph-shell {
   width: 100%;

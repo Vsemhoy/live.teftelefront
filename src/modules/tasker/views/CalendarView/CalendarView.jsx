@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActionIcon, Badge, Box, Button, Group, Loader, Select, Text, Tooltip } from '@mantine/core';
-import { IconClock, IconPlus } from '@tabler/icons-react';
+import { IconClock, IconPlus, IconResize } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDeleteTaskSpan, useSaveTaskSpan, useTaskSpans, useTasks } from '../../api/taskerApi';
 import { useActiveTimer, useStartTimer } from '../../api/timerApi';
@@ -35,6 +35,8 @@ export const CalendarView = () => {
   const today = new Date().toISOString().slice(0, 10);
   const fromDate = dateOffsetStr(-DAYS_BACK);
   const toDate = showFuture ? dateOffsetStr(DAYS_FORWARD) : today;
+
+  const [selectedSpanId, setSelectedSpanId] = useState(null); 
 
   const { data: allSpans = [], isLoading: spansLoading } = useTaskSpans({
     from_date: fromDate,
@@ -116,14 +118,8 @@ export const CalendarView = () => {
     openSpanEditor({ ...span, task_id: span.task_id });
   };
 
-  const handleSpanDelete = (span) => {
-    if (!window.confirm('Delete this span?')) return;
-    deleteSpan.mutate(span, {
-      onSuccess: () => notifications.show({ message: 'Span deleted', color: 'red' }),
-    });
-  };
-
-  const chartRef = useRef(null);
+  const stateClass = (date) =>
+    isToday(date) ? 'is-today' : isPast(date) ? 'is-past' : 'is-future';
 
   return (
     <div className="tasker-shell tasker-calendar">
@@ -158,100 +154,90 @@ export const CalendarView = () => {
       </Group>
 
       <div className="tvc-wrap">
-        <div className="tvc-layout">
-          <div className="tvc-left">
-            <div className="tvc-left-head">
-              <Text size="10" fw={600} c="dimmed" tt="uppercase">Task</Text>
-            </div>
-
-            {isLoading ? (
-              <Group justify="center" p="md"><Loader size="sm" /></Group>
-            ) : dates.map((date) => {
-              const tasksOnDay = spansByDateAndTask[date] ? Object.keys(spansByDateAndTask[date]) : [];
-              const factSeconds = allSpans
-                .filter((s) => s.kind === 'fact' && (s.started_at || '').slice(0, 10) === date)
-                .reduce((acc, s) => acc + calcSpanSeconds(s), 0);
-
-              return (
-                <div key={date} className={`tvc-day-group ${isToday(date) ? 'is-today' : isPast(date) ? 'is-past' : 'is-future'}`}>
-                  <div
-                    className="tvc-day-header-left"
-                    onClick={() => handleDayHeaderClick(date)}
-                    title={detailTaskId ? 'Add a plan slot for the selected task' : 'Select a task to add a slot'}
-                  >
-                    <Text size="xs" fw={700}>{formatDayLabel(date)}</Text>
-                    {factSeconds > 0 && (
-                      <Text size="10" c="dimmed">{formatDuration(factSeconds)}</Text>
-                    )}
-                    {isToday(date) && <Badge size="xs" color="blue" variant="dot">today</Badge>}
-                  </div>
-
-                  {tasksOnDay.map((taskId) => {
-                    const task = taskMap[taskId];
-                    const spans = spansByDateAndTask[date][taskId] || [];
-                    const factSecs = spans.filter((s) => s.kind === 'fact').reduce((a, s) => a + calcSpanSeconds(s), 0);
-                    const planSpans = spans.filter((s) => s.kind === 'plan');
-                    const isActive = activeTimer?.source_module === 'tasker' && activeTimer?.source_id === taskId;
-                    const isSelected = detailTaskId === taskId;
-                    const colors = getPriorityColors(task?.priority_id);
-
-                    return (
-                      <div
-                        key={taskId}
-                        className={`tvc-row-label ${isSelected ? 'is-selected' : ''}`}
-                        onClick={() => setDetailTaskId(isSelected ? null : taskId)}
-                        onDoubleClick={() => task && openReadModal(task)}
-                        title="Click to select, double-click to open task"
-                      >
-                        <Group gap={5} wrap="nowrap">
-                          <span className="tvc-task-dot" style={{ background: colors.border }} />
-                          <Text size="12" fw={500} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                            {task?.title || taskId.slice(0, 8)}
-                          </Text>
-                          {isActive && <span className="tvc-live-dot" title="Timer running" />}
-                        </Group>
-                        <Text size="10" c="dimmed" style={{ paddingLeft: 12 }}>
-                          {factSecs > 0 ? `${formatDuration(factSecs)} fact` : ''}
-                          {planSpans.length > 0 ? ` | ${planSpans.length} plan` : ''}
-                        </Text>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="tvc-right" ref={chartRef}>
-            <div className="tvc-chart-inner">
-              <div className="tvc-hours-row">
+        {/* One horizontal scroll owner. Every row is [sticky left | chart], so the
+            two columns can never drift out of vertical alignment. */}
+        <div className="tvc-scroll">
+          <div className="tvc-grid">
+            {/* Header row. */}
+            <div className="tvc-row tvc-row--head">
+              <div className="tvc-left tvc-left--head">
+                <Text size="10" fw={600} c="dimmed" tt="uppercase">Task</Text>
+              </div>
+              <div className="tvc-right tvc-right--head">
                 {hourLabels.map((h) => (
                   <div key={h} className="tvc-hour-cell">
                     <Text size="10" c="dimmed">{String(h).padStart(2, '0')}:00</Text>
                   </div>
                 ))}
               </div>
+            </div>
 
-              {isLoading ? null : dates.map((date) => {
-                const tasksOnDay = spansByDateAndTask[date] ? Object.keys(spansByDateAndTask[date]) : [];
-                const isFuture = !isPast(date) && !isToday(date);
+            {isLoading ? (
+              <div className="tvc-loading"><Loader size="sm" /></div>
+            ) : dates.map((date) => {
+              const tasksOnDay = spansByDateAndTask[date] ? Object.keys(spansByDateAndTask[date]) : [];
+              const factSeconds = allSpans
+                .filter((s) => s.kind === 'fact' && (s.started_at || '').slice(0, 10) === date)
+                .reduce((acc, s) => acc + calcSpanSeconds(s), 0);
+              const cls = stateClass(date);
 
-                return (
-                  <div key={date} className={`tvc-day-group-right ${isToday(date) ? 'is-today' : isFuture ? 'is-future' : 'is-past'}`}>
-                    <div className="tvc-day-header-right">
+              return (
+                <div key={date} className={`tvc-daygroup ${cls}`}>
+                  {/* Day header row. */}
+                  <div className="tvc-row tvc-row--day">
+                    <div
+                      className="tvc-left tvc-left--day"
+                      onClick={() => handleDayHeaderClick(date)}
+                      title={detailTaskId ? 'Add a plan slot for the selected task' : 'Select a task to add a slot'}
+                    >
+                      <div className="tvc-day-title">
+                        <Text size="xs" fw={700} className="tvc-day-name">{formatDayLabel(date)}</Text>
+                        {isToday(date) && <Badge size="xs" color="blue" variant="dot">today</Badge>}
+                      </div>
+                      {factSeconds > 0 && (
+                        <Text size="10" c="dimmed">{formatDuration(factSeconds)}</Text>
+                      )}
+                    </div>
+                    <div className="tvc-right tvc-right--day">
                       <HourGrid hourLabels={hourLabels} />
                     </div>
+                  </div>
 
-                    {tasksOnDay.map((taskId) => {
-                      const task = taskMap[taskId];
-                      const spans = spansByDateAndTask[date][taskId] || [];
-                      const planSpans = spans.filter((s) => s.kind === 'plan');
-                      const factSpans = spans.filter((s) => s.kind === 'fact');
-                      const colors = getPriorityColors(task?.priority_id);
-                      const isActive = activeTimer?.source_module === 'tasker' && activeTimer?.source_id === taskId;
+                  {/* Task rows. */}
+                  {tasksOnDay.map((taskId) => {
+                    const task = taskMap[taskId];
+                    const spans = spansByDateAndTask[date][taskId] || [];
+                    const factSecs = spans.filter((s) => s.kind === 'fact').reduce((a, s) => a + calcSpanSeconds(s), 0);
+                    const planSpans = spans.filter((s) => s.kind === 'plan');
+                    const factSpans = spans.filter((s) => s.kind === 'fact');
+                    const isActive = activeTimer?.source_module === 'tasker' && activeTimer?.source_id === taskId;
+                    const isSelected = detailTaskId === taskId;
+                    const colors = getPriorityColors(task?.priority_id);
 
-                      return (
-                        <div key={taskId} className="tvc-task-row-right">
+                    return (
+                      <div key={taskId} className={`tvc-row tvc-row--task ${isSelected ? 'is-selected' : ''}`}>
+                        <div
+                          className="tvc-left tvc-left--task"
+                          onClick={() => setDetailTaskId(isSelected ? null : taskId)}
+                          onDoubleClick={() => task && openReadModal(task)}
+                          title="Click to select, double-click to open task"
+                        >
+                          <div className="tvc-task-title">
+                            <span className="tvc-task-dot" style={{ background: colors.border }} />
+                            <Text size="12" fw={500} className="tvc-task-name">
+                              {task?.title || taskId.slice(0, 8)}
+                            </Text>
+                            {isActive && <span className="tvc-live-dot" title="Timer running" />}
+                          </div>
+                          {(factSecs > 0 || planSpans.length > 0) && (
+                            <Text size="10" c="dimmed" className="tvc-task-meta">
+                              {factSecs > 0 ? `${formatDuration(factSecs)} fact` : ''}
+                              {planSpans.length > 0 ? `${factSecs > 0 ? ' | ' : ''}${planSpans.length} plan` : ''}
+                            </Text>
+                          )}
+                        </div>
+
+                        <div className="tvc-right tvc-right--task">
                           <HourGrid hourLabels={hourLabels} />
 
                           {planSpans.map((span) => {
@@ -261,13 +247,14 @@ export const CalendarView = () => {
                             return (
                               <div
                                 key={span.id}
-                                className="tvc-span tvc-span-plan"
+                                className={`tvc-span tvc-span-plan ${selectedSpanId === span.id ? 'span-selected' : null} ${selectedSpanId === span.id ? 'span-selected' : null}  ${selectedSpanId === span.id ? 'span-selected' : null}`}
                                 style={{
                                   left: `${left * 100}%`,
                                   width: `${(right - left) * 100}%`,
                                   borderColor: colors.planBorder,
                                   background: colors.plan,
                                 }}
+                                onClick={()=> setSelectedSpanId(span.id)}
                                 onDoubleClick={() => handleSpanDblClick(span)}
                                 title={`Plan: ${formatTime(span.planned_start_at)}-${formatTime(span.planned_end_at)} | double-click to edit`}
                               />
@@ -284,7 +271,7 @@ export const CalendarView = () => {
                             return (
                               <div
                                 key={span.id}
-                                className={`tvc-span tvc-span-fact ${isLive ? 'tvc-span-live' : ''} ${activeSpanId === span.id ? 'is-active' : ''}`}
+                                className={`tvc-span tvc-span-fact ${isLive ? 'tvc-span-live' : ''} ${activeSpanId === span.id ? 'is-active' : ''}  ${selectedSpanId === span.id ? 'span-selected' : null}`}
                                 style={{
                                   left: `${left * 100}%`,
                                   width: `${Math.max((right - left) * 100, 0.5)}%`,
@@ -293,18 +280,36 @@ export const CalendarView = () => {
                                     : colors.bg,
                                   borderLeft: `2px solid ${colors.border}`,
                                 }}
-                                onClick={() => setActiveSpanId(activeSpanId === span.id ? null : span.id)}
+                                onClick={()=> setSelectedSpanId(span.id)}
+                                // onClick={() => setActiveSpanId(activeSpanId === span.id ? null : span.id)}
                                 onDoubleClick={() => handleSpanDblClick(span)}
                                 title={`${formatTime(span.started_at)}-${isLive ? '...' : formatTime(span.ended_at)} | ${span.title || ''} | ${formatDuration(secs)}`}
                               >
-                                <span className="tvc-span-label" style={{ color: colors.text }}>
+                                {selectedSpanId === span.id && (
+                                  <Tooltip
+                                    label={formatTime(span.started_at)}
+                                  >
+                                  <div
+                                    className='tvc-span-handle-left'
+                                  ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div>
+                                  </Tooltip>
+                                )}
+                                <span className="tvc-span-label" style={{ color: colors.text, width: '100%' }}>
                                   {formatTime(span.started_at)}{span.title ? ` ${span.title}` : ''}
                                 </span>
+                                {selectedSpanId === span.id && (
+                                <Tooltip
+                                    label={formatTime(span.ended_at)}
+                                  >
+                                <div
+                                    className='tvc-span-handle-right'
+                                  ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div></Tooltip>
+                                )}
                               </div>
                             );
                           })}
 
-                          {detailTaskId === taskId && (
+                          {isSelected && (
                             <div className="tvc-row-actions">
                               <Tooltip label="Start timer" withArrow>
                                 <ActionIcon
@@ -329,12 +334,12 @@ export const CalendarView = () => {
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
 

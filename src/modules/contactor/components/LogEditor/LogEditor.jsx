@@ -1,9 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Button, Checkbox, Group, Modal, Select, Stack, Textarea, TextInput } from '@mantine/core';
+import { Button, Checkbox, Group, Modal, MultiSelect, Select, Stack, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import {
+  BlockTypeSelect,
+  BoldItalicUnderlineToggles,
+  CodeToggle,
+  CreateLink,
+  diffSourcePlugin,
+  headingsPlugin,
+  linkDialogPlugin,
+  linkPlugin,
+  listsPlugin,
+  ListsToggle,
+  markdownShortcutPlugin,
+  MDXEditor,
+  quotePlugin,
+  tablePlugin,
+  thematicBreakPlugin,
+  toolbarPlugin,
+  UndoRedo,
+} from '@mdxeditor/editor';
 import { LOG_KINDS } from '../../api/contactorMocks';
 import { useContacts, useSaveLog } from '../../api/contactorApi';
 import { useContactorStore } from '../../store/contactorStore';
+import { useTags } from '@/modules/eventor/api/eventorApi';
 import { useExpertStore } from '@/shared/expertStore';
 
 const emptyForm = {
@@ -12,6 +32,8 @@ const emptyForm = {
   occurred_at: '',
   title: '',
   content: '',
+  tag_ids: [],
+  mentioned_contact_ids: [],
   is_pinned: false,
   is_expert: false,
   eventor_event_id: null,
@@ -25,11 +47,50 @@ const getErrorMessage = (error) =>
   error?.message ||
   'Failed to save log entry';
 
+const markdownPlugins = [
+  headingsPlugin(),
+  listsPlugin(),
+  quotePlugin(),
+  thematicBreakPlugin(),
+  markdownShortcutPlugin(),
+  linkPlugin(),
+  linkDialogPlugin(),
+  tablePlugin(),
+  diffSourcePlugin({ viewMode: 'rich-text' }),
+  toolbarPlugin({
+    toolbarClassName: 'cnt-md-toolbar',
+    toolbarContents: () => (
+      <>
+        <UndoRedo />
+        <BoldItalicUnderlineToggles />
+        <BlockTypeSelect />
+        <CodeToggle />
+        <CreateLink />
+        <ListsToggle />
+      </>
+    ),
+  }),
+];
+
+const MarkdownField = ({ value, onChange }) => (
+  <div className="cnt-md-editor">
+    <MDXEditor
+      overlayContainer={typeof document !== 'undefined' ? document.body : undefined}
+      markdown={value || ''}
+      onChange={onChange}
+      placeholder="What happened, what you learned, or what should be remembered."
+      contentEditableClassName="cnt-md-contenteditable"
+      plugins={markdownPlugins}
+    />
+  </div>
+);
+
 export const LogEditor = () => {
   const {
     logEditorOpen, logEditorParams, closeLogEditor,
   } = useContactorStore();
   const { data: contacts = [] } = useContacts({ group: 'all', q: '', sort: 'name', dir: 'asc' });
+  const { data: tags = [] } = useTags();
   const saveLog = useSaveLog();
   const expertMode = useExpertStore((s) => s.expertMode);
   const [form, setForm] = useState(emptyForm);
@@ -41,6 +102,8 @@ export const LogEditor = () => {
       contact_id: logEditorParams?.contact_id || contacts.find((contact) => !contact.is_archived)?.id || '',
       kind: logEditorParams?.kind || 'note',
       occurred_at: new Date().toISOString().slice(0, 16),
+      tag_ids: Array.isArray(logEditorParams?.tag_ids) ? logEditorParams.tag_ids : [],
+      mentioned_contact_ids: Array.isArray(logEditorParams?.mentioned_contact_ids) ? logEditorParams.mentioned_contact_ids : [],
     });
   }, [contacts, logEditorOpen, logEditorParams]);
 
@@ -49,6 +112,7 @@ export const LogEditor = () => {
   const contactOptions = contacts
     .filter((contact) => !contact.is_archived)
     .map((contact) => ({ value: contact.id, label: contact.name }));
+  const tagOptions = tags.map((tag) => ({ value: tag.id, label: tag.name }));
 
   const handleSave = () => {
     if (!form.contact_id || (!form.title.trim() && !form.content.trim())) return;
@@ -57,6 +121,9 @@ export const LogEditor = () => {
       ...form,
       title: form.title.trim(),
       content: form.content.trim(),
+      body_md: form.content.trim(),
+      tag_ids: form.tag_ids,
+      mentioned_contact_ids: form.mentioned_contact_ids,
       occurred_at: form.occurred_at ? new Date(form.occurred_at).toISOString() : new Date().toISOString(),
     }, {
       onSuccess: closeLogEditor,
@@ -80,13 +147,25 @@ export const LogEditor = () => {
           />
           <TextInput label="Title" value={form.title} onChange={(event) => patch('title', event.currentTarget.value)} />
         </Group>
-        <Textarea
-          label="Content"
-          placeholder="What happened, what you learned, or what should be remembered."
-          minRows={4}
-          value={form.content}
-          onChange={(event) => patch('content', event.currentTarget.value)}
-        />
+        <Group grow align="flex-start">
+          <MultiSelect
+            label="Tags"
+            data={tagOptions}
+            value={form.tag_ids}
+            onChange={(value) => patch('tag_ids', value)}
+            searchable
+            clearable
+          />
+          <MultiSelect
+            label="Mentioned people"
+            data={contactOptions.filter((contact) => contact.value !== form.contact_id)}
+            value={form.mentioned_contact_ids}
+            onChange={(value) => patch('mentioned_contact_ids', value)}
+            searchable
+            clearable
+          />
+        </Group>
+        <MarkdownField value={form.content} onChange={(value) => patch('content', value)} />
         <Group gap="xl">
           <Checkbox
             label="Pin this entry"

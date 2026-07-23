@@ -1,7 +1,21 @@
 import { useEffect, useState } from 'react';
 import {
-  ActionIcon, Button, Checkbox, Group, Modal, Select, SimpleGrid, Stack, Tabs, Text, TextInput, Tooltip,
+  ActionIcon,
+  Box,
+  Button,
+  Checkbox,
+  Group,
+  Modal,
+  Select,
+  SegmentedControl,
+  SimpleGrid,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+  Tooltip,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
   BlockTypeSelect,
@@ -22,10 +36,12 @@ import {
   toolbarPlugin,
   UndoRedo,
 } from '@mdxeditor/editor';
-import { IconCheck, IconEdit, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
+import { IconCheck, IconDeviceFloppy, IconEdit, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
 import { useContacts } from '@/modules/contactor/api/contactorApi';
 import { useProjects } from '@/modules/projector/api/projectorApi';
-import { useDeleteTask, useSaveTask, useTask } from '../../api/taskerApi';
+import {
+  useDeleteChecklistItem, useDeleteTask, useSaveChecklistItem, useSaveTask, useTask,
+} from '../../api/taskerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import { TASK_PRIORITIES, TASK_STATUSES, toInputDate } from '../../utils/taskerUtils';
 
@@ -69,7 +85,7 @@ const markdownPlugins = [
 ];
 
 const MarkdownField = ({ value, onChange, placeholder, editorKey }) => (
-  <div className="task-md-editor">
+  <Box className="task-editor-surface md">
     <MDXEditor
       key={editorKey}
       overlayContainer={typeof document !== 'undefined' ? document.body : undefined}
@@ -79,14 +95,16 @@ const MarkdownField = ({ value, onChange, placeholder, editorKey }) => (
       contentEditableClassName="task-md-contenteditable"
       plugins={markdownPlugins}
     />
-  </div>
+  </Box>
 );
 
 export const TaskEditor = () => {
   const { taskEditorOpen, taskEditorParams, closeTaskEditor } = useTaskerStore();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const projectFilter = useTaskerStore((state) => state.projectFilter);
   const saveTask = useSaveTask();
-  const saveChecklistItem = useSaveTask();
-  const deleteChecklistItem = useDeleteTask();
+  const saveChecklistItem = useSaveChecklistItem();
+  const deleteChecklistItem = useDeleteChecklistItem();
   const deleteTask = useDeleteTask();
   const { data: projects = [] } = useProjects({ filter: 'all', include_hidden: true });
   const { data: contacts = [] } = useContacts({ group: 'all', q: '', sort: 'name', dir: 'asc' });
@@ -96,16 +114,23 @@ export const TaskEditor = () => {
   const [loadedFullTaskId, setLoadedFullTaskId] = useState(null);
   const [editingChecklistId, setEditingChecklistId] = useState(null);
   const [editingChecklistTitle, setEditingChecklistTitle] = useState('');
+  const [tab, setTab] = useState('main');
+  const [editorMode, setEditorMode] = useState('md');
 
   useEffect(() => {
     if (!taskEditorOpen) return;
+    // For a new task, preselect the active sidebar project (unless "All projects").
+    const isNew = !taskEditorParams?.id;
+    const activeProjectId = projectFilter && projectFilter !== 'all' ? projectFilter : '';
+    setTab('main');
+    setEditorMode('md');
     setForm({
       ...emptyForm,
       ...taskEditorParams,
       priority_id: String(taskEditorParams?.priority_id || 13),
       status_id: String(taskEditorParams?.status_id || 20),
       due_at: toInputDate(taskEditorParams?.due_at),
-      project_id: taskEditorParams?.project_id || '',
+      project_id: taskEditorParams?.project_id || (isNew ? activeProjectId : ''),
       assignee_contact_id: taskEditorParams?.assignee_contact_id || '',
       is_pinned: Boolean(taskEditorParams?.is_pinned),
       is_expert: Boolean(taskEditorParams?.is_expert),
@@ -115,7 +140,7 @@ export const TaskEditor = () => {
     setLoadedFullTaskId(null);
     setEditingChecklistId(null);
     setEditingChecklistTitle('');
-  }, [taskEditorOpen, taskEditorParams]);
+  }, [taskEditorOpen, taskEditorParams, projectFilter]);
 
   useEffect(() => {
     if (!taskEditorOpen || !fullTask?.id || fullTask.id !== taskEditorParams?.id || loadedFullTaskId === fullTask.id) return;
@@ -135,7 +160,11 @@ export const TaskEditor = () => {
   }, [taskEditorOpen, taskEditorParams?.id, fullTask, loadedFullTaskId]);
 
   const patch = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-  const checklistItems = fullTask?.children || [];
+  const checklistItems = fullTask?.checklist_items || fullTask?.children || [];
+  const activeTextKey = tab === 'result' ? 'result' : 'description';
+  const activePlaceholder = tab === 'result'
+    ? 'Write outcome, decisions or final notes...'
+    : 'Write task description...';
 
   const handleSave = () => {
     if (!form.title.trim()) {
@@ -169,13 +198,9 @@ export const TaskEditor = () => {
 
     saveChecklistItem.mutate({
       title,
-      parent_task_id: form.id,
-      project_id: form.project_id || null,
-      priority_id: 13,
+      task_id: form.id,
       status_id: 20,
       sort_order: checklistItems.length,
-      is_hidden: form.is_hidden,
-      is_expert: form.is_expert,
     }, {
       onSuccess: () => {
         setNewChecklistTitle('');
@@ -189,11 +214,18 @@ export const TaskEditor = () => {
   };
 
   const handleToggleChecklistItem = (item, checked) => {
+    const nextMeta = { ...(item.meta || {}) };
+    if (checked) {
+      nextMeta.completed_at = new Date().toISOString();
+    } else {
+      delete nextMeta.completed_at;
+    }
+
     saveChecklistItem.mutate({
       ...item,
+      task_id: form.id,
       status_id: checked ? 22 : 20,
-      parent_task_id: form.id,
-      project_id: item.project_id || form.project_id || null,
+      meta: Object.keys(nextMeta).length ? nextMeta : null,
     });
   };
 
@@ -220,9 +252,8 @@ export const TaskEditor = () => {
 
     saveChecklistItem.mutate({
       ...item,
+      task_id: form.id,
       title,
-      parent_task_id: form.id,
-      project_id: item.project_id || form.project_id || null,
     }, {
       onSuccess: cancelEditingChecklistItem,
       onError: (error) => notifications.show({
@@ -239,25 +270,88 @@ export const TaskEditor = () => {
     });
   };
 
+  const handleDeleteTask = () => {
+    if (!form.id || !window.confirm('Delete this task?')) return;
+    deleteTask.mutate(form, {
+      onSuccess: () => {
+        notifications.show({ message: 'Task deleted', color: 'red' });
+        closeTaskEditor();
+      },
+    });
+  };
+
   return (
     <Modal
       opened={taskEditorOpen}
       onClose={closeTaskEditor}
-      title={form.id ? 'Edit task' : 'New task'}
-      size="xl"
-      classNames={{ content: 'task-editor-modal' }}
+      withCloseButton={false}
+      title={null}
+      closeOnClickOutside={false}
+      fullScreen={isMobile}
+      size={isMobile ? '100%' : '900px'}
+      padding={0}
+      radius={isMobile ? 0 : 'md'}
+      className="task-editor-modal"
+      styles={{
+        content: {
+          height: isMobile ? '100dvh' : '92vh',
+          maxHeight: isMobile ? '100dvh' : '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+        },
+        body: {
+          padding: 0,
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        },
+      }}
     >
-      <Tabs defaultValue="main" className="task-editor-tabs">
-        <Tabs.List>
-          <Tabs.Tab value="main">Task</Tabs.Tab>
-          <Tabs.Tab value="description">Description</Tabs.Tab>
-          <Tabs.Tab value="result">Result</Tabs.Tab>
-          <Tabs.Tab value="checklist">Checklist</Tabs.Tab>
-        </Tabs.List>
+      <Box className="task-editor-layout">
+        <Box className="task-editor-header">
+          <TextInput
+            placeholder="Task title"
+            value={form.title}
+            onChange={(event) => patch('title', event.currentTarget.value)}
+            size="sm"
+            className="task-editor-title"
+            styles={{ input: { fontWeight: 600 } }}
+            required
+          />
 
-        <Tabs.Panel value="main" pt="sm">
-          <Stack gap="sm">
-            <TextInput label="Title" value={form.title} onChange={(event) => patch('title', event.currentTarget.value)} required />
+          <SegmentedControl
+            value={tab}
+            onChange={setTab}
+            data={[
+              { label: 'Main', value: 'main' },
+              { label: 'Description', value: 'description' },
+              { label: 'Result', value: 'result' },
+              { label: 'Checklist', value: 'checklist' },
+            ]}
+            size="xs"
+            className="task-editor-view-tabs"
+          />
+
+          <Button
+            variant="light"
+            color="gray"
+            size="compact-xs"
+            className="task-editor-status-trigger"
+          >
+            TSK
+          </Button>
+
+          <Tooltip label="Close">
+            <ActionIcon variant="light" color="gray" onClick={closeTaskEditor}>
+              <IconX size={16} />
+            </ActionIcon>
+          </Tooltip>
+        </Box>
+
+        <Box className="task-editor-body">
+          {tab === 'main' && (
+            <Box className="task-editor-settings-grid">
             <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <Select label="Status" value={form.status_id} data={TASK_STATUSES} onChange={(value) => patch('status_id', value || '20')} allowDeselect={false} />
               <Select label="Priority" value={form.priority_id} data={TASK_PRIORITIES} onChange={(value) => patch('priority_id', value || '13')} allowDeselect={false} />
@@ -277,34 +371,48 @@ export const TaskEditor = () => {
                 comboboxProps={{ withinPortal: true }}
               />
             </SimpleGrid>
-            <Group>
+            <Box className="task-editor-flags">
               <Checkbox label="Pinned" checked={form.is_pinned} onChange={(event) => patch('is_pinned', event.currentTarget.checked)} />
               <Checkbox label="Expert only" checked={form.is_expert} onChange={(event) => patch('is_expert', event.currentTarget.checked)} />
               <Checkbox label="Hidden" checked={form.is_hidden} onChange={(event) => patch('is_hidden', event.currentTarget.checked)} />
-            </Group>
-          </Stack>
-        </Tabs.Panel>
+            </Box>
+            </Box>
+          )}
 
-        <Tabs.Panel value="description" pt="sm" className="task-md-panel">
-          <MarkdownField
-            editorKey={`description-${form.id || 'new'}`}
-            value={form.description || ''}
-            onChange={(value) => patch('description', value)}
-            placeholder="Write task description..."
-          />
-        </Tabs.Panel>
+          {(tab === 'description' || tab === 'result') && (
+            editorMode === 'md' ? (
+              <MarkdownField
+                editorKey={`${activeTextKey}-${form.id || 'new'}`}
+                value={form[activeTextKey] || ''}
+                onChange={(value) => patch(activeTextKey, value)}
+                placeholder={activePlaceholder}
+              />
+            ) : (
+              <Textarea
+                value={form[activeTextKey] || ''}
+                onChange={(event) => patch(activeTextKey, event.currentTarget.value)}
+                placeholder={activePlaceholder}
+                autosize={false}
+                className="task-editor-raw"
+                styles={{
+                  root: { height: '100%' },
+                  wrapper: { height: '100%' },
+                  input: {
+                    height: '100%',
+                    border: 'none',
+                    padding: '14px 16px',
+                    borderRadius: 0,
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+                    fontSize: 13,
+                    lineHeight: 1.55,
+                  },
+                }}
+              />
+            )
+          )}
 
-        <Tabs.Panel value="result" pt="sm" className="task-md-panel">
-          <MarkdownField
-            editorKey={`result-${form.id || 'new'}`}
-            value={form.result || ''}
-            onChange={(value) => patch('result', value)}
-            placeholder="Write outcome, decisions or final notes..."
-          />
-        </Tabs.Panel>
-
-        <Tabs.Panel value="checklist" pt="sm">
-          <Stack gap="sm">
+          {tab === 'checklist' && (
+            <Stack gap="sm" className="task-editor-checklist">
             {!form.id && (
               <Text size="sm" c="dimmed">Save the task first to add checklist items.</Text>
             )}
@@ -377,7 +485,7 @@ export const TaskEditor = () => {
                           </>
                         ) : (
                           <>
-                            <Text size="sm" className="task-checklist-title">{item.title}</Text>
+                            <Text size="sm" className="task-checklist-title task-checklist-title-text">{item.title}</Text>
                             <Tooltip label="Edit" withArrow>
                               <ActionIcon variant="subtle" color="gray" onClick={() => startEditingChecklistItem(item)}>
                                 <IconEdit size={15} />
@@ -397,33 +505,68 @@ export const TaskEditor = () => {
               </>
             )}
           </Stack>
-        </Tabs.Panel>
+          )}
+        </Box>
 
-        <Group justify="space-between" mt="md">
-          {form.id ? (
-            <Button
-              variant="subtle"
+        <Box className="task-editor-footer">
+          {isMobile ? (
+            <ActionIcon
+              variant="light"
               color="red"
-              size="sm"
-              onClick={() => {
-                if (!window.confirm('Delete this task?')) return;
-                deleteTask.mutate(form, {
-                  onSuccess: () => {
-                    notifications.show({ message: 'Task deleted', color: 'red' });
-                    closeTaskEditor();
-                  },
-                });
-              }}
+              size="lg"
+              onClick={handleDeleteTask}
+              loading={deleteTask.isPending}
+              disabled={!form.id}
+              aria-label="Delete"
             >
-              Delete task
+              <IconTrash size={16} />
+            </ActionIcon>
+          ) : (
+            <Button
+              variant="light"
+              color="red"
+              onClick={handleDeleteTask}
+              loading={deleteTask.isPending}
+              disabled={!form.id}
+              leftSection={<IconTrash size={14} />}
+            >
+              Delete
             </Button>
-          ) : <div />}
-          <Group>
-            <Button variant="default" onClick={closeTaskEditor}>Cancel</Button>
-            <Button color="blue" onClick={handleSave} loading={saveTask.isPending}>Save</Button>
+          )}
+
+          <SegmentedControl
+            value={editorMode}
+            onChange={setEditorMode}
+            data={[
+              { label: 'MD', value: 'md' },
+              { label: 'Raw', value: 'raw' },
+            ]}
+            size="xs"
+            disabled={tab === 'main' || tab === 'checklist'}
+            className="task-editor-mode-switch"
+          />
+
+          <Group gap="sm" wrap="nowrap" className="task-editor-footer-actions">
+            {isMobile ? (
+              <>
+                <ActionIcon variant="default" size="lg" onClick={closeTaskEditor} aria-label="Close">
+                  <IconX size={16} />
+                </ActionIcon>
+                <ActionIcon onClick={handleSave} loading={saveTask.isPending} size="lg" aria-label="Save" color="blue">
+                  <IconDeviceFloppy size={16} />
+                </ActionIcon>
+              </>
+            ) : (
+              <>
+                <Button variant="default" onClick={closeTaskEditor}>Close</Button>
+                <Button color="blue" onClick={handleSave} loading={saveTask.isPending} leftSection={<IconDeviceFloppy size={14} />}>
+                  Save
+                </Button>
+              </>
+            )}
           </Group>
-        </Group>
-      </Tabs>
+        </Box>
+      </Box>
     </Modal>
   );
 };

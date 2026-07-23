@@ -8,7 +8,7 @@ import {
   IconAlertTriangle, IconArrowsExchange, IconClockHour4, IconDotsVertical, IconEdit,
   IconFileText, IconFlag, IconMessageCircle, IconNote, IconPlus, IconTrash, IconX,
 } from '@tabler/icons-react';
-import { useDeleteTask, useSaveTask, useTask } from '../../api/taskerApi';
+import { useDeleteTask, useSaveChecklistItem, useSaveTask, useTask } from '../../api/taskerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import { MdFull } from '@/shared/components/MdRenderer';
 import {
@@ -37,6 +37,7 @@ export const TaskReadModal = () => {
   const openTimeEditor = useTaskerStore((state) => state.openTimeEditor);
   const { data: task, isLoading } = useTask(readModalParams?.id, { include_hidden: true });
   const saveTask = useSaveTask();
+  const saveChecklistItem = useSaveChecklistItem();
   const deleteTask = useDeleteTask();
   const [newItemTitle, setNewItemTitle] = useState('');
 
@@ -113,29 +114,32 @@ export const TaskReadModal = () => {
     saveTask.mutate({ ...task, status_id: Number(statusId) });
   };
 
-  const checklistItems = task?.children || [];
+  const checklistItems = task?.checklist_items || task?.children || [];
 
   const handleToggleChecklistItem = (item, checked) => {
-    saveTask.mutate({
+    const nextMeta = { ...(item.meta || {}) };
+    if (checked) {
+      nextMeta.completed_at = new Date().toISOString();
+    } else {
+      delete nextMeta.completed_at;
+    }
+
+    saveChecklistItem.mutate({
       ...item,
+      task_id: task.id,
       status_id: checked ? 22 : 20,
-      parent_task_id: task.id,
-      project_id: item.project_id || task.project_id || null,
+      meta: Object.keys(nextMeta).length ? nextMeta : null,
     });
   };
 
   const handleAddChecklistItem = () => {
     const title = newItemTitle.trim();
     if (!title || !task?.id) return;
-    saveTask.mutate({
+    saveChecklistItem.mutate({
       title,
-      parent_task_id: task.id,
-      project_id: task.project_id || null,
-      priority_id: 13,
+      task_id: task.id,
       status_id: 20,
       sort_order: checklistItems.length,
-      is_hidden: task.is_hidden,
-      is_expert: task.is_expert,
     }, {
       onSuccess: () => setNewItemTitle(''),
     });
@@ -224,7 +228,12 @@ export const TaskReadModal = () => {
                       checked={isDone}
                       onChange={(event) => handleToggleChecklistItem(item, event.currentTarget.checked)}
                     />
-                    <Text size="sm" className="task-checklist-title">{item.title}</Text>
+                    <Box className="task-checklist-title">
+                      <Text size="sm" className="task-checklist-title-text">{item.title}</Text>
+                      {isDone && item.meta?.completed_at && (
+                        <Text size="xs" c="dimmed">Done {formatDateTime(item.meta.completed_at)}</Text>
+                      )}
+                    </Box>
                   </Group>
                 );
               })}

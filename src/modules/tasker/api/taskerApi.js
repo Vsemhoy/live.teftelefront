@@ -24,6 +24,7 @@ const taskPayload = (task) => ({
   is_expert: Boolean(task.is_expert),
   is_hidden: Boolean(task.is_hidden),
   closed_at: task.closed_at || null,
+  meta: task.meta || null,
 });
 
 const logPayload = (log) => ({
@@ -34,6 +35,14 @@ const logPayload = (log) => ({
   timer_entry_id: log.timer_entry_id || null,
   occurred_at: log.occurred_at || null,
   meta: log.meta || null,
+});
+
+const checklistItemPayload = (item) => ({
+  task_id: item.task_id || item.parent_task_id,
+  title: item.title,
+  status_id: Number(item.status_id || 20),
+  sort_order: Number(item.sort_order || 0),
+  meta: item.meta || null,
 });
 
 const spanPayload = (span) => ({
@@ -219,6 +228,36 @@ export const useDeleteTask = () => {
   });
 };
 
+export const useSaveChecklistItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (item) => {
+      const payload = checklistItemPayload(item);
+      if (item.id) return api.put(`/tasker/checklist-items/${item.id}`, payload).then(unwrap);
+      return api.post('/tasker/checklist-items', payload).then(unwrap);
+    },
+    onSuccess: (saved) => {
+      queryClient.invalidateQueries({ queryKey: ['tsk_tasks'] });
+      if (saved?.task_id) queryClient.invalidateQueries({ queryKey: ['tsk_task', saved.task_id] });
+    },
+  });
+};
+
+export const useDeleteChecklistItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (item) => api.delete(`/tasker/checklist-items/${item.id}`).then(unwrap),
+    onSuccess: (_deleted, item) => {
+      queryClient.invalidateQueries({ queryKey: ['tsk_tasks'] });
+      if (item?.task_id || item?.parent_task_id) {
+        queryClient.invalidateQueries({ queryKey: ['tsk_task', item.task_id || item.parent_task_id] });
+      }
+    },
+  });
+};
+
 export const useSaveTaskLog = () => {
   const queryClient = useQueryClient();
 
@@ -243,6 +282,19 @@ export const useDeleteTaskLog = () => {
     onSuccess: (_deleted, log) => {
       queryClient.invalidateQueries({ queryKey: ['tsk_logs'] });
       if (log?.task_id) queryClient.invalidateQueries({ queryKey: ['tsk_task', log.task_id] });
+    },
+  });
+};
+
+export const useBulkDeleteTaskLogs = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload) => api.post('/tasker/logs/bulk-delete', payload).then(unwrap),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tsk_logs'] });
+      queryClient.invalidateQueries({ queryKey: ['tsk_tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tsk_task'] });
     },
   });
 };

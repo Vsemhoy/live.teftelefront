@@ -1,6 +1,12 @@
 /* === Глобальный сброс === */
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Mantine <Text> renders a <p>; the browser-default 1em block margin inflates
+   the height of any flex container (Group, Stack, table rows) that holds one.
+   Zero it globally — low specificity, so intentional overrides like
+   `.md-preview p` still win. */
+p { margin: 0; }
+
 html {
   height: 100%;
   margin: 0;
