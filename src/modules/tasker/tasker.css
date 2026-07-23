@@ -621,7 +621,9 @@
   box-sizing: border-box;
   border-right: 1px solid var(--mantine-color-gray-4);
   border-bottom: 0.5px solid var(--mantine-color-gray-2);
-  background: var(--mantine-color-white);
+  /* background: var(--mantine-color-white); */
+  background-color: rgba(255, 255, 255, 0.63);
+  transition: all 0.3s;
 }
 
 /* Right cell — the hour chart. min-width drives the scroll. */
@@ -677,6 +679,7 @@
   padding: 4px 10px;
   cursor: pointer;
   overflow: hidden;
+  backdrop-filter: blur(32px);
 }
 .tvc-left--day:hover { background: var(--mantine-color-gray-1); }
 
@@ -705,6 +708,7 @@
   padding: 5px 8px;
   cursor: pointer;
   overflow: hidden;
+  backdrop-filter: blur(32px);
 }
 .tvc-row--task:hover .tvc-left,
 .tvc-row--task.is-selected .tvc-left {

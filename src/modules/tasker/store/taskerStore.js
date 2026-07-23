@@ -10,6 +10,8 @@ export const useTaskerStore = create(
       assigneeFilter: 'all',
       onlyBlocked: false,
       showHidden: false,
+      calendarHourRange: '9-20',
+      calendarShowFuture: false,
       taskEditorOpen: false,
       taskEditorParams: null,
       readModalOpen: false,
@@ -25,6 +27,8 @@ export const useTaskerStore = create(
       setAssigneeFilter: (value) => set({ assigneeFilter: value }),
       setOnlyBlocked: (value) => set({ onlyBlocked: value }),
       setShowHidden: (value) => set({ showHidden: value }),
+      setCalendarHourRange: (value) => set({ calendarHourRange: value }),
+      setCalendarShowFuture: (value) => set({ calendarShowFuture: value }),
       openTaskEditor: (params = {}) => set({ taskEditorOpen: true, taskEditorParams: params, readModalOpen: false }),
       closeTaskEditor: () => set({ taskEditorOpen: false, taskEditorParams: null }),
       openReadModal: (params = {}) => set({ readModalOpen: true, readModalParams: params }),
@@ -45,6 +49,8 @@ export const useTaskerStore = create(
         assigneeFilter: state.assigneeFilter,
         onlyBlocked: state.onlyBlocked,
         showHidden: state.showHidden,
+        calendarHourRange: state.calendarHourRange,
+        calendarShowFuture: state.calendarShowFuture,
       }),
     }
   )

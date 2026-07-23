@@ -1,22 +1,14 @@
 import { useMemo, useRef, useState } from 'react';
-import { ActionIcon, Badge, Box, Button, Group, Loader, Select, Text, Tooltip } from '@mantine/core';
-import { IconClock, IconPlus, IconResize } from '@tabler/icons-react';
+import { ActionIcon, Badge, Box, Group, Loader, Text, Tooltip } from '@mantine/core';
+import { IconClock, IconPlus } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { useDeleteTaskSpan, useSaveTaskSpan, useTaskSpans, useTasks } from '../../api/taskerApi';
+import { useSaveTaskSpan, useTaskSpans, useTasks } from '../../api/taskerApi';
 import { useActiveTimer, useStartTimer } from '../../api/timerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import {
   buildHourLabels, calcSpanSeconds, dateOffsetStr, formatDate, formatDayLabel,
   formatDuration, formatTime, getPriorityColors, isPast, isToday, timeToFraction,
 } from '../../utils/taskerUtils';
-
-const HOUR_OPTIONS = [
-  { value: '0-23', label: '00:00-23:59 (full day)' },
-  { value: '7-20', label: '07:00-20:00' },
-  { value: '8-20', label: '08:00-20:00' },
-  { value: '9-20', label: '09:00-20:00 (workday)' },
-  { value: '9-18', label: '09:00-18:00' },
-];
 
 const DAYS_BACK = 7;
 const DAYS_FORWARD = 14;
@@ -58,11 +50,13 @@ const getResizeFields = (span) => {
 };
 
 export const CalendarView = () => {
-  const [hourRange, setHourRange] = useState('9-20');
-  const [showFuture, setShowFuture] = useState(false);
   const [activeSpanId, setActiveSpanId] = useState(null);
   const [detailTaskId, setDetailTaskId] = useState(null);
-  const { openReadModal, openTaskEditor } = useTaskerStore();
+  const {
+    calendarHourRange: hourRange,
+    calendarShowFuture: showFuture,
+    openReadModal,
+  } = useTaskerStore();
   const openSpanEditor = useTaskerStore((s) => s.openTimeEditor);
 
   const [startHour, endHour] = hourRange.split('-').map(Number);
@@ -91,7 +85,6 @@ export const CalendarView = () => {
   const { data: activeTimer } = useActiveTimer();
   const startTimer = useStartTimer();
   const saveSpan = useSaveTaskSpan();
-  const deleteSpan = useDeleteTaskSpan();
 
   const isLoading = spansLoading || tasksLoading;
 
@@ -292,35 +285,11 @@ export const CalendarView = () => {
 
   return (
     <div className="tasker-shell tasker-calendar">
-      <Group gap={8} mb={10} wrap="wrap">
-        <Select
-          size="xs"
-          value={hourRange}
-          onChange={(v) => setHourRange(v || '9-20')}
-          data={HOUR_OPTIONS}
-          style={{ width: 190 }}
-        />
-        <Button
-          size="xs"
-          variant={showFuture ? 'filled' : 'light'}
-          onClick={() => setShowFuture((v) => !v)}
-        >
-          {showFuture ? 'Hide future' : 'Show future'}
-        </Button>
-        <Button
-          size="xs"
-          variant="light"
-          leftSection={<IconPlus size={12} />}
-          onClick={() => openTaskEditor()}
-        >
-          Task
-        </Button>
-        {detailTaskId && (
-          <Text size="xs" c="dimmed">
-            Click a day header to add a plan slot for the selected task
-          </Text>
-        )}
-      </Group>
+      {detailTaskId && (
+        <Text size="xs" c="dimmed" mb={10}>
+          Click a day header to add a plan slot for the selected task
+        </Text>
+      )}
 
       <div className="tvc-wrap">
         {/* One horizontal scroll owner. Every row is [sticky left | chart], so the
@@ -493,15 +462,26 @@ export const CalendarView = () => {
                                     opened={draft?.edge === 'start' || undefined}
                                     withArrow
                                   >
+                                    
                                   <div
                                     className='tvc-span-handle-left'
                                     onPointerDown={(event) => handleResizeStart(event, span, 'start')}
-                                  ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div>
+                                  >
+                                    <span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div>
                                   </Tooltip>
                                 )}
-                                <span className="tvc-span-label" style={{ color: colors.text, width: '100%' }}>
-                                  {formatTime(startedAt)}{span.title ? ` ${span.title}` : ''}
-                                </span>
+                                {span.content ? (
+                                <Tooltip label={span.content}>
+                                  <span className="tvc-span-label" style={{ color: colors.text, width: '100%' }}>
+                                    {formatTime(startedAt)}{span.title ? ` ${span.title}` : ''}
+                                  </span>
+                                </Tooltip>
+
+                                ):(
+                                  <span className="tvc-span-label" style={{ color: colors.text, width: '100%' }}>
+                                    {formatTime(startedAt)}{span.title ? ` ${span.title}` : ''}
+                                  </span>
+                                )}
                                 {isResizable && (
                                 <Tooltip
                                     label={formatTime(endedAt)}
