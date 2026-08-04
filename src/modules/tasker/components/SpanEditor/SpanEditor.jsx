@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Button, Group, Modal, Select, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import { Button, Group, Modal, Select, Stack, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconTrash } from '@tabler/icons-react';
+import { MdEditor } from '@/shared/components/MdEditor';
 import { useDeleteTaskSpan, useSaveTaskSpan, useTasks } from '../../api/taskerApi';
 import { useTaskerStore } from '../../store/taskerStore';
-import { toInputDateTime } from '../../utils/taskerUtils';
+import { inputDateTimeToIso, toInputDateTime } from '../../utils/taskerUtils';
 
 const nowISO = () => new Date().toISOString();
 const hourAgoISO = () => new Date(Date.now() - 3600 * 1000).toISOString();
@@ -45,6 +46,26 @@ export const SpanEditor = () => {
   }, [timeEditorOpen, timeEditorParams]);
 
   const patch = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+  const handleKindChange = (value) => {
+    const nextKind = value || 'fact';
+    setForm((current) => {
+      if (nextKind === current.kind) return current;
+      if (nextKind === 'plan') {
+        return {
+          ...current,
+          kind: nextKind,
+          planned_start_at: current.planned_start_at || current.started_at,
+          planned_end_at: current.planned_end_at || current.ended_at,
+        };
+      }
+      return {
+        ...current,
+        kind: nextKind,
+        started_at: current.started_at || current.planned_start_at,
+        ended_at: current.ended_at || current.planned_end_at,
+      };
+    });
+  };
   const isFact = form.kind === 'fact';
 
   const handleSave = () => {
@@ -66,15 +87,15 @@ export const SpanEditor = () => {
         notifications.show({ message: 'Set the start time', color: 'red' });
         return;
       }
-      payload.started_at = form.started_at;
-      payload.ended_at = form.ended_at || null;
+      payload.started_at = inputDateTimeToIso(form.started_at);
+      payload.ended_at = inputDateTimeToIso(form.ended_at);
     } else {
       if (!form.planned_start_at || !form.planned_end_at) {
         notifications.show({ message: 'Set the plan start and end', color: 'red' });
         return;
       }
-      payload.planned_start_at = form.planned_start_at;
-      payload.planned_end_at = form.planned_end_at;
+      payload.planned_start_at = inputDateTimeToIso(form.planned_start_at);
+      payload.planned_end_at = inputDateTimeToIso(form.planned_end_at);
     }
 
     saveSpan.mutate(payload, {
@@ -132,7 +153,7 @@ export const SpanEditor = () => {
             { value: 'fact', label: 'Fact (tracking)' },
             { value: 'plan', label: 'Plan (schedule)' },
           ]}
-          onChange={(v) => patch('kind', v || 'fact')}
+          onChange={handleKindChange}
           allowDeselect={false}
         />
 
@@ -177,13 +198,13 @@ export const SpanEditor = () => {
         )}
 
         {isFact && (
-          <Textarea
-            label="Details / result"
+          <MdEditor
             placeholder="What exactly was done, what you found, what changed..."
             value={form.content}
-            onChange={(e) => patch('content', e.currentTarget.value)}
-            minRows={3}
-            autosize
+            onChange={(value) => patch('content', value)}
+            className="task-span-md-editor"
+            contentEditableClassName="task-md-contenteditable"
+            toolbarClassName="task-md-toolbar"
           />
         )}
 

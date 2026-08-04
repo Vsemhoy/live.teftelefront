@@ -15,26 +15,8 @@ import {
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import {
-  BlockTypeSelect,
-  BoldItalicUnderlineToggles,
-  CodeToggle,
-  CreateLink,
-  diffSourcePlugin,
-  headingsPlugin,
-  linkDialogPlugin,
-  linkPlugin,
-  listsPlugin,
-  ListsToggle,
-  markdownShortcutPlugin,
-  MDXEditor,
-  quotePlugin,
-  tablePlugin,
-  thematicBreakPlugin,
-  toolbarPlugin,
-  UndoRedo,
-} from '@mdxeditor/editor';
 import { IconDeviceFloppy, IconTrash, IconX } from '@tabler/icons-react';
+import { MdEditor } from '@/shared/components/MdEditor';
 import { useDeleteProject, useSaveProject } from '../../api/projectorApi';
 import { useProjectorStore } from '../../store/projectorStore';
 import { TASK_PRIORITIES, TASK_STATUSES, toInputDate } from '@/modules/tasker/utils/taskerUtils';
@@ -56,43 +38,16 @@ const emptyForm = {
   sort_order: 0,
 };
 
-const markdownPlugins = [
-  headingsPlugin(),
-  listsPlugin(),
-  quotePlugin(),
-  thematicBreakPlugin(),
-  markdownShortcutPlugin(),
-  linkPlugin(),
-  linkDialogPlugin(),
-  tablePlugin(),
-  diffSourcePlugin({ viewMode: 'rich-text' }),
-  toolbarPlugin({
-    toolbarClassName: 'project-editor-toolbar',
-    toolbarContents: () => (
-      <>
-        <UndoRedo />
-        <BoldItalicUnderlineToggles />
-        <BlockTypeSelect />
-        <CodeToggle />
-        <CreateLink />
-        <ListsToggle />
-      </>
-    ),
-  }),
-];
-
 const MarkdownField = ({ fieldKey, value, onChange, placeholder }) => (
-  <Box className="project-editor-surface md">
-    <MDXEditor
-      key={fieldKey}
-      overlayContainer={typeof document !== 'undefined' ? document.body : undefined}
-      markdown={value || ''}
-      onChange={onChange}
-      placeholder={placeholder}
-      contentEditableClassName="project-editor-contenteditable"
-      plugins={markdownPlugins}
-    />
-  </Box>
+  <MdEditor
+    editorKey={fieldKey}
+    value={value}
+    onChange={onChange}
+    placeholder={placeholder}
+    className="project-editor-surface md"
+    contentEditableClassName="project-editor-contenteditable"
+    toolbarClassName="project-editor-toolbar"
+  />
 );
 
 export const ProjectEditor = () => {

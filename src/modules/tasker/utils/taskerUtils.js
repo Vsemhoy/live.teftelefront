@@ -128,6 +128,12 @@ export const toInputDateTime = (value) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
+export const inputDateTimeToIso = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
 export const PRIORITY_COLORS = {
   11: { bg: '#F09595', border: '#E24B4A', text: '#791F1F', plan: '#FDE8E8', planBorder: '#E24B4A' },
   12: { bg: '#FAC775', border: '#BA7517', text: '#412402', plan: '#FEF0D0', planBorder: '#BA7517' },
@@ -161,10 +167,16 @@ export const formatTime = (datetimeStr) => {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
+export const localDateKey = (value = new Date()) => {
+  const d = value instanceof Date ? value : new Date(value);
+  const pad = (num) => String(num).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 export const dateOffsetStr = (offsetDays) => {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 };
 
 export const formatDayLabel = (dateStr) => {
@@ -172,8 +184,8 @@ export const formatDayLabel = (dateStr) => {
   return new Intl.DateTimeFormat('en', { weekday: 'short', day: 'numeric', month: 'long' }).format(d);
 };
 
-export const isToday = (dateStr) => dateStr === new Date().toISOString().slice(0, 10);
-export const isPast = (dateStr) => dateStr < new Date().toISOString().slice(0, 10);
+export const isToday = (dateStr) => dateStr === localDateKey();
+export const isPast = (dateStr) => dateStr < localDateKey();
 
 export const calcSpanSeconds = (span) => {
   if (span.kind !== 'fact' || !span.started_at) return 0;

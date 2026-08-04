@@ -659,3 +659,101 @@ body > .mdxeditor-popup-container {
   }
 }
 
+.md-editor-surface,
+.task-editor-surface,
+.project-editor-surface,
+.cnt-md-editor,
+.exp-md-editor,
+.task-log-md-editor,
+.task-span-md-editor,
+.task-time-md-editor,
+.task-timer-md-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.md-editor-surface .mdxeditor,
+.task-editor-surface .mdxeditor,
+.project-editor-surface .mdxeditor,
+.cnt-md-editor .mdxeditor,
+.exp-md-editor .mdxeditor,
+.task-log-md-editor .mdxeditor,
+.task-span-md-editor .mdxeditor,
+.task-time-md-editor .mdxeditor,
+.task-timer-md-editor .mdxeditor {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.md-editor-surface .mdxeditor-root-contenteditable,
+.task-editor-surface .mdxeditor-root-contenteditable,
+.project-editor-surface .mdxeditor-root-contenteditable,
+.cnt-md-editor .mdxeditor-root-contenteditable,
+.exp-md-editor .mdxeditor-root-contenteditable,
+.task-log-md-editor .mdxeditor-root-contenteditable,
+.task-span-md-editor .mdxeditor-root-contenteditable,
+.task-time-md-editor .mdxeditor-root-contenteditable,
+.task-timer-md-editor .mdxeditor-root-contenteditable {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.md-editor-contenteditable,
+.task-md-contenteditable,
+.project-editor-contenteditable,
+.cnt-md-contenteditable,
+.exp-md-contenteditable {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.md-editor-contenteditable > *,
+.task-md-contenteditable > *,
+.project-editor-contenteditable > *,
+.cnt-md-contenteditable > *,
+.exp-md-contenteditable > * {
+  max-width: 100%;
+}
+
+.md-editor-contenteditable pre,
+.task-md-contenteditable pre,
+.project-editor-contenteditable pre,
+.cnt-md-contenteditable pre,
+.exp-md-contenteditable pre,
+.md-editor-contenteditable table,
+.task-md-contenteditable table,
+.project-editor-contenteditable table,
+.cnt-md-contenteditable table,
+.exp-md-contenteditable table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.task-log-md-editor,
+.task-span-md-editor,
+.task-time-md-editor {
+  min-height: 280px;
+}
+
+.task-timer-md-editor {
+  height: 220px;
+  min-height: 220px;
+}
+
+.exp-md-editor {
+  min-height: 320px;
+}
+

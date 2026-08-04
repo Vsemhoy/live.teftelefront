@@ -127,7 +127,23 @@ export const useSaveBlock = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (block) => {
-      if (USE_MOCKS) return { ...block, id: block.id || `block-${Date.now()}` };
+      if (USE_MOCKS) {
+        const saved = { ...block, id: block.id || `block-${Date.now()}` };
+        const documentBlocks = MOCK_BLOCKS[saved.document_id] ?? [];
+        const index = documentBlocks.findIndex((item) => item.id === saved.id);
+
+        if (index >= 0) {
+          documentBlocks[index] = { ...documentBlocks[index], ...saved };
+        } else {
+          documentBlocks.push(saved);
+        }
+
+        MOCK_BLOCKS[saved.document_id] = documentBlocks
+          .slice()
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+        return saved;
+      }
       const { data } = block.id
         ? await api.put(`/booker/blocks/${block.id}`, block)
         : await api.post(`/booker/documents/${block.document_id}/blocks`, block);
@@ -141,7 +157,10 @@ export const useDeleteBlock = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, documentId }) => {
-      if (USE_MOCKS) return;
+      if (USE_MOCKS) {
+        MOCK_BLOCKS[documentId] = (MOCK_BLOCKS[documentId] ?? []).filter((block) => block.id !== id);
+        return;
+      }
       await api.delete(`/booker/blocks/${id}`);
     },
     onSuccess: (_, { documentId }) => qc.invalidateQueries({ queryKey: ['blocks', documentId] }),
@@ -152,7 +171,16 @@ export const useReorderBlocks = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ documentId, order }) => {
-      if (USE_MOCKS) return;
+      if (USE_MOCKS) {
+        const orderById = new Map(order.map((item) => [item.id, item.sort_order]));
+        MOCK_BLOCKS[documentId] = (MOCK_BLOCKS[documentId] ?? [])
+          .map((block) => ({
+            ...block,
+            sort_order: orderById.get(block.id) ?? block.sort_order,
+          }))
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        return;
+      }
       await api.post(`/booker/documents/${documentId}/blocks/reorder`, { order });
     },
     onSuccess: (_, { documentId }) => qc.invalidateQueries({ queryKey: ['blocks', documentId] }),

@@ -1,30 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Button, Checkbox, Group, Modal, MultiSelect, Select, Stack, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import {
-  BlockTypeSelect,
-  BoldItalicUnderlineToggles,
-  CodeToggle,
-  CreateLink,
-  diffSourcePlugin,
-  headingsPlugin,
-  linkDialogPlugin,
-  linkPlugin,
-  listsPlugin,
-  ListsToggle,
-  markdownShortcutPlugin,
-  MDXEditor,
-  quotePlugin,
-  tablePlugin,
-  thematicBreakPlugin,
-  toolbarPlugin,
-  UndoRedo,
-} from '@mdxeditor/editor';
 import { LOG_KINDS } from '../../api/contactorMocks';
 import { useContacts, useSaveLog } from '../../api/contactorApi';
 import { useContactorStore } from '../../store/contactorStore';
 import { useTags } from '@/modules/eventor/api/eventorApi';
 import { useExpertStore } from '@/shared/expertStore';
+import { MdEditor } from '@/shared/components/MdEditor';
 
 const emptyForm = {
   contact_id: '',
@@ -47,42 +29,15 @@ const getErrorMessage = (error) =>
   error?.message ||
   'Failed to save log entry';
 
-const markdownPlugins = [
-  headingsPlugin(),
-  listsPlugin(),
-  quotePlugin(),
-  thematicBreakPlugin(),
-  markdownShortcutPlugin(),
-  linkPlugin(),
-  linkDialogPlugin(),
-  tablePlugin(),
-  diffSourcePlugin({ viewMode: 'rich-text' }),
-  toolbarPlugin({
-    toolbarClassName: 'cnt-md-toolbar',
-    toolbarContents: () => (
-      <>
-        <UndoRedo />
-        <BoldItalicUnderlineToggles />
-        <BlockTypeSelect />
-        <CodeToggle />
-        <CreateLink />
-        <ListsToggle />
-      </>
-    ),
-  }),
-];
-
 const MarkdownField = ({ value, onChange }) => (
-  <div className="cnt-md-editor">
-    <MDXEditor
-      overlayContainer={typeof document !== 'undefined' ? document.body : undefined}
-      markdown={value || ''}
-      onChange={onChange}
-      placeholder="What happened, what you learned, or what should be remembered."
-      contentEditableClassName="cnt-md-contenteditable"
-      plugins={markdownPlugins}
-    />
-  </div>
+  <MdEditor
+    value={value}
+    onChange={onChange}
+    placeholder="What happened, what you learned, or what should be remembered."
+    className="cnt-md-editor"
+    contentEditableClassName="cnt-md-contenteditable"
+    toolbarClassName="cnt-md-toolbar"
+  />
 );
 
 export const LogEditor = () => {

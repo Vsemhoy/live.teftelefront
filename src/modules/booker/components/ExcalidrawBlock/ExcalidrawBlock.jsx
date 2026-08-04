@@ -47,9 +47,7 @@ export const ExcalidrawBlock = ({ block, isEditing, onChange }) => {
     if (content.svg) {
       return (
         <Box
-          px="xs"
-          py={8}
-          style={{ background: 'var(--mantine-color-gray-0)', borderRadius: 6 }}
+          className="booker-excalidraw-preview"
           dangerouslySetInnerHTML={{ __html: content.svg }}
         />
       );

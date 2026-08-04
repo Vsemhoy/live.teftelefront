@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActionIcon, Box, Button, Group, Popover, Stack, Text, Textarea, Tooltip } from '@mantine/core';
+import { ActionIcon, Box, Button, Group, Popover, Stack, Text, Tooltip } from '@mantine/core';
 import { IconClockPlay, IconPlayerStopFilled } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
+import { MdEditor } from '@/shared/components/MdEditor';
 import { useActiveTimer, useStopTimer } from '../../api/timerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import { formatDuration } from '../../utils/taskerUtils';
@@ -84,14 +85,13 @@ export const TimerDock = ({ blockingOverlayOpen = false }) => {
             <Text size="sm" fw={650}>{taskTitle}</Text>
             <Text size="xs" c="teal.6" fw={600}>{formatDuration(elapsedSeconds)}</Text>
           </Stack>
-          <Textarea
-            label="What are you doing right now?"
-            description="Saved as session report when you stop"
+          <MdEditor
             placeholder="Fixing the legacy migration script..."
             value={content}
-            onChange={(event) => handleContentChange(event.currentTarget.value)}
-            minRows={4}
-            autosize
+            onChange={handleContentChange}
+            className="task-timer-md-editor"
+            contentEditableClassName="task-md-contenteditable"
+            toolbarClassName="task-md-toolbar"
           />
           <Group justify="space-between">
             <Text size="xs" c="dimmed">Text is preserved while timer runs</Text>

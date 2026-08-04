@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Button, Group, Modal, Select, Stack, Text, Textarea } from '@mantine/core';
+import { Button, Group, Modal, Select, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconTrash } from '@tabler/icons-react';
+import { MdEditor } from '@/shared/components/MdEditor';
 import { useBlockers, useDeleteTaskLog, useTasks, useSaveTaskLog } from '../../api/taskerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import { LOG_KINDS } from '../../utils/taskerUtils';
@@ -83,7 +84,14 @@ export const TaskLogEditor = () => {
             comboboxProps={{ withinPortal: true }}
           />
         )}
-        <Textarea label="Content" value={form.content} onChange={(event) => patch('content', event.currentTarget.value)} minRows={5} autosize />
+        <MdEditor
+          value={form.content}
+          onChange={(value) => patch('content', value)}
+          placeholder="Write log content..."
+          className="task-log-md-editor"
+          contentEditableClassName="task-md-contenteditable"
+          toolbarClassName="task-md-toolbar"
+        />
         <Group justify="space-between">
           {form.id ? (
             <Button variant="subtle" color="red" leftSection={<IconTrash size={14} />} onClick={handleDelete} loading={deleteLog.isPending}>

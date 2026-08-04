@@ -6,6 +6,7 @@ import {
 import {
   IconAlertTriangle, IconArrowsExchange, IconFileText, IconMessageCircle, IconNote, IconTrash,
 } from '@tabler/icons-react';
+import { MdPreview } from '@/shared/components/MdRenderer';
 import { useBulkDeleteTaskLogs, useTaskLogs } from '../../api/taskerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import { describeStatusChange, formatDateTime } from '../../utils/taskerUtils';
@@ -169,11 +170,13 @@ export const LogView = () => {
                     <Text size="sm" fw={600} truncate>{log.task?.title || 'Task'}</Text>
                     <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>{formatDateTime(log.occurred_at)}</Text>
                   </Group>
-                  {log.content && (
+                  {log.content && (isStatusChange ? (
                     <Text size="sm" c="dimmed" className="task-log-content">
-                      {isStatusChange ? describeStatusChange(log.content) : log.content}
+                      {describeStatusChange(log.content)}
                     </Text>
-                  )}
+                  ) : (
+                    <MdPreview content={log.content} />
+                  ))}
                   <Group gap={6}>
                     <Badge size="xs" variant="light" color={meta.color}>{log.kind}</Badge>
                     {log.blocker?.title && (

@@ -3,6 +3,7 @@ import {
   ActionIcon, Badge, Box, Button, Center, Checkbox, Divider, Group, Loader, Menu, Modal,
   Stack, Text, TextInput, Tooltip,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
   IconAlertTriangle, IconArrowsExchange, IconClockHour4, IconDotsVertical, IconEdit,
@@ -10,7 +11,7 @@ import {
 } from '@tabler/icons-react';
 import { useDeleteTask, useSaveChecklistItem, useSaveTask, useTask } from '../../api/taskerApi';
 import { useTaskerStore } from '../../store/taskerStore';
-import { MdFull } from '@/shared/components/MdRenderer';
+import { MdFull, MdPreview } from '@/shared/components/MdRenderer';
 import {
   TASK_STATUSES, describeStatusChange, formatDate, formatDateTime, formatDuration,
   priorityColor, priorityLabel, statusColor, statusLabel,
@@ -32,6 +33,7 @@ const durationMinutes = (startedAt, endedAt) => {
 
 export const TaskReadModal = () => {
   const { readModalOpen, readModalParams, closeReadModal } = useTaskerStore();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const openTaskEditor = useTaskerStore((state) => state.openTaskEditor);
   const openLogEditor = useTaskerStore((state) => state.openLogEditor);
   const openTimeEditor = useTaskerStore((state) => state.openTimeEditor);
@@ -146,11 +148,19 @@ export const TaskReadModal = () => {
   };
 
   return (
-    <Modal opened={readModalOpen} onClose={handleClose} size="lg" withCloseButton={false} padding={0}>
+    <Modal
+      opened={readModalOpen}
+      onClose={handleClose}
+      size="lg"
+      fullScreen={isMobile}
+      withCloseButton={false}
+      padding={0}
+      className="task-read-modal"
+    >
       {isLoading || !task ? (
         <Center h={300}><Loader /></Center>
       ) : (
-        <Stack gap={0}>
+        <Stack gap={0} className="task-read-layout">
           <Box p="md" pb="sm" className="task-read-head">
             <Group justify="space-between" align="flex-start" wrap="nowrap">
               <Stack gap={6} style={{ minWidth: 0, flex: 1 }}>
@@ -330,7 +340,7 @@ const TimelineEntry = ({ item, onEditLog, onEditEntry }) => {
               <Text size="xs" fw={600}>Timer session</Text>
               <Text size="xs" c="dimmed">{formatDateTime(entry.started_at)} - {formatDateTime(entry.ended_at)}</Text>
             </Group>
-            {entry.note && <Text size="xs" c="dimmed">{entry.note}</Text>}
+            {entry.note && <MdPreview content={entry.note} />}
           </Stack>
           <Text size="xs" fw={700} c="dimmed">{formatDuration((entry.duration_min || 0) * 60)}</Text>
         </Group>
@@ -354,9 +364,11 @@ const TimelineEntry = ({ item, onEditLog, onEditEntry }) => {
             <Badge size="xs" variant="light" color={meta.color}>{meta.label}</Badge>
             <Text size="xs" c="dimmed">{formatDateTime(log.occurred_at)}</Text>
           </Group>
-          <Text size="sm" className="task-log-content">
-            {isStatusChange ? describeStatusChange(log.content) : log.content}
-          </Text>
+          {isStatusChange ? (
+            <Text size="sm" className="task-log-content">{describeStatusChange(log.content)}</Text>
+          ) : (
+            <MdPreview content={log.content} />
+          )}
           {log.blocker?.title && (
             <Badge size="xs" variant="outline" color="orange" leftSection={<IconAlertTriangle size={10} />}>
               {log.blocker.title} | seen {log.blocker.occurrence_count}x

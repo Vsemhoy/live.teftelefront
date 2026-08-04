@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box } from '@mantine/core';
-import { MdPreview } from '@/shared/components/MdRenderer';
+import { MdFull } from '@/shared/components/MdRenderer';
 
 export const MdBlock = ({ block, isEditing, onChange }) => {
   const [value, setValue] = useState(block.content || '');
@@ -55,8 +55,8 @@ export const MdBlock = ({ block, isEditing, onChange }) => {
   }
 
   return (
-    <Box px="xs" py={4}>
-      <MdPreview content={value} />
+    <Box px="xs" py={4} className="booker-md-block">
+      <MdFull content={value} />
     </Box>
   );
 };

@@ -6,14 +6,13 @@ import { useSaveTaskSpan, useTaskSpans, useTasks } from '../../api/taskerApi';
 import { useActiveTimer, useStartTimer } from '../../api/timerApi';
 import { useTaskerStore } from '../../store/taskerStore';
 import {
-  buildHourLabels, calcSpanSeconds, dateOffsetStr, formatDate, formatDayLabel,
-  formatDuration, formatTime, getPriorityColors, isPast, isToday, timeToFraction,
+  buildHourLabels, calcSpanSeconds, formatDate, formatDayLabel,
+  formatDuration, formatTime, getPriorityColors, isPast, isToday, localDateKey, timeToFraction,
 } from '../../utils/taskerUtils';
 
-const DAYS_BACK = 7;
-const DAYS_FORWARD = 14;
 const RESIZE_STEP_MINUTES = 5;
 const MIN_SPAN_MINUTES = 15;
+const DEFAULT_CELL_SPAN_MINUTES = 120;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const snapToStep = (minutes) => Math.round(minutes / RESIZE_STEP_MINUTES) * RESIZE_STEP_MINUTES;
@@ -31,6 +30,16 @@ const formatLocalDateTime = (date) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
 };
 const secondsBetween = (start, end) => Math.max(0, Math.floor((new Date(end) - new Date(start)) / 1000));
+const currentMonthKey = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+const monthBounds = (monthKey) => {
+  const [year, month] = String(monthKey || currentMonthKey()).split('-').map(Number);
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  return { fromDate: localDateKey(first), toDate: localDateKey(last) };
+};
 const getResizeFields = (span) => {
   if (span.kind === 'plan') {
     return {
@@ -49,12 +58,24 @@ const getResizeFields = (span) => {
   };
 };
 
+const spanRangeMinutes = (span) => {
+  const fields = getResizeFields(span);
+  if (!fields.startValue || !fields.endValue) return null;
+  return {
+    start: minutesOfDay(fields.startValue),
+    end: minutesOfDay(fields.endValue),
+  };
+};
+
 export const CalendarView = () => {
   const [activeSpanId, setActiveSpanId] = useState(null);
   const [detailTaskId, setDetailTaskId] = useState(null);
   const {
     calendarHourRange: hourRange,
-    calendarShowFuture: showFuture,
+    calendarShowFuture,
+    calendarMonth,
+    calendarMarkupMode,
+    calendarMarkupTaskIds,
     openReadModal,
   } = useTaskerStore();
   const openSpanEditor = useTaskerStore((s) => s.openTimeEditor);
@@ -62,9 +83,8 @@ export const CalendarView = () => {
   const [startHour, endHour] = hourRange.split('-').map(Number);
   const hourLabels = buildHourLabels(startHour, endHour);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const fromDate = dateOffsetStr(-DAYS_BACK);
-  const toDate = showFuture ? dateOffsetStr(DAYS_FORWARD) : today;
+  const selectedMonth = calendarMonth || currentMonthKey();
+  const { fromDate, toDate } = monthBounds(selectedMonth);
 
   const [selectedSpanId, setSelectedSpanId] = useState(null); 
   const [resizeDraft, setResizeDraft] = useState(null);
@@ -88,16 +108,20 @@ export const CalendarView = () => {
 
   const isLoading = spansLoading || tasksLoading;
 
-  // Build all dates in the current range.
+  // Build visible dates in the selected month, newest first.
   const dates = useMemo(() => {
     const result = [];
     const start = new Date(fromDate + 'T00:00:00');
     const end = new Date(toDate + 'T00:00:00');
+    const todayKey = localDateKey(new Date());
+    const allowFuture = calendarShowFuture || selectedMonth > currentMonthKey();
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      result.push(d.toISOString().slice(0, 10));
+      const dateKey = localDateKey(d);
+      if (!allowFuture && dateKey > todayKey) continue;
+      result.push(dateKey);
     }
-    return showFuture ? result : [...result].reverse();
-  }, [fromDate, toDate, showFuture]);
+    return result.reverse();
+  }, [calendarShowFuture, fromDate, selectedMonth, toDate]);
 
   const taskMap = useMemo(() => {
     const m = {};
@@ -105,13 +129,19 @@ export const CalendarView = () => {
     return m;
   }, [allTasks]);
 
+  const visibleMarkupTaskIds = useMemo(
+    () => calendarMarkupTaskIds.filter((taskId) => taskMap[taskId]),
+    [calendarMarkupTaskIds, taskMap],
+  );
+
   // Group only spans whose parent task is visible in the current task query.
   const spansByDateAndTask = useMemo(() => {
     const map = {};
     allSpans.forEach((span) => {
       const tid = span.task_id;
       if (!tid || !taskMap[tid]) return;
-      const date = (span.started_at || span.planned_start_at || '').slice(0, 10);
+      const spanDate = span.started_at || span.planned_start_at;
+      const date = spanDate ? localDateKey(spanDate) : '';
       if (!date) return;
       if (!map[date]) map[date] = {};
       if (!map[date][tid]) map[date][tid] = [];
@@ -149,7 +179,40 @@ export const CalendarView = () => {
     openSpanEditor({ ...span, task_id: span.task_id });
   };
 
-  const handleResizeStart = (event, span, edge) => {
+  const handleCalendarCellDblClick = (event, date, taskId) => {
+    if (event.target.closest('.tvc-span, .tvc-row-actions')) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const rowStartMinutes = startHour * 60;
+    const rowEndMinutes = endHour * 60;
+    const fraction = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+    const pointerMinutes = snapToStep(rowStartMinutes + fraction * (rowEndMinutes - rowStartMinutes));
+    const maxStartMinutes = Math.max(rowStartMinutes, rowEndMinutes - MIN_SPAN_MINUTES);
+    const startMinutes = clamp(pointerMinutes, rowStartMinutes, maxStartMinutes);
+    const endMinutes = Math.min(rowEndMinutes, startMinutes + DEFAULT_CELL_SPAN_MINUTES);
+    const finalStartMinutes = Math.min(startMinutes, endMinutes - MIN_SPAN_MINUTES);
+    const start = dateWithMinutes(`${date}T00:00:00`, finalStartMinutes);
+    const end = dateWithMinutes(`${date}T00:00:00`, endMinutes);
+
+    if (calendarMarkupMode || event.ctrlKey) {
+      openSpanEditor({
+        task_id: taskId,
+        kind: 'plan',
+        planned_start_at: start.toISOString(),
+        planned_end_at: end.toISOString(),
+      });
+      return;
+    }
+
+    openSpanEditor({
+      task_id: taskId,
+      kind: 'fact',
+      started_at: start.toISOString(),
+      ended_at: end.toISOString(),
+    });
+  };
+
+  const handleResizeStart = (event, span, edge, rowSpans = []) => {
     const fields = getResizeFields(span);
     if (!fields.startValue || !fields.endValue || saveSpan.isPending) return;
     event.preventDefault();
@@ -161,6 +224,19 @@ export const CalendarView = () => {
     const rect = row.getBoundingClientRect();
     const originalStart = new Date(fields.startValue);
     const originalEnd = new Date(fields.endValue);
+    const originalStartMinutes = minutesOfDay(originalStart);
+    const originalEndMinutes = minutesOfDay(originalEnd);
+    const neighborRanges = rowSpans
+      .filter((item) => item.id !== span.id)
+      .map(spanRangeMinutes)
+      .filter(Boolean)
+      .filter((range) => range.end > range.start);
+    const previousEndMinutes = neighborRanges
+      .filter((range) => range.end <= originalStartMinutes)
+      .reduce((max, range) => Math.max(max, range.end), startHour * 60);
+    const nextStartMinutes = neighborRanges
+      .filter((range) => range.start >= originalEndMinutes)
+      .reduce((min, range) => Math.min(min, range.start), endHour * 60);
 
     const initialDraft = {
       spanId: span.id,
@@ -172,6 +248,8 @@ export const CalendarView = () => {
       rowWidth: rect.width,
       originalStart,
       originalEnd,
+      previousEndMinutes,
+      nextStartMinutes,
       nextStart: originalStart,
       nextEnd: originalEnd,
     };
@@ -189,12 +267,12 @@ export const CalendarView = () => {
 
       if (draft.edge === 'start') {
         const maxStartMinutes = Math.max(
-          rowStartMinutes,
+          draft.previousEndMinutes,
           Math.min(rowEndMinutes - MIN_SPAN_MINUTES, originalEndMinutes - MIN_SPAN_MINUTES),
         );
         const nextStartMinutes = clamp(
           pointerMinutes,
-          rowStartMinutes,
+          draft.previousEndMinutes,
           maxStartMinutes,
         );
 
@@ -206,13 +284,13 @@ export const CalendarView = () => {
       }
 
       const minEndMinutes = Math.min(
-        rowEndMinutes,
+        draft.nextStartMinutes,
         Math.max(rowStartMinutes + MIN_SPAN_MINUTES, originalStartMinutes + MIN_SPAN_MINUTES),
       );
       const nextEndMinutes = clamp(
         pointerMinutes,
         minEndMinutes,
-        rowEndMinutes,
+        draft.nextStartMinutes,
       );
 
       return {
@@ -313,9 +391,12 @@ export const CalendarView = () => {
             {isLoading ? (
               <div className="tvc-loading"><Loader size="sm" /></div>
             ) : dates.map((date) => {
-              const tasksOnDay = spansByDateAndTask[date] ? Object.keys(spansByDateAndTask[date]) : [];
+              const tasksOnDay = Array.from(new Set([
+                ...(spansByDateAndTask[date] ? Object.keys(spansByDateAndTask[date]) : []),
+                ...visibleMarkupTaskIds,
+              ]));
               const factSeconds = allSpans
-                .filter((s) => s.kind === 'fact' && (s.started_at || '').slice(0, 10) === date)
+                .filter((s) => s.kind === 'fact' && s.started_at && localDateKey(s.started_at) === date)
                 .reduce((acc, s) => acc + calcSpanSeconds(s), 0);
               const cls = stateClass(date);
 
@@ -344,7 +425,8 @@ export const CalendarView = () => {
                   {/* Task rows. */}
                   {tasksOnDay.map((taskId) => {
                     const task = taskMap[taskId];
-                    const spans = spansByDateAndTask[date][taskId] || [];
+                    const spans = spansByDateAndTask[date]?.[taskId] || [];
+                    const isMarkupRow = visibleMarkupTaskIds.includes(taskId) && spans.length === 0;
                     const factSecs = spans.filter((s) => s.kind === 'fact').reduce((a, s) => a + calcSpanSeconds(s), 0);
                     const planSpans = spans.filter((s) => s.kind === 'plan');
                     const factSpans = spans.filter((s) => s.kind === 'fact');
@@ -353,12 +435,12 @@ export const CalendarView = () => {
                     const colors = getPriorityColors(task?.priority_id);
 
                     return (
-                      <div key={taskId} className={`tvc-row tvc-row--task ${isSelected ? 'is-selected' : ''}`}>
+                      <div key={taskId} className={`tvc-row tvc-row--task ${isSelected ? 'is-selected' : ''} ${isMarkupRow ? 'is-markup-row' : ''}`}>
                         <div
                           className="tvc-left tvc-left--task"
-                          onClick={() => setDetailTaskId(isSelected ? null : taskId)}
+                          onClick={() => task && openReadModal(task)}
                           onDoubleClick={() => task && openReadModal(task)}
-                          title="Click to select, double-click to open task"
+                          title="Open task"
                         >
                           <div className="tvc-task-title">
                             <span className="tvc-task-dot" style={{ background: colors.border }} />
@@ -373,9 +455,17 @@ export const CalendarView = () => {
                               {planSpans.length > 0 ? `${factSecs > 0 ? ' | ' : ''}${planSpans.length} plan` : ''}
                             </Text>
                           )}
+                          {isMarkupRow && (
+                            <Text size="10" c="dimmed" className="tvc-task-meta">
+                              Layout row
+                            </Text>
+                          )}
                         </div>
 
-                        <div className="tvc-right tvc-right--task">
+                        <div
+                          className="tvc-right tvc-right--task"
+                          onDoubleClick={(event) => handleCalendarCellDblClick(event, date, taskId)}
+                        >
                           <HourGrid hourLabels={hourLabels} />
 
                           {planSpans.map((span) => {
@@ -396,8 +486,14 @@ export const CalendarView = () => {
                                   borderColor: colors.planBorder,
                                   background: colors.plan,
                                 }}
-                                onClick={()=> setSelectedSpanId(span.id)}
-                                onDoubleClick={() => handleSpanDblClick(span)}
+                                onClick={(event)=> {
+                                  event.stopPropagation();
+                                  setSelectedSpanId(span.id);
+                                }}
+                                onDoubleClick={(event) => {
+                                  event.stopPropagation();
+                                  handleSpanDblClick(span);
+                                }}
                                 title={`Plan: ${formatTime(plannedStartAt)}-${formatTime(plannedEndAt)} | double-click to edit`}
                               >
                                 {isResizable && (
@@ -408,7 +504,7 @@ export const CalendarView = () => {
                                   >
                                     <div
                                       className='tvc-span-handle-left'
-                                      onPointerDown={(event) => handleResizeStart(event, span, 'start')}
+                                      onPointerDown={(event) => handleResizeStart(event, span, 'start', spans)}
                                     ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div>
                                   </Tooltip>
                                 )}
@@ -420,7 +516,7 @@ export const CalendarView = () => {
                                   >
                                     <div
                                       className='tvc-span-handle-right'
-                                      onPointerDown={(event) => handleResizeStart(event, span, 'end')}
+                                      onPointerDown={(event) => handleResizeStart(event, span, 'end', spans)}
                                     ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div>
                                   </Tooltip>
                                 )}
@@ -451,9 +547,15 @@ export const CalendarView = () => {
                                     : colors.bg,
                                   borderLeft: `2px solid ${colors.border}`,
                                 }}
-                                onClick={()=> setSelectedSpanId(span.id)}
+                                onClick={(event)=> {
+                                  event.stopPropagation();
+                                  setSelectedSpanId(span.id);
+                                }}
                                 // onClick={() => setActiveSpanId(activeSpanId === span.id ? null : span.id)}
-                                onDoubleClick={() => handleSpanDblClick(span)}
+                                onDoubleClick={(event) => {
+                                  event.stopPropagation();
+                                  handleSpanDblClick(span);
+                                }}
                                 title={`${formatTime(startedAt)}-${isLive ? '...' : formatTime(endedAt)} | ${span.title || ''} | ${formatDuration(secs)}`}
                               >
                                 {isResizable && (
@@ -465,7 +567,7 @@ export const CalendarView = () => {
                                     
                                   <div
                                     className='tvc-span-handle-left'
-                                    onPointerDown={(event) => handleResizeStart(event, span, 'start')}
+                                    onPointerDown={(event) => handleResizeStart(event, span, 'start', spans)}
                                   >
                                     <span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div>
                                   </Tooltip>
@@ -490,7 +592,7 @@ export const CalendarView = () => {
                                   >
                                 <div
                                     className='tvc-span-handle-right'
-                                    onPointerDown={(event) => handleResizeStart(event, span, 'end')}
+                                    onPointerDown={(event) => handleResizeStart(event, span, 'end', spans)}
                                   ><span style={{opacity: 0.4}}>|</span>|<span style={{opacity: 0.4}}>|</span></div></Tooltip>
                                 )}
                               </div>

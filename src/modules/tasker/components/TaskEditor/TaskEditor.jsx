@@ -17,28 +17,10 @@ import {
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import {
-  BlockTypeSelect,
-  BoldItalicUnderlineToggles,
-  CodeToggle,
-  CreateLink,
-  diffSourcePlugin,
-  headingsPlugin,
-  linkDialogPlugin,
-  linkPlugin,
-  listsPlugin,
-  ListsToggle,
-  markdownShortcutPlugin,
-  MDXEditor,
-  quotePlugin,
-  tablePlugin,
-  thematicBreakPlugin,
-  toolbarPlugin,
-  UndoRedo,
-} from '@mdxeditor/editor';
 import { IconCheck, IconDeviceFloppy, IconEdit, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
 import { useContacts } from '@/modules/contactor/api/contactorApi';
 import { useProjects } from '@/modules/projector/api/projectorApi';
+import { MdEditor } from '@/shared/components/MdEditor';
 import {
   useDeleteChecklistItem, useDeleteTask, useSaveChecklistItem, useSaveTask, useTask,
 } from '../../api/taskerApi';
@@ -59,43 +41,16 @@ const emptyForm = {
   is_hidden: false,
 };
 
-const markdownPlugins = [
-  headingsPlugin(),
-  listsPlugin(),
-  quotePlugin(),
-  thematicBreakPlugin(),
-  markdownShortcutPlugin(),
-  linkPlugin(),
-  linkDialogPlugin(),
-  tablePlugin(),
-  diffSourcePlugin({ viewMode: 'rich-text' }),
-  toolbarPlugin({
-    toolbarClassName: 'task-md-toolbar',
-    toolbarContents: () => (
-      <>
-        <UndoRedo />
-        <BoldItalicUnderlineToggles />
-        <BlockTypeSelect />
-        <CodeToggle />
-        <CreateLink />
-        <ListsToggle />
-      </>
-    ),
-  }),
-];
-
 const MarkdownField = ({ value, onChange, placeholder, editorKey }) => (
-  <Box className="task-editor-surface md">
-    <MDXEditor
-      key={editorKey}
-      overlayContainer={typeof document !== 'undefined' ? document.body : undefined}
-      markdown={value || ''}
-      onChange={onChange}
-      placeholder={placeholder}
-      contentEditableClassName="task-md-contenteditable"
-      plugins={markdownPlugins}
-    />
-  </Box>
+  <MdEditor
+    editorKey={editorKey}
+    value={value}
+    onChange={onChange}
+    placeholder={placeholder}
+    className="task-editor-surface md"
+    contentEditableClassName="task-md-contenteditable"
+    toolbarClassName="task-md-toolbar"
+  />
 );
 
 export const TaskEditor = () => {
@@ -418,30 +373,6 @@ export const TaskEditor = () => {
             )}
             {form.id && (
               <>
-                <Group gap="xs" align="flex-end" wrap="nowrap">
-                  <TextInput
-                    className="task-checklist-input"
-                    label="New item"
-                    value={newChecklistTitle}
-                    onChange={(event) => setNewChecklistTitle(event.currentTarget.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        handleAddChecklistItem();
-                      }
-                    }}
-                  />
-                  <Button
-                    variant="light"
-                    color="blue"
-                    leftSection={<IconPlus size={14} />}
-                    onClick={handleAddChecklistItem}
-                    loading={saveChecklistItem.isPending}
-                  >
-                    Add
-                  </Button>
-                </Group>
-
                 <Stack gap={6}>
                   {checklistItems.length === 0 && <Text size="sm" c="dimmed">No checklist items yet.</Text>}
                   {checklistItems.map((item) => {
@@ -502,6 +433,30 @@ export const TaskEditor = () => {
                     );
                   })}
                 </Stack>
+
+                <Group gap="xs" align="flex-end" wrap="nowrap">
+                  <TextInput
+                    className="task-checklist-input"
+                    label="New item"
+                    value={newChecklistTitle}
+                    onChange={(event) => setNewChecklistTitle(event.currentTarget.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleAddChecklistItem();
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="light"
+                    color="blue"
+                    leftSection={<IconPlus size={14} />}
+                    onClick={handleAddChecklistItem}
+                    loading={saveChecklistItem.isPending}
+                  >
+                    Add
+                  </Button>
+                </Group>
               </>
             )}
           </Stack>

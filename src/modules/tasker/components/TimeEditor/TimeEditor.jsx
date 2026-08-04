@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Button, Group, Modal, Select, Stack, TextInput, Textarea } from '@mantine/core';
+import { Button, Group, Modal, Select, Stack, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconTrash } from '@tabler/icons-react';
+import { MdEditor } from '@/shared/components/MdEditor';
 import { useDeleteTimerEntry, useSaveTimerEntry } from '../../api/timerApi';
 import { useTasks } from '../../api/taskerApi';
 import { useTaskerStore } from '../../store/taskerStore';
-import { toInputDateTime } from '../../utils/taskerUtils';
+import { inputDateTimeToIso, toInputDateTime } from '../../utils/taskerUtils';
 
 const nowInput = () => toInputDateTime(new Date().toISOString());
 
@@ -48,8 +49,8 @@ export const TimeEditor = () => {
       id: form.id,
       source_module: 'tasker',
       source_id: form.task_id,
-      started_at: form.started_at,
-      ended_at: form.ended_at,
+      started_at: inputDateTimeToIso(form.started_at),
+      ended_at: inputDateTimeToIso(form.ended_at),
       entry_type: 'manual',
       time_type: form.time_type,
       content: form.content,
@@ -100,13 +101,13 @@ export const TimeEditor = () => {
           onChange={(value) => patch('time_type', value || 'self')}
           allowDeselect={false}
         />
-        <Textarea
-          label="What was done in this session"
-          description="Saved as a report entry in the task's log"
+        <MdEditor
           value={form.content}
-          onChange={(event) => patch('content', event.currentTarget.value)}
-          minRows={4}
-          autosize
+          onChange={(value) => patch('content', value)}
+          placeholder="What was done in this session..."
+          className="task-time-md-editor"
+          contentEditableClassName="task-md-contenteditable"
+          toolbarClassName="task-md-toolbar"
         />
         <Group justify="space-between">
           {form.id ? (
