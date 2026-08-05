@@ -6,14 +6,8 @@ import { BookCard } from '@/modules/booker/components/BookCard/BookCard';
 import { BookerToolbar } from '@/modules/booker/components/Toolbar/BookerToolbar';
 
 export const LibraryView = () => {
-  const { filterTab, filterTheme, filterTag, searchQuery } = useBookerStore();
-
-  const { data: books = [], isLoading } = useBooks({
-    my:  filterTab === 'my',
-    sub: filterTab === 'subscriptions',
-    tag: filterTag,
-    q:   searchQuery,
-  });
+  const searchQuery = useBookerStore((s) => s.searchQuery);
+  const { data: books = [], isLoading } = useBooks({ q: searchQuery || undefined });
 
   if (isLoading) {
     return (
@@ -32,14 +26,11 @@ export const LibraryView = () => {
           <Center h={300}>
             <Box ta="center">
               <IconBooks size={40} color="var(--mantine-color-dimmed)" />
-              <Text c="dimmed" size="sm" mt={8}>No books found</Text>
+              <Text c="dimmed" size="sm" mt={8}>No books yet</Text>
             </Box>
           </Center>
         ) : (
-          <SimpleGrid
-            cols={{ base: 1, xs: 2, sm: 3, md: 4, lg: 5 }}
-            spacing="md"
-          >
+          <SimpleGrid cols={{ base: 1, xs: 2, sm: 3, md: 4, lg: 5 }} spacing="md">
             {books.map((book) => (
               <BookCard key={book.id} book={book} />
             ))}

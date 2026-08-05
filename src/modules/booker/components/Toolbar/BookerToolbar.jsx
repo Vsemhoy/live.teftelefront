@@ -23,11 +23,7 @@ export const BookerToolbar = () => {
           style={{ width: 260 }}
           size="sm"
         />
-        <Button
-          leftSection={<IconPlus size={14} />}
-          size="sm"
-          onClick={() => openBookEditor()}
-        >
+        <Button leftSection={<IconPlus size={14} />} size="sm" onClick={() => openBookEditor()}>
           New book
         </Button>
       </Group>

@@ -142,6 +142,38 @@ body {
   z-index: 190;
 }
 
+.pinboard-corner-trigger {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 190;
+  width: 34px;
+  height: 34px;
+  padding: 0 3px 3px 0;
+  border: 0;
+  background: var(--mantine-color-yellow-4);
+  color: var(--mantine-color-yellow-9);
+  cursor: pointer;
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 1px;
+  transition: width 0.12s ease, height 0.12s ease, background 0.12s ease;
+}
+
+.pinboard-corner-trigger:hover {
+  width: 42px;
+  height: 42px;
+  background: var(--mantine-color-yellow-5);
+}
+
+.pinboard-corner-trigger span {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .app-menu-rail {
   position: fixed;
   top: 46px;

@@ -1,36 +1,38 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ActionIcon, Badge, Box, Button, Center, Group,
+  ActionIcon, Box, Button, Center, Group,
   Loader, Menu, Stack, Text,
 } from '@mantine/core';
 import {
-  IconDots, IconEdit, IconLayoutList, IconPlus,
+  IconDots, IconEdit, IconEye, IconLayoutList, IconPlus,
   IconTrash, IconArrowLeft, IconSettings,
 } from '@tabler/icons-react';
-import { useBook, useDocuments, useSaveDocument, useDeleteDocument } from '@/modules/booker/api/bookerApi';
+import { useBook, usePages, useSavePage, useDeletePage } from '@/modules/booker/api/bookerApi';
 import { useBookerStore } from '@/modules/booker/store/bookerStore';
-import { DocStructureModal } from '@/modules/booker/components/DocStructureModal/DocStructureModal';
+import { PageStructureModal } from '@/modules/booker/components/PageStructureModal/PageStructureModal';
+import { VISIBILITY_OPTIONS, getBookCoverSrc } from '@/modules/booker/utils/bookerUtils';
 
 export const BookView = () => {
   const { bookId } = useParams();
   const navigate = useNavigate();
-  const openDocStructure = useBookerStore((s) => s.openDocStructure);
+  const openPageStructure = useBookerStore((s) => s.openPageStructure);
   const openBookEditor = useBookerStore((s) => s.openBookEditor);
 
   const { data: book, isLoading: bookLoading } = useBook(bookId);
-  const { data: docs = [], isLoading: docsLoading } = useDocuments(bookId);
-  const { mutate: saveDoc } = useSaveDocument();
-  const { mutate: deleteDoc } = useDeleteDocument();
+  const { data: pages = [], isLoading: pagesLoading } = usePages(bookId);
+  const { mutate: savePage } = useSavePage();
+  const { mutate: deletePage } = useDeletePage();
+  const coverSrc = getBookCoverSrc(book);
 
-  const handleNewDoc = () => {
-    const title = `Document ${docs.length + 1}`;
-    saveDoc(
-      { book_id: bookId, title, slug: title.toLowerCase().replace(/\s+/g, '-'), sort_order: docs.length + 1 },
-      { onSuccess: (doc) => navigate(`/booker/${bookId}/${doc.id}`) }
+  const handleNewPage = () => {
+    const title = `Page ${pages.length + 1}`;
+    savePage(
+      { book_id: bookId, title, sort_order: pages.length + 1 },
+      { onSuccess: (page) => navigate(`/booker/${bookId}/${page.id}`) },
     );
   };
 
-  if (bookLoading || docsLoading) {
+  if (bookLoading || pagesLoading) {
     return <Center h={300}><Loader size="sm" /></Center>;
   }
 
@@ -42,34 +44,29 @@ export const BookView = () => {
             <ActionIcon variant="subtle" color="gray" onClick={() => navigate('/booker/library')}>
               <IconArrowLeft size={16} />
             </ActionIcon>
-            <Box
-              style={{
-                width: 24, height: 24, borderRadius: 5,
-                background: book?.cover_color || '#E6F1FB',
-                flexShrink: 0,
-              }}
-            />
+            <Box style={{
+              width: 24, height: 24, borderRadius: 5,
+              background: book?.cover_color || '#E6F1FB', flexShrink: 0, overflow: 'hidden',
+            }}>
+              {coverSrc && <img src={coverSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />}
+            </Box>
             <Text fw={500} size="sm">{book?.title}</Text>
           </Group>
           <Group gap={6}>
             <ActionIcon
-              variant="subtle"
-              color="gray"
-              title="Structure"
-              onClick={() => openDocStructure(bookId)}
+              variant="subtle" color="gray" title="Page structure"
+              onClick={() => openPageStructure(bookId)}
             >
               <IconLayoutList size={16} />
             </ActionIcon>
             <ActionIcon
-              variant="subtle"
-              color="gray"
-              title="Edit book"
+              variant="subtle" color="gray" title="Edit book"
               onClick={() => openBookEditor({ book })}
             >
               <IconSettings size={16} />
             </ActionIcon>
-            <Button size="sm" leftSection={<IconPlus size={14} />} onClick={handleNewDoc}>
-              New document
+            <Button size="sm" leftSection={<IconPlus size={14} />} onClick={handleNewPage}>
+              New page
             </Button>
           </Group>
         </Group>
@@ -81,22 +78,22 @@ export const BookView = () => {
             <Text c="dimmed" size="sm" mb={20}>{book.description}</Text>
           )}
 
-          {docs.length === 0 ? (
+          {pages.length === 0 ? (
             <Center h={200}>
               <Stack align="center" gap={8}>
-                <Text c="dimmed" size="sm">No documents yet</Text>
-                <Button variant="light" size="sm" leftSection={<IconPlus size={14} />} onClick={handleNewDoc}>
-                  Create first document
+                <Text c="dimmed" size="sm">No pages yet</Text>
+                <Button variant="light" size="sm" leftSection={<IconPlus size={14} />} onClick={handleNewPage}>
+                  Create first page
                 </Button>
               </Stack>
             </Center>
           ) : (
             <Stack gap={4}>
-              {docs.map((doc, i) => (
+              {pages.map((page, i) => (
                 <Box
-                  key={doc.id}
-                  className="doc-list-item"
-                  onClick={() => navigate(`/booker/${bookId}/${doc.id}`)}
+                  key={page.id}
+                  className="page-list-item"
+                  onClick={() => navigate(`/booker/${bookId}/${page.id}`)}
                 >
                   <Group justify="space-between" wrap="nowrap">
                     <Group gap={12} wrap="nowrap" style={{ minWidth: 0 }}>
@@ -104,19 +101,17 @@ export const BookView = () => {
                         {i + 1}
                       </Text>
                       <Box style={{ minWidth: 0 }}>
-                        <Text size="sm" fw={500} truncate>{doc.title}</Text>
-                        {doc.block_count > 0 && (
-                          <Text size="xs" c="dimmed">{doc.block_count} blocks</Text>
+                        <Text size="sm" fw={500} truncate>{page.title}</Text>
+                        {(page.block_groups_count > 0) && (
+                          <Text size="xs" c="dimmed">{page.block_groups_count} blocks</Text>
                         )}
                       </Box>
                     </Group>
                     <Menu withinPortal position="bottom-end" onClick={(e) => e.stopPropagation()}>
                       <Menu.Target>
                         <ActionIcon
-                          variant="subtle"
-                          color="gray"
-                          size="sm"
-                          className="doc-menu-btn"
+                          variant="subtle" color="gray" size="sm"
+                          className="page-menu-btn"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <IconDots size={14} />
@@ -125,15 +120,28 @@ export const BookView = () => {
                       <Menu.Dropdown>
                         <Menu.Item
                           leftSection={<IconEdit size={14} />}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/booker/${bookId}/${doc.id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/booker/${bookId}/${page.id}`); }}
                         >
                           Open
                         </Menu.Item>
+                        <Menu.Label>Visibility</Menu.Label>
+                        {VISIBILITY_OPTIONS.map((option) => (
+                          <Menu.Item
+                            key={option.value}
+                            leftSection={<IconEye size={14} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              savePage({ id: page.id, visibility: option.value });
+                            }}
+                          >
+                            {option.label}{page.visibility === option.value ? ' *' : ''}
+                          </Menu.Item>
+                        ))}
                         <Menu.Divider />
                         <Menu.Item
                           leftSection={<IconTrash size={14} />}
                           color="red"
-                          onClick={(e) => { e.stopPropagation(); deleteDoc({ id: doc.id, bookId }); }}
+                          onClick={(e) => { e.stopPropagation(); deletePage({ id: page.id }); }}
                         >
                           Delete
                         </Menu.Item>
@@ -147,7 +155,7 @@ export const BookView = () => {
         </Box>
       </Box>
 
-      <DocStructureModal />
+      <PageStructureModal />
     </>
   );
 };

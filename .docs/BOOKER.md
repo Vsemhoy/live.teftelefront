@@ -43,6 +43,8 @@ bkr_books
   structure_mode enum('tree', 'flat') default 'tree'
   visibility enum('private', 'friends', 'registered', 'public') default 'private'
   cover_color
+  cover_svg_url text nullable
+  cover_svg_text longtext nullable
   export_settings json nullable
   sort_order
   is_archived
@@ -144,6 +146,8 @@ Initial block types:
 ```text
 markdown
 excalidraw
+svg
+table
 code
 callout
 divider
@@ -154,6 +158,58 @@ image
 ```
 
 `image` can be implemented later.
+
+## Table Blocks
+
+`table` is a first-class versioned block type. It should be used for structured data that needs predictable styling, horizontal overflow, and clean export behavior. Tables are not stored as markdown tables because document tables often need stable column definitions, safer import, and responsive rendering.
+
+Recommended payload:
+
+```json
+{
+  "caption": "Service map",
+  "min_width": "760px",
+  "columns": ["Service", "Host", "Port"],
+  "rows": [
+    ["API", "api.example.com", "443"],
+    ["MariaDB", "db.internal", "3306"]
+  ]
+}
+```
+
+`rows` may also be an array of objects when that is more convenient for importers:
+
+```json
+{
+  "caption": "Accounts",
+  "min_width": "920px",
+  "columns": ["name", "bank", "currency"],
+  "rows": [
+    { "name": "Main card", "bank": "T-Bank", "currency": "RUB" },
+    { "name": "Savings", "bank": "Alfa", "currency": "RUB" }
+  ]
+}
+```
+
+Field rules:
+
+- `caption`: optional short title shown above the table.
+- `min_width`: optional CSS size string such as `720px`, `960px`, `48rem`, or `100%`; when the table is wider than the page, the table block scrolls horizontally.
+- `columns`: ordered array of strings; these are both headers and object-row lookup keys.
+- `rows`: ordered array of arrays or objects.
+
+Rendering rules:
+
+- The page layout must not expand horizontally because of a table.
+- Horizontal overflow belongs to the table block, not to the whole page or modal.
+- Cell text should preserve line breaks and wrap when possible.
+- Table versions are normal `bkr_blocks` rows; editing a table creates a new version and can update `master_block_id`.
+
+Import rules:
+
+- JSON imports should preserve `columns`, `rows`, `caption`, and `min_width`.
+- CSV and TSV files can be imported as `table` blocks: first row becomes `columns`, following rows become `rows`.
+- Export should emit the same `payload` shape so an AI agent can regenerate or modify the table safely.
 
 ## Markup Blocks
 
@@ -245,4 +301,3 @@ Book export settings can live in `bkr_books.export_settings`:
   "toc": true
 }
 ```
-

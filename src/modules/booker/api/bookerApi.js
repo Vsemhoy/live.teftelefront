@@ -1,35 +1,38 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/shared/utils/api';
-import {
-  MOCK_BOOKS, MOCK_DOCUMENTS, MOCK_BLOCKS,
-} from './bookerMocks';
 
-const USE_MOCKS = true; // переключить на false когда бэк готов
+export const createBookerBook = async (book) => {
+  const { data } = await api.post('/booker/books', book);
+  return data;
+};
 
-// ── Книги ─────────────────────────────────────────────────────────
+export const createBookerPage = async (page) => {
+  const { data } = await api.post('/booker/pages', page);
+  return data;
+};
 
-export const useBooks = (params = {}) =>
+export const createBookerBlockGroup = async (payload) => {
+  const { data } = await api.post('/booker/block-groups', payload);
+  return data;
+};
+
+// Books
+
+export const useBooks = (params = {}, options = {}) =>
   useQuery({
-    queryKey: ['books', params],
+    queryKey: ['bkr-books', params],
     queryFn: async () => {
-      if (USE_MOCKS) {
-        let books = [...MOCK_BOOKS];
-        if (params.my)    books = books.filter((b) => b.user_id === 'user-1');
-        if (params.tag)   books = books.filter((b) => b.tags?.includes(params.tag));
-        if (params.q)     books = books.filter((b) => b.title.toLowerCase().includes(params.q.toLowerCase()));
-        return books;
-      }
       const { data } = await api.get('/booker/books', { params });
       return data;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60_000,
+    ...options,
   });
 
 export const useBook = (id) =>
   useQuery({
-    queryKey: ['books', id],
+    queryKey: ['bkr-books', id],
     queryFn: async () => {
-      if (USE_MOCKS) return MOCK_BOOKS.find((b) => b.id === id) ?? null;
       const { data } = await api.get(`/booker/books/${id}`);
       return data;
     },
@@ -40,165 +43,175 @@ export const useSaveBook = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (book) => {
-      if (USE_MOCKS) return { ...book, id: book.id || `book-${Date.now()}` };
       const { data } = book.id
         ? await api.put(`/booker/books/${book.id}`, book)
         : await api.post('/booker/books', book);
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['books'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bkr-books'] }),
   });
 };
 
 export const useDeleteBook = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id) => {
-      if (USE_MOCKS) return;
-      await api.delete(`/booker/books/${id}`);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['books'] }),
+    mutationFn: async (id) => { await api.delete(`/booker/books/${id}`); },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bkr-books'] }),
   });
 };
 
-// ── Документы ─────────────────────────────────────────────────────
+// Pages
 
-export const useDocuments = (bookId) =>
+export const usePages = (bookId, options = {}) =>
   useQuery({
-    queryKey: ['documents', bookId],
+    queryKey: ['bkr-pages', bookId],
     queryFn: async () => {
-      if (USE_MOCKS) return MOCK_DOCUMENTS[bookId] ?? [];
-      const { data } = await api.get(`/booker/books/${bookId}/documents`);
+      const { data } = await api.get('/booker/pages', { params: { book_id: bookId } });
       return data;
     },
     enabled: !!bookId,
+    ...options,
   });
 
-export const useSaveDocument = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (doc) => {
-      if (USE_MOCKS) return { ...doc, id: doc.id || `doc-${Date.now()}` };
-      const { data } = doc.id
-        ? await api.put(`/booker/documents/${doc.id}`, doc)
-        : await api.post(`/booker/books/${doc.book_id}/documents`, doc);
-      return data;
-    },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['documents', vars.book_id] }),
-  });
-};
-
-export const useReorderDocuments = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ bookId, order }) => {
-      if (USE_MOCKS) return;
-      await api.post(`/booker/books/${bookId}/documents/reorder`, { order });
-    },
-    onSuccess: (_, { bookId }) => qc.invalidateQueries({ queryKey: ['documents', bookId] }),
-  });
-};
-
-export const useDeleteDocument = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, bookId }) => {
-      if (USE_MOCKS) return;
-      await api.delete(`/booker/documents/${id}`);
-    },
-    onSuccess: (_, { bookId }) => qc.invalidateQueries({ queryKey: ['documents', bookId] }),
-  });
-};
-
-// ── Блоки ─────────────────────────────────────────────────────────
-
-export const useBlocks = (documentId) =>
+export const usePage = (id) =>
   useQuery({
-    queryKey: ['blocks', documentId],
+    queryKey: ['bkr-page', id],
     queryFn: async () => {
-      if (USE_MOCKS) return MOCK_BLOCKS[documentId] ?? [];
-      const { data } = await api.get(`/booker/documents/${documentId}/blocks`);
+      const { data } = await api.get(`/booker/pages/${id}`);
       return data;
     },
-    enabled: !!documentId,
+    enabled: !!id,
   });
 
-export const useSaveBlock = () => {
+export const useSavePage = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (block) => {
-      if (USE_MOCKS) {
-        const saved = { ...block, id: block.id || `block-${Date.now()}` };
-        const documentBlocks = MOCK_BLOCKS[saved.document_id] ?? [];
-        const index = documentBlocks.findIndex((item) => item.id === saved.id);
-
-        if (index >= 0) {
-          documentBlocks[index] = { ...documentBlocks[index], ...saved };
-        } else {
-          documentBlocks.push(saved);
-        }
-
-        MOCK_BLOCKS[saved.document_id] = documentBlocks
-          .slice()
-          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-
-        return saved;
-      }
-      const { data } = block.id
-        ? await api.put(`/booker/blocks/${block.id}`, block)
-        : await api.post(`/booker/documents/${block.document_id}/blocks`, block);
+    mutationFn: async (page) => {
+      const { data } = page.id
+        ? await api.put(`/booker/pages/${page.id}`, page)
+        : await api.post('/booker/pages', page);
       return data;
     },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['blocks', vars.document_id] }),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['bkr-pages', result.book_id] });
+      qc.invalidateQueries({ queryKey: ['bkr-books', result.book_id] });
+      qc.invalidateQueries({ queryKey: ['bkr-page', result.id] });
+    },
   });
 };
 
-export const useDeleteBlock = () => {
+export const useDeletePage = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, documentId }) => {
-      if (USE_MOCKS) {
-        MOCK_BLOCKS[documentId] = (MOCK_BLOCKS[documentId] ?? []).filter((block) => block.id !== id);
-        return;
-      }
-      await api.delete(`/booker/blocks/${id}`);
+    mutationFn: async ({ id }) => { await api.delete(`/booker/pages/${id}`); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bkr-pages'] });
+      qc.invalidateQueries({ queryKey: ['bkr-books'] });
     },
-    onSuccess: (_, { documentId }) => qc.invalidateQueries({ queryKey: ['blocks', documentId] }),
+  });
+};
+
+export const useReorderPages = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ items }) => {
+      await api.post('/booker/pages/reorder', { items });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bkr-pages'] }),
+  });
+};
+
+// Block groups
+
+export const useCreateBlockGroup = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload) => {
+      const { data } = await api.post('/booker/block-groups', payload);
+      return data;
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['bkr-page', result.page_id] });
+    },
+  });
+};
+
+export const useUpdateBlockGroup = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...payload }) => {
+      const { data } = await api.put(`/booker/block-groups/${id}`, payload);
+      return data;
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['bkr-page', result.page_id] });
+    },
+  });
+};
+
+export const useDeleteBlockGroup = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, pageId }) => {
+      await api.delete(`/booker/block-groups/${id}`);
+      return { pageId };
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['bkr-page', result.pageId] });
+    },
   });
 };
 
 export const useReorderBlocks = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ documentId, order }) => {
-      if (USE_MOCKS) {
-        const orderById = new Map(order.map((item) => [item.id, item.sort_order]));
-        MOCK_BLOCKS[documentId] = (MOCK_BLOCKS[documentId] ?? [])
-          .map((block) => ({
-            ...block,
-            sort_order: orderById.get(block.id) ?? block.sort_order,
-          }))
-          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-        return;
-      }
-      await api.post(`/booker/documents/${documentId}/blocks/reorder`, { order });
+    mutationFn: async ({ items }) => {
+      await api.post('/booker/block-groups/reorder', { items });
     },
-    onSuccess: (_, { documentId }) => qc.invalidateQueries({ queryKey: ['blocks', documentId] }),
   });
 };
 
-// ── Публичный блок ────────────────────────────────────────────────
+// Block versions
 
-export const usePublicBlock = (id) =>
+export const useSaveBlockContent = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, pageId, content, payload, title, status }) => {
+      const body = {};
+      if (content !== undefined) body.content = content;
+      if (payload !== undefined) body.payload = payload;
+      if (title !== undefined) body.title = title;
+      if (status !== undefined) body.status = status;
+      body.make_master = true;
+      const { data } = await api.post(`/booker/block-groups/${groupId}/versions`, body);
+      return { ...data, pageId };
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['bkr-page', result.pageId] });
+    },
+  });
+};
+
+export const useBlockVersions = (groupId, options = {}) =>
   useQuery({
-    queryKey: ['public-block', id],
+    queryKey: ['bkr-versions', groupId],
     queryFn: async () => {
-      if (USE_MOCKS) {
-        const allBlocks = Object.values(MOCK_BLOCKS).flat();
-        return allBlocks.find((b) => b.id === id) ?? null;
-      }
-      const { data } = await api.get(`/opn/booker/b/${id}`);
+      const { data } = await api.get(`/booker/block-groups/${groupId}/versions`);
       return data;
     },
-    enabled: !!id,
+    enabled: !!groupId,
+    ...options,
   });
+
+export const usePublishVersion = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, blockId }) => {
+      const { data } = await api.post(`/booker/block-groups/${groupId}/publish/${blockId}`);
+      return data;
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['bkr-page', result.page_id] });
+    },
+  });
+};
